@@ -6,7 +6,8 @@ const _ = require('lodash');
 const { parseString } = require('xml2js');
 const mongoose = require('mongoose');
 
-const WebClient = require('@slack/client').WebClient;
+const { WebClient } = require('@slack/client');
+
 const token = process.env.MOMO_SLACK_API_TOKEN || '';
 const web = new WebClient(token);
 
@@ -71,11 +72,12 @@ function checkVersions() {
 		);
 		if (!VERSION_DATA || !_.isEqual(VERSION_DATA, newVersionData)) {
 			// remove all persisted versionData now that it's bad
-			VersionData.remove(undefined, err => {
+			VersionData.remove(undefined, () => {
 				const newVersionDataModel = new VersionData(newVersionData);
 				// store the new version info!
-				newVersionDataModel.save(saveErr => {
+				newVersionDataModel.save(() => {
 					const changes = _.filter(
+						// eslint-disable-next-line consistent-return
 						_.map(newVersionData, (value, key) => {
 							if (!VERSION_DATA || VERSION_DATA[key] !== value) {
 								return `*${_.startCase(
@@ -137,7 +139,7 @@ function checkScreensConnect() {
 		.then(response => response.text())
 		.then(xml => {
 			const promise = new Promise(resolve => {
-				parseString(xml, function(err, result) {
+				parseString(xml, (err, result) => {
 					const version = getNewestVersionFromItems(
 						_.get(result, 'rss.channel[0].item'),
 					);
@@ -153,7 +155,7 @@ function checkRescueTime() {
 		.then(response => response.text())
 		.then(xml => {
 			const promise = new Promise(resolve => {
-				parseString(xml, function(err, result) {
+				parseString(xml, (err, result) => {
 					const version = getNewestVersionFromItems(
 						_.get(result, 'rss.channel[0].item'),
 					);
@@ -169,7 +171,7 @@ function checkBackBlaze() {
 		.then(response => response.text())
 		.then(xml => {
 			const promise = new Promise(resolve => {
-				parseString(xml, function(err, result) {
+				parseString(xml, (err, result) => {
 					const version = _.get(
 						result,
 						'clientversion.update[0].$.mac_version',

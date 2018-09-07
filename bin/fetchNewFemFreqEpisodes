@@ -4,7 +4,8 @@ require('dotenv').config();
 const puppeteer = require('puppeteer');
 const mongoose = require('mongoose');
 
-const WebClient = require('@slack/client').WebClient;
+const { WebClient } = require('@slack/client');
+
 const token = process.env.SLACK_API_TOKEN || '';
 const web = new WebClient(token);
 
@@ -54,8 +55,8 @@ async function fetchNewEpisodes() {
 	await page.goto('https://d.rip/login');
 
 	await page.waitForSelector('#user_session_email');
-	const usernameInput = await page.$('#user_session_email');
-	const passwordInput = await page.$('#user_session_password');
+	await page.$('#user_session_email');
+	await page.$('#user_session_password');
 	await page.click('#user_session_email');
 	await page.keyboard.type(process.env.KICKSTARTER_LOGIN);
 
@@ -74,6 +75,7 @@ async function fetchNewEpisodes() {
 	const descriptionsHandles = await page.$$('div.rich-text p');
 	const audioEmbeds = await page.$$('audio');
 
+	/* eslint-disable no-shadow */
 	const urls = await Promise.all(
 		audioEmbeds.map(async audioEmbed => {
 			const src = await page.evaluate(audioEmbed => audioEmbed.src, audioEmbed);
@@ -90,13 +92,11 @@ async function fetchNewEpisodes() {
 				handle,
 			);
 			if (hasAudio) {
-				return await page.evaluate(handle => handle.innerText, handle);
+				return page.evaluate(handle => handle.innerText, handle);
 			}
 			return null;
 		}),
-	).then(titles => {
-		return titles.filter(title => !!title);
-	});
+	).then(titles => titles.filter(title => !!title));
 
 	const filteredDescriptions = await Promise.all(
 		[...descriptionsHandles].map(async handle => {
@@ -108,13 +108,12 @@ async function fetchNewEpisodes() {
 				handle,
 			);
 			if (hasAudio) {
-				return await page.evaluate(handle => handle.innerText, handle);
+				return page.evaluate(handle => handle.innerText, handle);
 			}
 			return null;
 		}),
-	).then(descriptions => {
-		return descriptions.filter(description => !!description);
-	});
+	).then(descriptions => descriptions.filter(description => !!description));
+	/* eslint-enable no-shadow */
 
 	const episodes = urls
 		.map((url, i) => ({
@@ -126,7 +125,7 @@ async function fetchNewEpisodes() {
 		.reverse();
 
 	let newEpisodesFound = false;
-	let newEpisodeTitles = [];
+	const newEpisodeTitles = [];
 	episodes.forEach(episode => {
 		const urlKey = episode.url.replace(/\./g, ''); // can't store periods in keys for mongodb
 		if (!storedEpisodesModel.episodes[urlKey]) {
@@ -183,22 +182,21 @@ async function fetchNewEpisodes() {
 	}
 }
 
-function pubDate(date) {
-	if (typeof date === 'undefined') {
-		date = new Date();
-	}
+function pubDate(date = new Date()) {
+	const pieces = date.toString().split(' ');
 
-	var pieces = date.toString().split(' '),
-		offsetTime = pieces[5].match(/[-+]\d{4}/),
-		offset = offsetTime ? offsetTime : pieces[5],
-		parts = [
-			pieces[0] + ',',
-			pieces[2],
-			pieces[1],
-			pieces[3],
-			pieces[4],
-			offset,
-		];
+	const offsetTime = pieces[5].match(/[-+]\d{4}/);
+
+	const offset = offsetTime || pieces[5];
+
+	const parts = [
+		`${pieces[0]},`,
+		pieces[2],
+		pieces[1],
+		pieces[3],
+		pieces[4],
+		offset,
+	];
 
 	return parts.join(' ');
 }
