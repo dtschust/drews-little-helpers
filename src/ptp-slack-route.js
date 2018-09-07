@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('isomorphic-fetch');
 const request = require('request');
 const mongoose = require('mongoose');
 const { Dropbox } = require('dropbox');
