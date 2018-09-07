@@ -159,7 +159,7 @@ async function fetchNewEpisodes() {
 				console.log(`done! Saved new episodes! ${newEpisodeTitles.join(', ')}`);
 				web.chat
 					.postMessage({
-						channel: process.env.CHANNEL_ID,
+						channel: process.env.FEMFREQ_SLACK_CHANNEL_ID,
 						text: `${
 							newEpisodeTitles.length
 						} new episode(s) of fem frequency posted! Titles: ${newEpisodeTitles.join(
