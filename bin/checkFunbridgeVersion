@@ -1,0 +1,208 @@
+#!/usr/bin/env node
+
+require('dotenv').config();
+require('isomorphic-fetch');
+const _ = require('lodash');
+const { parseString } = require('xml2js');
+const mongoose = require('mongoose');
+
+const WebClient = require('@slack/client').WebClient;
+const token = process.env.MOMO_SLACK_API_TOKEN || '';
+const web = new WebClient(token);
+
+mongoose.Promise = global.Promise;
+mongoose.connect(
+	process.env.MONGO_DB_URI,
+	{
+		useMongoClient: true,
+	},
+);
+
+const VersionData = mongoose.model('VersionData', {
+	funbridge: String,
+	screensConnect: String,
+	rescueTime: String,
+	backBlaze: String,
+});
+
+let VERSION_DATA;
+VersionData.findOne(undefined)
+	.exec()
+	.then(newVersionData => {
+		if (newVersionData) {
+			VERSION_DATA = {
+				funbridge: newVersionData.get('funbridge'),
+				screensConnect: newVersionData.get('screensConnect'),
+				rescueTime: newVersionData.get('rescueTime'),
+				backBlaze: newVersionData.get('backBlaze'),
+			};
+		}
+		checkVersions(); // eslint-disable-line no-use-before-define
+	})
+	.catch(() => {
+		checkVersions(); // eslint-disable-line no-use-before-define
+	});
+
+function checkVersions() {
+	Promise.all([
+		checkFunbridge(),
+		checkScreensConnect(),
+		checkRescueTime(),
+		checkBackBlaze(),
+	]).then(([funbridge, screensConnect, rescueTime, backBlaze]) => {
+		const newVersionData = {
+			funbridge,
+			screensConnect,
+			rescueTime,
+			backBlaze,
+		};
+		_.forEach(
+			['funbridge', 'screensConnect', 'rescueTime', 'backBlaze'],
+			key => {
+				// If the network request failed to get a version number, just ignore it for now
+				// and copy from the old version data
+				if (!newVersionData[key] || newVersionData[key].length === 0) {
+					newVersionData[key] = VERSION_DATA[key];
+				}
+			},
+		);
+		if (!VERSION_DATA || !_.isEqual(VERSION_DATA, newVersionData)) {
+			// remove all persisted versionData now that it's bad
+			VersionData.remove(undefined, err => {
+				const newVersionDataModel = new VersionData(newVersionData);
+				// store the new version info!
+				newVersionDataModel.save(saveErr => {
+					const changes = _.filter(
+						_.map(newVersionData, (value, key) => {
+							if (!VERSION_DATA || VERSION_DATA[key] !== value) {
+								return `*${_.startCase(
+									key,
+								)}* update available: from *${VERSION_DATA &&
+									VERSION_DATA[key]}* to *${value}*`;
+							}
+						}),
+					).join('\n');
+					sendMessage(
+						`
+*Laptop needs updates!*
+${changes}
+					`,
+					).then(() => {
+						process.exit(0);
+					});
+
+					VERSION_DATA = {
+						funbridge: newVersionDataModel.get('funbridge'),
+						screensConnect: newVersionDataModel.get('screensConnect'),
+						rescueTime: newVersionDataModel.get('rescueTime'),
+						backBlaze: newVersionDataModel.get('backBlaze'),
+					};
+				});
+			});
+		} else {
+			console.log('Version checked, no updates!');
+			process.exit(0);
+		}
+	});
+}
+
+function getNewestVersionFromItems(items = []) {
+	const versions = _.filter(
+		items.map(item => {
+			const version = _.get(
+				item,
+				`enclosure[0].$['sparkle:shortVersionString']`,
+				undefined,
+			);
+
+			// Filter out version that don't have a . in them, to fix incremental versions that are high numbers
+			if (!version || version.indexOf('.') === -1) {
+				return null;
+			}
+			return version;
+		}),
+	).sort();
+	if (!versions.length) {
+		return '';
+	}
+
+	return versions[versions.length - 1];
+}
+
+function checkScreensConnect() {
+	return fetch('https://updates.devmate.com/com.edovia.Screens-Connect.xml')
+		.then(response => response.text())
+		.then(xml => {
+			const promise = new Promise(resolve => {
+				parseString(xml, function(err, result) {
+					const version = getNewestVersionFromItems(
+						_.get(result, 'rss.channel[0].item'),
+					);
+					resolve(version);
+				});
+			});
+			return promise;
+		});
+}
+
+function checkRescueTime() {
+	return fetch('https://www.rescuetime.com/installers/appcast')
+		.then(response => response.text())
+		.then(xml => {
+			const promise = new Promise(resolve => {
+				parseString(xml, function(err, result) {
+					const version = getNewestVersionFromItems(
+						_.get(result, 'rss.channel[0].item'),
+					);
+					resolve(version);
+				});
+			});
+			return promise;
+		});
+}
+
+function checkBackBlaze() {
+	return fetch('https://ca001.backblaze.com/api/clientversion.xml')
+		.then(response => response.text())
+		.then(xml => {
+			const promise = new Promise(resolve => {
+				parseString(xml, function(err, result) {
+					const version = _.get(
+						result,
+						'clientversion.update[0].$.mac_version',
+					);
+					resolve(version);
+				});
+			});
+			return promise;
+		});
+}
+
+function checkFunbridge() {
+	return fetch(
+		'https://itunes.apple.com/search?entity=macSoftware&term=funbridge',
+	)
+		.then(resp => resp.json())
+		.then(resp => {
+			const { version } = resp.results[0];
+			return version;
+		})
+		.catch(err => {
+			console.error(err);
+			return '';
+		});
+}
+
+function sendMessage(text) {
+	return web.chat
+		.postMessage({
+			channel: process.env.MOMO_SLACK_CHANNEL_ID,
+			text,
+		})
+		.then(() => {
+			console.log('Message sent: ', text);
+		})
+		.catch(err => {
+			console.log('Error:', err);
+		});
+}
