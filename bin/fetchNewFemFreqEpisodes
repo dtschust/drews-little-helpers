@@ -1,0 +1,204 @@
+#!/usr/bin/env node
+
+require('dotenv').config();
+const puppeteer = require('puppeteer');
+const mongoose = require('mongoose');
+
+const WebClient = require('@slack/client').WebClient;
+const token = process.env.SLACK_API_TOKEN || '';
+const web = new WebClient(token);
+
+mongoose.Promise = global.Promise;
+mongoose.connect(
+	process.env.MONGO_DB_URI,
+	{
+		useMongoClient: true,
+	},
+);
+
+process.on('unhandledRejection', error => {
+	console.log('unhandledRejection', error);
+	process.exit(1);
+});
+
+const FemFreqEpisodesModel = mongoose.model('FemFreqEpisodes', {
+	episodes: Object,
+	order: [String],
+});
+
+let storedEpisodesModel;
+FemFreqEpisodesModel.findOne(undefined)
+	.exec()
+	.then(newStoredEpisodesModel => {
+		if (newStoredEpisodesModel) {
+			storedEpisodesModel = {
+				episodes: newStoredEpisodesModel.get('episodes'),
+				order: newStoredEpisodesModel.get('order'),
+			};
+		} else {
+			storedEpisodesModel = { episodes: {}, order: [] };
+		}
+		fetchNewEpisodes();
+	})
+	.catch(e => {
+		console.log('Huh, we have an error', e);
+		process.exit(0);
+	});
+
+async function fetchNewEpisodes() {
+	const browser = await puppeteer.launch({
+		headless: true,
+		args: ['--no-sandbox', '--disable-setuid-sandbox'],
+	});
+	const page = await browser.newPage();
+	await page.goto('https://d.rip/login');
+
+	await page.waitForSelector('#user_session_email');
+	const usernameInput = await page.$('#user_session_email');
+	const passwordInput = await page.$('#user_session_password');
+	await page.click('#user_session_email');
+	await page.keyboard.type(process.env.KICKSTARTER_LOGIN);
+
+	await page.click('#user_session_password');
+	await page.keyboard.type(process.env.KICKSTARTER_PASSWORD);
+
+	await page.click('input[value="Log in with Kickstarter"]');
+
+	await page.waitForNavigation();
+
+	await page.goto('https://d.rip/femfreq');
+
+	await page.waitForSelector('audio');
+
+	const titlesHandles = await page.$$('h1 a');
+	const descriptionsHandles = await page.$$('div.rich-text p');
+	const audioEmbeds = await page.$$('audio');
+
+	const urls = await Promise.all(
+		audioEmbeds.map(async audioEmbed => {
+			const src = await page.evaluate(audioEmbed => audioEmbed.src, audioEmbed);
+			return src;
+		}),
+	);
+
+	const filteredTitles = await Promise.all(
+		[...titlesHandles].map(async handle => {
+			const hasAudio = await page.evaluate(
+				handle =>
+					handle.parentNode.parentNode.parentNode.querySelectorAll('audio')
+						.length === 1,
+				handle,
+			);
+			if (hasAudio) {
+				return await page.evaluate(handle => handle.innerText, handle);
+			}
+			return null;
+		}),
+	).then(titles => {
+		return titles.filter(title => !!title);
+	});
+
+	const filteredDescriptions = await Promise.all(
+		[...descriptionsHandles].map(async handle => {
+			const hasAudio = await page.evaluate(
+				handle =>
+					handle.parentNode.parentNode.parentNode.parentNode.querySelectorAll(
+						'audio',
+					).length === 1,
+				handle,
+			);
+			if (hasAudio) {
+				return await page.evaluate(handle => handle.innerText, handle);
+			}
+			return null;
+		}),
+	).then(descriptions => {
+		return descriptions.filter(description => !!description);
+	});
+
+	const episodes = urls
+		.map((url, i) => ({
+			url,
+			title: filteredTitles[i],
+			description: filteredDescriptions[i],
+			pubDate: pubDate(new Date(Date.now() - i * 1000)),
+		}))
+		.reverse();
+
+	let newEpisodesFound = false;
+	let newEpisodeTitles = [];
+	episodes.forEach(episode => {
+		const urlKey = episode.url.replace(/\./g, ''); // can't store periods in keys for mongodb
+		if (!storedEpisodesModel.episodes[urlKey]) {
+			storedEpisodesModel.episodes[urlKey] = episode;
+			storedEpisodesModel.order.push(urlKey);
+			newEpisodesFound = true;
+			newEpisodeTitles.push(episode.title);
+		}
+	});
+
+	if (newEpisodesFound) {
+		// remove old map, we've got a new one to store!
+		FemFreqEpisodesModel.remove(undefined, err => {
+			console.log('new model!', storedEpisodesModel);
+			const newStoredEpisodesModel = new FemFreqEpisodesModel(
+				storedEpisodesModel,
+			);
+
+			if (err) {
+				console.log('Error removing from database', err);
+				process.exit(1);
+			}
+			// store the new savedToots map!
+			newStoredEpisodesModel.save(saveErr => {
+				if (saveErr) {
+					console.log('Error saving to database', saveErr);
+					process.exit(1);
+				}
+				newEpisodeTitles.reverse();
+				console.log(`done! Saved new episodes! ${newEpisodeTitles.join(', ')}`);
+				web.chat
+					.postMessage({
+						channel: process.env.CHANNEL_ID,
+						text: `${
+							newEpisodeTitles.length
+						} new episode(s) of fem frequency posted! Titles: ${newEpisodeTitles.join(
+							', ',
+						)}`,
+					})
+					.then(() => {
+						browser.close().then(() => {
+							process.exit(0);
+						});
+					});
+			});
+		});
+	} else {
+		console.log(
+			'no new episodes found, here are the ones I did find though: ',
+			episodes,
+		);
+		await browser.close();
+		process.exit(0);
+	}
+}
+
+function pubDate(date) {
+	if (typeof date === 'undefined') {
+		date = new Date();
+	}
+
+	var pieces = date.toString().split(' '),
+		offsetTime = pieces[5].match(/[-+]\d{4}/),
+		offset = offsetTime ? offsetTime : pieces[5],
+		parts = [
+			pieces[0] + ',',
+			pieces[2],
+			pieces[1],
+			pieces[3],
+			pieces[4],
+			offset,
+		];
+
+	return parts.join(' ');
+}
