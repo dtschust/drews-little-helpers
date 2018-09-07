@@ -1,0 +1,128 @@
+#!/usr/bin/env node
+
+require('dotenv').config();
+require('isomorphic-fetch');
+const _ = require('lodash');
+const mongoose = require('mongoose');
+
+const WebClient = require('@slack/client').WebClient;
+const token = process.env.SLACK_API_TOKEN || '';
+const web = new WebClient(token);
+
+mongoose.Promise = global.Promise;
+mongoose.connect(
+	process.env.MONGO_DB_URI,
+	{
+		useMongoClient: true,
+	},
+);
+
+const SavedToots = mongoose.model('SavedToots', {
+	savedIds: Object,
+});
+
+let SAVED_TOOTS;
+SavedToots.findOne(undefined)
+	.exec()
+	.then(newSavedToots => {
+		if (newSavedToots) {
+			SAVED_TOOTS = newSavedToots.savedIds || {};
+		}
+		fetchMastodonFavs();
+	})
+	.catch(e => {
+		console.log('Huh, we have an error', e);
+		process.exit(0);
+	});
+
+function fetchMastodonFavs() {
+	return fetch(
+		`${process.env.MASTODON_INSTANCE_URL}/api/v1/favourites?access_token=${
+			process.env.MASTODON_TOKEN
+		}&limit=40`,
+	)
+		.then(response => response.json())
+		.then(favs => {
+			console.log(`Fetched ${favs.length} favs`);
+			const pinboardPostPromises = [];
+			favs.forEach(({ content, url, account, id }, index) => {
+				const description = `Mastodon post from ${account.display_name} (${
+					account.acct
+				})`;
+				const extended = `${content}`;
+
+				// Only post to pinboard if you haven't before
+				if (SAVED_TOOTS && !SAVED_TOOTS[id]) {
+					const digest = `• ${description} (${url})`;
+					console.log(`Saving to pinboard: ${digest}`);
+					pinboardPostPromises.push(
+						fetch(
+							`${process.env.PINBOARD_API_URL}?url=${encodeURI(
+								url,
+							)}&description=${encodeURI(description)}&extended=${encodeURI(
+								content,
+							)}&tags=${encodeURI(['mastodonFav'])}`,
+						)
+							.then(resp => resp.text())
+							.then(resp => {
+								if (!resp || !resp.indexOf('<result code="done" />')) {
+									throw new Error(`Pinboard write failed with error ${resp}`);
+								}
+								console.log(`Successfully saved to pinboard: ${digest}`);
+								SAVED_TOOTS[id] = true;
+								return digest;
+							})
+							.catch(e => {
+								console.log('Error saving this toot!', url, extended);
+								console.log('error:', e);
+								SAVED_TOOTS[id] = false;
+								throw e;
+							}),
+					);
+				}
+			});
+			Promise.all(pinboardPostPromises)
+				.then(async ([...digests]) => {
+					if (digests.length === 0) {
+						console.log('No new bookmarks!');
+						process.exit(0);
+					}
+					console.log('posting to slack', digests);
+					sendMessage(`New bookmarks!
+${digests.join('\n')}`)
+						.catch(err => {
+							console.log('Error posting update to slack', err);
+						})
+						.then(() => {
+							// remove old savedToots map, we've got a new one to store!
+							console.log('Done saving, now let us persist to mongo!');
+							SavedToots.remove(undefined, err => {
+								const newSavedTootsModel = new SavedToots({
+									savedIds: SAVED_TOOTS,
+								});
+								// store the new savedToots map!
+								newSavedTootsModel.save(saveErr => {
+									if (saveErr) {
+										console.log('Error saving to database', saveErr);
+									}
+									console.log(
+										`done! Saved ${pinboardPostPromises.length} new bookmarks`,
+									);
+									process.exit(0);
+								});
+							});
+						});
+				})
+				.catch(e => {
+					console.log('Error for some reason', e);
+					process.exit(0);
+				});
+		});
+}
+
+function sendMessage(text) {
+	return web.chat.postMessage({
+		channel: process.env.MASTODON_FAVS_SLACK_CHANNEL_ID,
+		text,
+	});
+}
