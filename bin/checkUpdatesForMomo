@@ -23,10 +23,14 @@ mongoose.connect(
 );
 
 const VersionData = mongoose.model('VersionData', {
-	funbridge: String,
 	screensConnect: String,
 	rescueTime: String,
 	backBlaze: String,
+});
+
+const FunBridgeVersions = mongoose.model('FunBridgeVersions', {
+	version: String,
+	timestamp: Number,
 });
 
 let VERSION_DATA;
@@ -35,7 +39,6 @@ VersionData.findOne(undefined)
 	.then(newVersionData => {
 		if (newVersionData) {
 			VERSION_DATA = {
-				funbridge: newVersionData.get('funbridge'),
 				screensConnect: newVersionData.get('screensConnect'),
 				rescueTime: newVersionData.get('rescueTime'),
 				backBlaze: newVersionData.get('backBlaze'),
@@ -53,23 +56,56 @@ function checkVersions() {
 		checkScreensConnect(),
 		checkRescueTime(),
 		checkBackBlaze(),
-	]).then(([funbridge, screensConnect, rescueTime, backBlaze]) => {
+	]).then(async ([funbridge, screensConnect, rescueTime, backBlaze]) => {
 		const newVersionData = {
-			funbridge,
 			screensConnect,
 			rescueTime,
 			backBlaze,
 		};
-		_.forEach(
-			['funbridge', 'screensConnect', 'rescueTime', 'backBlaze'],
-			key => {
-				// If the network request failed to get a version number, just ignore it for now
-				// and copy from the old version data
-				if (!newVersionData[key] || newVersionData[key].length === 0) {
-					newVersionData[key] = VERSION_DATA[key];
+		_.forEach(['screensConnect', 'rescueTime', 'backBlaze'], key => {
+			// If the network request failed to get a version number, just ignore it for now
+			// and copy from the old version data
+			if (!newVersionData[key] || newVersionData[key].length === 0) {
+				newVersionData[key] = VERSION_DATA[key];
+			}
+		});
+
+		await new Promise(resolve => {
+			FunBridgeVersions.findOne({ version: funbridge }, (err, response) => {
+				if (err) {
+					console.log(`Error querying the database for ${funbridge}`);
+					return;
 				}
-			},
-		);
+				if (response) {
+					// Nothing to do, we're already following this person.
+					resolve();
+					return;
+				}
+
+				// we have a new version of funbridge!
+				console.log(`New funbridge version! ${funbridge}`);
+				sendMessage(
+					`
+*Laptop needs updates!*
+New FunBridge Version: ${funbridge}
+					`,
+				).then(() => {
+					const newFunBridgeVersion = new FunBridgeVersions({
+						version: funbridge,
+						timestamp: Date.now(),
+					});
+
+					newFunBridgeVersion.save(saveErr => {
+						if (saveErr) {
+							console.log('Error saving to database', saveErr);
+						}
+						console.log(`done! Stored funbridge version ${funbridge}!`);
+						resolve();
+					});
+				});
+			});
+		});
+
 		if (!VERSION_DATA || !_.isEqual(VERSION_DATA, newVersionData)) {
 			// remove all persisted versionData now that it's bad
 			VersionData.remove(undefined, () => {
@@ -97,7 +133,6 @@ ${changes}
 					});
 
 					VERSION_DATA = {
-						funbridge: newVersionDataModel.get('funbridge'),
 						screensConnect: newVersionDataModel.get('screensConnect'),
 						rescueTime: newVersionDataModel.get('rescueTime'),
 						backBlaze: newVersionDataModel.get('backBlaze'),
