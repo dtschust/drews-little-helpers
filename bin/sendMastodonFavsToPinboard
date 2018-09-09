@@ -60,29 +60,54 @@ function fetchMastodonFavs() {
 				if (SAVED_TOOTS && !SAVED_TOOTS[id]) {
 					const digest = `• ${description} (${url})`;
 					console.log(`Saving to pinboard: ${digest}`);
-					pinboardPostPromises.push(
-						fetch(
-							`${process.env.PINBOARD_API_URL}?url=${encodeURI(
-								url,
-							)}&description=${encodeURI(description)}&extended=${encodeURI(
-								content,
-							)}&tags=${encodeURI(['mastodonFav'])}`,
-						)
-							.then(resp => resp.text())
-							.then(resp => {
-								if (!resp || !resp.indexOf('<result code="done" />')) {
-									throw new Error(`Pinboard write failed with error ${resp}`);
-								}
-								console.log(`Successfully saved to pinboard: ${digest}`);
-								SAVED_TOOTS[id] = true;
-								return digest;
-							})
-							.catch(e => {
-								console.log('Error saving this toot!', url, extended);
-								console.log('error:', e);
-								SAVED_TOOTS[id] = false;
-								throw e;
-							}),
+
+					const linkRegex = /href="([^\s]*)" rel/g;
+					let matches;
+
+					const links = [];
+					// eslint-disable-next-line no-cond-assign
+					while ((matches = linkRegex.exec(content))) {
+						links.push(matches[1]);
+					}
+
+					const bookmarksToMake = [
+						{ url, description, content, digest },
+					].concat(
+						links.map(link => ({
+							url: link,
+							description: link,
+							digest: link,
+						})),
+					);
+					bookmarksToMake.forEach(
+						// eslint-disable-next-line no-shadow
+						({ url, description, content = '', digest }) =>
+							pinboardPostPromises.push(
+								fetch(
+									`${process.env.PINBOARD_API_URL}?url=${encodeURI(
+										url,
+									)}&description=${encodeURI(description)}&extended=${encodeURI(
+										content,
+									)}&tags=${encodeURI(['mastodonFav'])}`,
+								)
+									.then(resp => resp.text())
+									.then(resp => {
+										if (!resp || !resp.indexOf('<result code="done" />')) {
+											throw new Error(
+												`Pinboard write failed with error ${resp}`,
+											);
+										}
+										console.log(`Successfully saved to pinboard: ${digest}`);
+										SAVED_TOOTS[id] = true;
+										return digest;
+									})
+									.catch(e => {
+										console.log('Error saving this toot!', url, extended);
+										console.log('error:', e);
+										SAVED_TOOTS[id] = false;
+										throw e;
+									}),
+							),
 					);
 				}
 			});
