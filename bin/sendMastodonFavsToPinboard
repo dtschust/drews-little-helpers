@@ -50,6 +50,12 @@ function fetchMastodonFavs() {
 				})`;
 				const extended = `${content}`;
 
+				if (account.acct.indexOf('toot.rip') >= 0) {
+					// Don't bookmark toot.rip favs, because
+					// those get propogated to twitter and pinboard
+					// automatically bookmarks all my faved tweets
+					return;
+				}
 				// Only post to pinboard if you haven't before
 				if (SAVED_TOOTS && !SAVED_TOOTS[id]) {
 					const digest = `• ${description} (${url})`;
