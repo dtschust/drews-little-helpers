@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const addFwProxyRoute = require('./src/fw-proxy-route');
 const addFemFreqPodcastRoute = require('./src/fem-freq-podcast-route');
+const addRecDiffsPodcastRoute = require('./src/recdiffs-podcast-route');
 const addPtpSlackRoute = require('./src/ptp-slack-route');
 
 const app = express();
@@ -22,6 +23,7 @@ app.use((req, res, next) => {
 
 addFwProxyRoute(app);
 addFemFreqPodcastRoute(app);
+addRecDiffsPodcastRoute(app);
 addPtpSlackRoute(app);
 
 app.listen(app.get('port'), () => {
