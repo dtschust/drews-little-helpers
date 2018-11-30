@@ -15,17 +15,22 @@ function addPlausWanRoute(app) {
 		} else if (type === 'app_mention') {
 			const { event } = reqBody;
 			const { ts, channel } = event;
-			sendMessage(`testing ${ts}`, channel);
+			sendMessage({
+				text: 'testing',
+				channel,
+				thread_ts: ts,
+			});
 		}
 		res.status(200).end();
 	});
 }
 
-function sendMessage(text, channel) {
+function sendMessage({ text, channel, thread_ts } = {}) {
 	return web.chat
 		.postMessage({
 			channel,
 			text,
+			thread_ts,
 		})
 		.then(() => {
 			console.log('Message sent: ', text);
