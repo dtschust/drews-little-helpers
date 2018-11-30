@@ -19,18 +19,20 @@ function addPlausWanRoute(app) {
 				text: 'testing',
 				channel,
 				thread_ts: ts,
+				reply_broadcast: true,
 			});
 		}
 		res.status(200).end();
 	});
 }
 
-function sendMessage({ text, channel, thread_ts } = {}) {
+function sendMessage({ text, channel, thread_ts, reply_broadcast } = {}) {
 	return web.chat
 		.postMessage({
 			channel,
 			text,
 			thread_ts,
+			reply_broadcast,
 		})
 		.then(() => {
 			console.log('Message sent: ', text);
