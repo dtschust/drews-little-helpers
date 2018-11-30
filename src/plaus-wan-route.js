@@ -6,6 +6,9 @@ const { WebClient } = require('@slack/client');
 const token = process.env.PLAUS_SLACK_BOT_USER_OAUTH_ACCESS_TOKEN || '';
 const web = new WebClient(token);
 
+let anujInterval;
+let anujCount = 0;
+
 function addPlausWanRoute(app) {
 	app.post('/plaus', (req, res) => {
 		const reqBody = req.body || {};
@@ -14,13 +17,30 @@ function addPlausWanRoute(app) {
 			res.json({ challenge });
 		} else if (type === 'app_mention') {
 			const { event } = reqBody;
-			const { ts, channel } = event;
-			sendMessage({
-				text: 'testing',
-				channel,
-				// thread_ts: ts,
-				// reply_broadcast: true,
-			});
+			const { ts, text, channel, user } = event;
+			if (user === process.env.ANUJ_ID) {
+				anujInterval = setInterval(() => {
+					if (anujCount === 99) {
+						clearInterval(anujInterval);
+						return;
+					}
+					anujCount += 1;
+					sendMessage({
+						text: `testing: ${text}`,
+						channel,
+						// thread_ts: ts,
+						// reply_broadcast: true,
+					});
+
+				})
+			} else {
+				sendMessage({
+					text: `testing: ${text}`,
+					channel,
+					// thread_ts: ts,
+					// reply_broadcast: true,
+				});
+			}
 		}
 		res.status(200).end();
 	});
