@@ -2,6 +2,7 @@ require('dotenv').config();
 require('isomorphic-fetch');
 
 const { WebClient } = require('@slack/client');
+const { approvals, flair, nits, comments, getRandomFrom } = require('./plaus-wan/responses');
 
 const token = process.env.PLAUS_SLACK_BOT_USER_OAUTH_ACCESS_TOKEN || '';
 const web = new WebClient(token);
@@ -25,7 +26,7 @@ function addPlausWanRoute(app) {
 					}
 					anujCount += 1;
 					sendMessage({
-						text: `testing: ${text}`,
+						text: `testing`,
 						channel,
 						thread_ts: ts,
 						reply_broadcast: true,
@@ -34,7 +35,7 @@ function addPlausWanRoute(app) {
 				})
 			} else {
 				sendMessage({
-					text: `testing: ${text}`,
+					text: `testing`,
 					channel,
 					thread_ts: ts,
 					reply_broadcast: true,

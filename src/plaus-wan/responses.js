@@ -73,3 +73,8 @@ export const comments = [
 	`Thanks for making those fixes!`,
 	`Thanks for adding tests!`,
 ]
+
+export function getRandomFrom(array = []) {
+	const index = Math.floor(Math.random() * array.length);
+	return array[index];
+}
