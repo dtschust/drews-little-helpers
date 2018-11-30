@@ -7,8 +7,21 @@ const { approvals, flair, nits, comments, getRandomFrom } = require('./plaus-wan
 const token = process.env.PLAUS_SLACK_BOT_USER_OAUTH_ACCESS_TOKEN || '';
 const web = new WebClient(token);
 
-let anujInterval;
+let anujDelay = 1000;
 let anujCount = 0;
+
+/*
+let totalTime = 0;
+for (let i = 0; i < 50; i += 1) {
+	console.log(`waiting ${anujDelay / 1000} seconds`);
+	totalTime += anujDelay;
+	if (i % 5 === 0) {
+		anujDelay *= 1.5;
+	}
+}
+console.log('total delay: ', totalTime / 1000);
+console.log('total delay (minutes): ', totalTime / (60 * 1000));
+*/
 
 function addPlausWanRoute(app) {
 	app.post('/plaus', (req, res) => {
@@ -19,14 +32,15 @@ function addPlausWanRoute(app) {
 		} else if (type === 'event_callback' && event.type === 'app_mention') {
 			const { ts, channel, user } = event;
 			addReaction({ name: 'eyes', channel, timestamp: ts })
-				.then(Promise.delay(2000))
+				// Delay between 1 and 11 seconds
+				.delay(1000 + Math.floor(Math.random() * 10) * 1000)
 				.then(() => (
 					addReaction({ name: 'white_check_mark', channel, timestamp: ts })
-				)).then(() => {
+				)).delay(1000)
+				.then(() => {
 					if (user === process.env.ANUJ_ID) {
-						anujInterval = setInterval(() => {
-							if (anujCount === 99) {
-								clearInterval(anujInterval);
+						const tick = () => {
+							if (anujCount === 50) {
 								return;
 							}
 							anujCount += 1;
@@ -34,10 +48,14 @@ function addPlausWanRoute(app) {
 								text: '+1',
 								channel,
 								thread_ts: ts,
-								reply_broadcast: true,
 							});
-
-						})
+							console.log(anujDelay);
+							if (anujCount % 5 === 0) {
+								anujDelay *= 1.5;
+							}
+							setTimeout(tick, anujDelay);
+						}
+						setTimeout(tick, anujDelay)
 					} else {
 						sendMessage({
 							text: buildResponse(),
@@ -80,11 +98,6 @@ function buildResponse() {
 
 	return response;
 
-}
-
-for (let i = 0; i < 20; i++) {
-	console.log('===============');
-	console.log(buildResponse());
 }
 
 function sendMessage({ text, channel, thread_ts, reply_broadcast } = {}) {
