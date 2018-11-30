@@ -9,6 +9,7 @@ const web = new WebClient(token);
 
 let anujDelay = 1000;
 let anujCount = 0;
+let anujHasBeenPranked = false;
 
 /*
 let totalTime = 0;
@@ -38,7 +39,8 @@ function addPlausWanRoute(app) {
 					addReaction({ name: 'white_check_mark', channel, timestamp: ts })
 				)).delay(1000)
 				.then(() => {
-					if (user === process.env.ANUJ_ID) {
+					if (user === process.env.ANUJ_ID && !anujHasBeenPranked) {
+						anujHasBeenPranked = true;
 						const tick = () => {
 							if (anujCount === 50) {
 								return;
