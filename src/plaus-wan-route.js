@@ -13,13 +13,16 @@ function addPlausWanRoute(app) {
 	app.post('/plaus', (req, res) => {
 		console.log('got a post to plaus');
 		const reqBody = req.body || {};
+		console.log(reqBody);
 		const { type, challenge } = reqBody;
 		if (type === 'url_verification') {
 			res.json({ challenge });
 		} else if (type === 'app_mention') {
 			console.log('it is an app mention');
 			const { event } = reqBody;
+			console.log(event);
 			const { ts, text, channel, user } = event;
+			console.log(channel);
 			if (user === process.env.ANUJ_ID) {
 				anujInterval = setInterval(() => {
 					if (anujCount === 99) {
@@ -49,6 +52,7 @@ function addPlausWanRoute(app) {
 }
 
 function sendMessage({ text, channel, thread_ts, reply_broadcast } = {}) {
+	console.log(arguments);
 	console.log('trying to send a message', text, channel, thread_ts, reply_broadcast);
 	return web.chat
 		.postMessage({
