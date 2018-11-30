@@ -18,8 +18,8 @@ function addPlausWanRoute(app) {
 			sendMessage({
 				text: 'testing',
 				channel,
-				thread_ts: ts,
-				reply_broadcast: true,
+				// thread_ts: ts,
+				// reply_broadcast: true,
 			});
 		}
 		res.status(200).end();
