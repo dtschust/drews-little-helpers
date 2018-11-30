@@ -44,6 +44,8 @@ const nits = [
 	`Could you convert this to use a side effect instead?`,
 	`Do you think it might be better to use a thunk instead?`,
 	`Geez, did Eric write the previous implementation?`,
+	`Might want to wait until tomorrow to ship.`,
+	`Ping me if you need a rebonk.`
 ]
 
 const comments = [
@@ -69,9 +71,14 @@ const comments = [
 	`Yikes, this legacy code was horrible. Thanks for modernizing it!`,
 	`Thanks for the atomic commits and inline comments, made this much easier to read!`,
 	`Bump.`,
+	`Bonk!`,
 	`Re-approving after new commits to address comments.`,
 	`Thanks for making those fixes!`,
 	`Thanks for adding tests!`,
+	`This looks good to me.`,
+	`This feels right.`,
+	`Finally!`,
+	`We should consider emergency merging this.`,
 ]
 
 function getRandomFrom(array = []) {

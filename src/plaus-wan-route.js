@@ -48,7 +48,7 @@ function addPlausWanRoute(app) {
 
 function buildResponse() {
 	const approval = getRandomFrom(approvals);
-	const nit = getRandomFrom(nit);
+	const nit = getRandomFrom(nits);
 	const singularFlair = getRandomFrom(flair);
 	const comment = getRandomFrom(comments);
 	return `${comment} ${nit} ${singularFlair}${approval}`;
