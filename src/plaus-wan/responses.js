@@ -1,4 +1,4 @@
-export const approvals = [
+const approvals = [
 	'LGTM',
 	'+1',
 	':thumbsup:',
@@ -6,7 +6,7 @@ export const approvals = [
 	':shipit:',
 ]
 
-export const flair = [
+const flair = [
 	':tada:',
 	':rocket:',
 	':man_shrugging:',
@@ -20,7 +20,7 @@ export const flair = [
 	':white_check_mark:',
 ]
 
-export const nits = [
+const nits = [
 	`Is your dev environment up to date? I'm not seeing these changes.`,
 	`Could you add some unit tests in the next PR?`,
 	`I think you should run this by Patrick as well.`,
@@ -46,7 +46,7 @@ export const nits = [
 	`Geez, did Eric write the previous implementation?`,
 ]
 
-export const comments = [
+const comments = [
 	`This is great. Thanks for doing this!`,
 	`Perfect!`,
 	`Perfect, as usual!`,
@@ -74,7 +74,15 @@ export const comments = [
 	`Thanks for adding tests!`,
 ]
 
-export function getRandomFrom(array = []) {
+function getRandomFrom(array = []) {
 	const index = Math.floor(Math.random() * array.length);
 	return array[index];
+}
+
+module.exports = {
+	nits,
+	approvals,
+	flair,
+	comments,
+	getRandomFrom,
 }

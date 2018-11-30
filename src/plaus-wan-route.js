@@ -26,7 +26,7 @@ function addPlausWanRoute(app) {
 					}
 					anujCount += 1;
 					sendMessage({
-						text: `testing`,
+						text: '+1',
 						channel,
 						thread_ts: ts,
 						reply_broadcast: true,
@@ -35,7 +35,7 @@ function addPlausWanRoute(app) {
 				})
 			} else {
 				sendMessage({
-					text: `testing`,
+					text: buildResponse(),
 					channel,
 					thread_ts: ts,
 					reply_broadcast: true,
@@ -44,6 +44,15 @@ function addPlausWanRoute(app) {
 		}
 		res.status(200).end();
 	});
+}
+
+function buildResponse() {
+	const approval = getRandomFrom(approvals);
+	const nit = getRandomFrom(nit);
+	const singularFlair = getRandomFrom(flair);
+	const comment = getRandomFrom(comments);
+	return `${comment} ${nit} ${singularFlair}${approval}`;
+
 }
 
 function sendMessage({ text, channel, thread_ts, reply_broadcast } = {}) {
