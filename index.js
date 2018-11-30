@@ -1,3 +1,4 @@
+const Promise = require('bluebird');
 const express = require('express');
 const bodyParser = require('body-parser');
 const addFwProxyRoute = require('./src/fw-proxy-route');
@@ -6,7 +7,10 @@ const addRecDiffsPodcastRoute = require('./src/recdiffs-podcast-route');
 const addPtpSlackRoute = require('./src/ptp-slack-route');
 const addPlausWanRoute = require('./src/plaus-wan-route');
 
+global.Promise = Promise;
+
 const app = express();
+
 
 app.set('port', process.env.PORT || 8000);
 

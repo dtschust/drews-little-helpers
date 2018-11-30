@@ -9,8 +9,8 @@ const approvals = [
 const flair = [
 	':tada:',
 	':rocket:',
-	':man_shrugging:',
-	':woman_shrugging:',
+	':man-shrugging:',
+	':woman-shrugging:',
 	':heart:',
 	':heart_eyes:',
 	':heart_eyes_cat:',
@@ -45,7 +45,8 @@ const nits = [
 	`Do you think it might be better to use a thunk instead?`,
 	`Geez, did Eric write the previous implementation?`,
 	`Might want to wait until tomorrow to ship.`,
-	`Ping me if you need a rebonk.`
+	`Ping me if you need a rebonk.`,
+	`:thinking_face:`,
 ]
 
 const comments = [
