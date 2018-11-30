@@ -44,8 +44,9 @@ function addPlausWanRoute(app) {
 								return;
 							}
 							anujCount += 1;
+							const text = anujCount === 1 ? `Oh, it's you. +1...` : '+1';
 							sendMessage({
-								text: '+1',
+								text,
 								channel,
 								thread_ts: ts,
 							});
@@ -53,7 +54,7 @@ function addPlausWanRoute(app) {
 							if (anujCount % 5 === 0) {
 								anujDelay *= 1.5;
 							}
-							setTimeout(tick, anujDelay);
+							setTimeout(tick, anujCount === 1 ? 10000 : anujDelay);
 						}
 						setTimeout(tick, anujDelay)
 					} else {
