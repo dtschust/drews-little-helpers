@@ -42,7 +42,10 @@ function addPlausWanRoute(app) {
 					if (user === process.env.ANUJ_ID && !anujHasBeenPranked) {
 						anujHasBeenPranked = true;
 						const tick = () => {
-							if (anujCount === 50) {
+							if (anujCount === 51) {
+								anujCount += 1;
+								// One last +1 in 2 hours just for fun.
+								setTimeout(tick, 2 * 60 * 1000);
 								return;
 							}
 							anujCount += 1;
@@ -52,12 +55,16 @@ function addPlausWanRoute(app) {
 								channel,
 								thread_ts: ts,
 							});
-							console.log(anujDelay);
+							if (anujCount > 51) {
+								return;
+							}
 							if (anujCount % 5 === 0) {
 								anujDelay *= 1.5;
 							}
+							// delay 10 seconds the first time, then go wild
 							setTimeout(tick, anujCount === 1 ? 10000 : anujDelay);
 						}
+
 						setTimeout(tick, anujDelay)
 					} else {
 						sendMessage({
