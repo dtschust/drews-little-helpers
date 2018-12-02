@@ -45,7 +45,7 @@ function addPlausWanRoute(app) {
 							if (anujCount === 51) {
 								anujCount += 1;
 								// One last +1 in 2 hours just for fun.
-								setTimeout(tick, 2 * 60 * 1000);
+								setTimeout(tick, 2 * 60 * 60 * 1000);
 								return;
 							}
 							anujCount += 1;
