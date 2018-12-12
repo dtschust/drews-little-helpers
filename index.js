@@ -6,11 +6,11 @@ const addFemFreqPodcastRoute = require('./src/fem-freq-podcast-route');
 const addRecDiffsPodcastRoute = require('./src/recdiffs-podcast-route');
 const addPtpSlackRoute = require('./src/ptp-slack-route');
 const addPlausWanRoute = require('./src/plaus-wan-route');
+const addUnattendedConsequencesRoute = require('./src/unattended-consequences-route');
 
 global.Promise = Promise;
 
 const app = express();
-
 
 app.set('port', process.env.PORT || 8000);
 
@@ -31,6 +31,7 @@ addFemFreqPodcastRoute(app);
 addRecDiffsPodcastRoute(app);
 addPtpSlackRoute(app);
 addPlausWanRoute(app);
+addUnattendedConsequencesRoute(app);
 
 app.listen(app.get('port'), () => {
 	console.log('Node app is running on port', app.get('port'));
