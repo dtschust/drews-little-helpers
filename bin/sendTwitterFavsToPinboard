@@ -1,0 +1,77 @@
+#!/usr/bin/env node
+
+require('dotenv').config();
+const Twit = require('twit');
+
+const T = new Twit({
+	consumer_key: process.env.TWITTER_CONSUMER_KEY,
+	consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
+	access_token: process.env.TWITTER_ACCESS_TOKEN,
+	access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
+	timeout_ms: 60 * 1000, // optional HTTP request timeout to apply to all requests.
+	strictSSL: true, // optional - requires SSL certificates to be valid.
+});
+
+let count = 0;
+let requests = 0;
+
+const oldestDate = new Date('01/01/2016').getTime();
+function fetchMore(maxId) {
+	T.get('favorites/list', {
+		screen_name: 'nuncamind',
+		count: 200,
+		include_entities: true,
+		tweet_mode: 'extended',
+		max_id: maxId,
+	})
+		.then(result => {
+			const { data } = result;
+			/*
+				* Run this every hour
+				* Before even making the request, download from mongodb the map of known favs
+				* const now = Date.now()
+				* Loop through all tweets and pull all entitities.urls[i].expanded_url s. Put in array
+				* For all tweets
+					* If the tweet isn't known by mongodb, push it up to the array to post to pinboard. Title: twitter user and date Description: full_text
+				* For all URLs, use cheerio or something to get the <title> from the page. Push up to the array: Title: <title> Description: permalink to tweet: twitter.com/${screen_name}/status/${id}
+					* http://www.codingpedia.org/ama/how-to-get-the-title-of-a-remote-web-page-using-javascript-and-nodejs
+
+				* Promise.all(array.map(({url, title, description}) => {
+					return postToPinboard // with tag customTwitterFav
+				})).then
+					array.forEach(() => {
+						const urlKey = episode.url.replace(/\./g, ''); // can't store periods in keys for mongodb
+						knownFavs[urlKey] = now
+					});
+					persist new knownFavs to mongodb
+
+					post a writeup to a slack channel.
+				.catch(
+					I dunno, just give up and try again later. Maybe send a slack message?
+				)
+			*/
+
+			if (!data.length) {
+				console.log('no data');
+			}
+
+			requests++;
+			count += data.length;
+
+			const { created_at: lastCreatedAt, id: lastId } = data[data.length - 1];
+
+			const ts = new Date(lastCreatedAt).getTime();
+
+			console.log('tada', data.length);
+			if (ts >= oldestDate) {
+				// fetchMore(lastId);
+			} else {
+				console.log('done');
+			}
+		})
+		.catch(err => {
+			console.log('ERROR: ', err);
+		});
+}
+
+fetchMore();
