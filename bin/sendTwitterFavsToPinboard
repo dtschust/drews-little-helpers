@@ -49,9 +49,6 @@ SavedTwitterFavs.findOne(undefined)
 		process.exit(0);
 	});
 
-let count = 0;
-let requests = 0;
-
 const oldestDate = new Date('01/01/2016').getTime();
 const now = Date.now();
 
@@ -112,7 +109,46 @@ async function fetchAndProcessTwitterFavs() {
 		});
 
 	const toPostToPinboard = websites.concat(tweetsToFav);
-	process.exit(0);
+
+	if (toPostToPinboard.length === 0) {
+		console.log('no new bookmarks!');
+		process.exit(0);
+	}
+
+	await Promise.all(
+		toPostToPinboard.map(({ url, title, description }) => {
+			const prom = Promise.resolve();
+			return prom;
+		}),
+	);
+
+	toPostToPinboard.forEach(({ url }) => {
+		SAVED_TWITTER_FAVS[getUrlKey(url)] = now;
+	});
+
+	console.log('Done saving, now let us persist to mongo!');
+	SavedTwitterFavs.remove(undefined, err => {
+		if (err) {
+			console.log('Error removing from database', err);
+		}
+		const newSavedTwitterFavs = new SavedTwitterFavs({
+			savedUrls: SAVED_TWITTER_FAVS,
+		});
+		// store the new savedToots map!
+		newSavedTwitterFavs.save(async saveErr => {
+			if (saveErr) {
+				console.log('Error saving to database', saveErr);
+			}
+
+			await sendMessage(`New Bookmarks!
+${toPostToPinboard
+				.map(({ title, url, description }) => `${title}: ${url} ${description}`)
+				.join('\n')}`);
+			console.log(`done! Saved ${toPostToPinboard.length} new bookmarks`);
+			process.exit(0);
+		});
+	});
+
 	/*
 		* Run this every hour
 
@@ -152,16 +188,13 @@ function fetchTwitterFavs(maxId, prevResults = []) {
 				return results;
 			}
 
-			requests += 1;
-			count += data.length;
-
 			const { created_at: lastCreatedAt, id: lastId } = data[data.length - 1];
 
 			const ts = new Date(lastCreatedAt).getTime();
 
 			if (ts >= oldestDate) {
-				return results; // drewfixme
-				// return fetchTwitterFavs(lastId, results);
+				// return results; // drewfixme
+				return fetchTwitterFavs(lastId, results);
 			}
 			return results;
 		})
@@ -169,4 +202,11 @@ function fetchTwitterFavs(maxId, prevResults = []) {
 			console.log('ERROR: ', err);
 			process.exit(0);
 		});
+}
+
+function sendMessage(text) {
+	return web.chat.postMessage({
+		channel: process.env.TWITTER_FAVS_SLACK_CHANNEL_ID,
+		text,
+	});
 }
