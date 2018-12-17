@@ -3,6 +3,7 @@
 /* eslint-disable camelcase */
 
 require('dotenv').config();
+require('isomorphic-fetch');
 const _ = require('lodash');
 const Twit = require('twit');
 const mongoose = require('mongoose');
@@ -116,15 +117,34 @@ async function fetchAndProcessTwitterFavs() {
 	}
 
 	await Promise.all(
-		toPostToPinboard.map(({ url, title, description }) => {
-			const prom = Promise.resolve();
-			return prom;
-		}),
+		toPostToPinboard.map(({ url, title, description }) =>
+			fetch(
+				`${process.env.PINBOARD_API_URL}?url=${encodeURI(
+					url,
+				)}&description=${encodeURI(title)}&extended=${encodeURI(
+					description,
+				)}&tags=${encodeURI(['customTwitterFav'])}`,
+			)
+				.then(resp => resp.text())
+				.then(resp => {
+					if (!resp || !resp.indexOf('<result code="done" />')) {
+						throw new Error(`Pinboard write failed with error ${resp}`);
+					}
+					console.log(
+						`Successfully saved to pinboard: ${title} ${description} ${url}`,
+					);
+					SAVED_TWITTER_FAVS[getUrlKey(url)] = now;
+				})
+				.catch(async e => {
+					console.log('Error saving this bookmark!', url, description, title);
+					console.log('error:', e);
+					await sendMessage(
+						`Error saving bookmark: ${url} ${description} ${title} ${e}`,
+					);
+					delete SAVED_TWITTER_FAVS[getUrlKey(url)];
+				}),
+		),
 	);
-
-	toPostToPinboard.forEach(({ url }) => {
-		SAVED_TWITTER_FAVS[getUrlKey(url)] = now;
-	});
 
 	console.log('Done saving, now let us persist to mongo!');
 	SavedTwitterFavs.remove(undefined, err => {
@@ -141,31 +161,11 @@ async function fetchAndProcessTwitterFavs() {
 			}
 
 			await sendMessage(`New Bookmarks!
-${toPostToPinboard
-				.map(({ title, url, description }) => `${title}: ${url} ${description}`)
-				.join('\n')}`);
+${toPostToPinboard.map(({ title, url }) => `• ${title}: ${url}`).join('\n')}`);
 			console.log(`done! Saved ${toPostToPinboard.length} new bookmarks`);
 			process.exit(0);
 		});
 	});
-
-	/*
-		* Run this every hour
-
-		* Promise.all(array.map(({url, title, description}) => {
-			return postToPinboard // with tag customTwitterFav
-		})).then
-			array.forEach(() => {
-				const urlKey = episode.url.replace(/\./g, ''); // can't store periods in keys for mongodb
-				knownFavs[urlKey] = now
-			});
-			persist new knownFavs to mongodb
-
-			post a writeup to a slack channel.
-		.catch(
-			I dunno, just give up and try again later. Maybe send a slack message?
-		)
-	*/
 }
 
 function getUrlKey(url) {
@@ -182,6 +182,7 @@ function fetchTwitterFavs(maxId, prevResults = []) {
 	})
 		.then(result => {
 			const { data } = result;
+			console.log(`Fetched ${data.length}`);
 			const results = prevResults.concat(data);
 			if (!data.length) {
 				console.log('no data');
@@ -193,13 +194,14 @@ function fetchTwitterFavs(maxId, prevResults = []) {
 			const ts = new Date(lastCreatedAt).getTime();
 
 			if (ts >= oldestDate) {
-				// return results; // drewfixme
+				console.log(`Fetching more`);
 				return fetchTwitterFavs(lastId, results);
 			}
 			return results;
 		})
-		.catch(err => {
+		.catch(async err => {
 			console.log('ERROR: ', err);
+			await sendMessage(`Error: ${err}`);
 			process.exit(0);
 		});
 }
