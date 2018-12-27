@@ -103,9 +103,9 @@ async function fetchAndProcessTwitterFavs() {
 		.map(({ user, created_at, full_text, id_str }) => {
 			const url = `https://twitter.com/${user.screen_name}/status/${id_str}`;
 			const description = full_text;
-			const title = `Tweet from ${user.screen_name} about ${moment(
+			const title = `Tweet from ${user.screen_name} on ${moment(
 				new Date(created_at),
-			).fromNow()}`;
+			).format('lll')}`;
 			return { url, title, description };
 		});
 
