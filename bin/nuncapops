@@ -7,6 +7,18 @@ require('isomorphic-fetch');
 const Twit = require('twit');
 const mongoose = require('mongoose');
 
+const now = Date.now();
+const hour = new Date().getHours();
+
+if (hour < 7 || hour > 22) {
+	console.log(`Hour is ${hour}. Will do nothing`);
+	process.exit(0);
+}
+
+console.log(
+	'We are outside of "DnD" time, let us post some pops if we find any',
+);
+
 const T = new Twit({
 	consumer_key: process.env.NUNCAPOPS_TWITTER_CONSUMER_KEY,
 	consumer_secret: process.env.NUNCAPOPS_TWITTER_CONSUMER_SECRET,
@@ -42,8 +54,6 @@ SavedPinboardPops.findOne(undefined)
 		process.exit(0);
 	});
 
-const now = Date.now();
-
 async function fetchAndProcessPinboardPops() {
 	const pins = await fetch('https://feeds.pinboard.in/json/popular/').then(
 		resp => resp.json(),
@@ -51,8 +61,8 @@ async function fetchAndProcessPinboardPops() {
 
 	const newPins = pins
 		.filter(({ u: url }) => !SAVED_PINBOARD_POPS[getUrlKey(url)])
-		// Only post at most 10 at a time.
-		.slice(0, 10);
+		// Only post at most 2 at a time.
+		.slice(0, 2);
 
 	if (newPins.length === 0) {
 		console.log('No new pins to post');
