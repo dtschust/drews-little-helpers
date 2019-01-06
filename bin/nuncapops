@@ -10,7 +10,7 @@ const mongoose = require('mongoose');
 const now = Date.now();
 const hour = new Date().getHours();
 
-if (hour < 7 || hour > 22) {
+if (hour < 7 || hour >= 22) {
 	console.log(`Hour is ${hour}. Will do nothing`);
 	process.exit(0);
 }
