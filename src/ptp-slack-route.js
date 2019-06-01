@@ -83,8 +83,9 @@ function getLoginCookies(responseURL) {
 			form: {
 				username: process.env.PTP_USERNAME,
 				password: process.env.PTP_PASSWORD,
-				WhatsYourSecret:
-					'Hacker! Do you really have nothing better do than this?',
+				passkey: process.env.PTP_PASSKEY,
+				// WhatsYourSecret:
+				// 	'Hacker! Do you really have nothing better do than this?',
 				keeplogged: 1,
 			},
 		},
