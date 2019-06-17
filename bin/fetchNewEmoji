@@ -1,0 +1,94 @@
+#!/usr/bin/env node
+
+require('isomorphic-fetch');
+require('dotenv').config();
+const _ = require('lodash');
+const mongoose = require('mongoose');
+
+const { WebClient } = require('@slack/client');
+
+const token = process.env.SLACK_EMOJI_TOKEN || '';
+const web = new WebClient(token);
+
+mongoose.Promise = global.Promise;
+mongoose.connect(process.env.MONGO_DB_URI, {
+	useMongoClient: true,
+});
+
+process.on('unhandledRejection', error => {
+	console.log('unhandledRejection', error);
+	process.exit(1);
+});
+
+const EmojiModel = mongoose.model('Emoji', {
+	emoji: Object,
+});
+
+let storedEmojiModel;
+EmojiModel.findOne(undefined)
+	.exec()
+	.then(newEmojiModel => {
+		if (newEmojiModel) {
+			storedEmojiModel = {
+				emoji: newEmojiModel.get('emoji'),
+			};
+		} else {
+			storedEmojiModel = { emoji: {} };
+		}
+		fetchNewEmoji();
+	})
+	.catch(e => {
+		console.log('Huh, we have an error', e);
+		process.exit(0);
+	});
+
+async function fetchNewEmoji() {
+	web.emoji.list().then(response => {
+		const newEmoji = response.emoji;
+		const oldEmoji = (storedEmojiModel && storedEmojiModel.emoji) || {};
+		let addedEmoji = _.difference(Object.keys(newEmoji), Object.keys(oldEmoji));
+		const addedNuji = _.filter(addedEmoji, name => name.search(/nuj/i) >= 0);
+		addedEmoji = _.difference(addedEmoji, addedNuji);
+		console.log(`New Emoji found! ${addedEmoji.join(' ')}`);
+		if (addedNuji.length || addedEmoji.length || _.isEmpty(oldEmoji)) {
+			EmojiModel.remove(undefined, err => {
+				storedEmojiModel.emoji = newEmoji;
+				const newStoredEmojiModel = new EmojiModel(storedEmojiModel);
+
+				if (err) {
+					console.log('Error removing from database', err);
+					process.exit(1);
+				}
+				// store the new savedToots map!
+				newStoredEmojiModel.save(saveErr => {
+					if (saveErr) {
+						console.log('Error saving to database', saveErr);
+						process.exit(1);
+					}
+					console.log(`done! Saved new emoji!`);
+					let msgText = '';
+					if (addedNuji.length) {
+						msgText += `*New anuji found!*
+${addedNuji.map(name => `\`${name}\`: :${name}:\n`).join('')}
+`;
+					}
+
+					msgText += `*New emoji found!*
+${addedEmoji.map(name => `\`${name}\`: :${name}:\n`).join('')}
+`;
+					web.chat
+						.postMessage({
+							channel: process.env.SLACK_EMOJI_CHANNEL,
+							text: msgText,
+						})
+						.then(() => {
+							process.exit(0);
+						});
+				});
+			});
+		} else {
+			console.log('no new emoji found, exiting');
+			process.exit(0);
+		}
+	});
+}
