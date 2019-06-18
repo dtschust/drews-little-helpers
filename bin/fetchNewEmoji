@@ -17,8 +17,8 @@ mongoose.connect(process.env.MONGO_DB_URI, {
 
 const hour = new Date().getHours();
 
-if (hour !== 16) {
-	console.log(`Hour is ${hour} (not 4pm). Will do nothing`);
+if (hour !== 16 && hour !== 10) {
+	console.log(`Hour is ${hour} (not 4pm or 10am). Will do nothing`);
 	process.exit(0);
 }
 
