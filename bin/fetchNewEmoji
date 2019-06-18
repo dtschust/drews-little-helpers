@@ -53,11 +53,12 @@ async function fetchNewEmoji() {
 	web.emoji.list().then(response => {
 		const newEmoji = response.emoji;
 		const oldEmoji = (storedEmojiModel && storedEmojiModel.emoji) || {};
-		let addedEmoji = _.difference(Object.keys(newEmoji), Object.keys(oldEmoji));
+		const addedEmoji = _.difference(
+			Object.keys(newEmoji),
+			Object.keys(oldEmoji),
+		);
 		const addedNuji = _.filter(addedEmoji, name => name.search(/nuj/i) >= 0);
-		addedEmoji = _.difference(addedEmoji, addedNuji);
-		console.log(`New Emoji found! ${addedEmoji.join(' ')}`);
-		if (addedNuji.length || addedEmoji.length || _.isEmpty(oldEmoji)) {
+		if (addedNuji.length || _.isEmpty(oldEmoji)) {
 			EmojiModel.remove(undefined, err => {
 				storedEmojiModel.emoji = newEmoji;
 				const newStoredEmojiModel = new EmojiModel(storedEmojiModel);
@@ -73,20 +74,36 @@ async function fetchNewEmoji() {
 						process.exit(1);
 					}
 					console.log(`done! Saved new emoji!`);
-					let msgText = '';
-					if (addedNuji.length) {
-						msgText += `*New anuji found!*
-${addedNuji.map(name => `\`${name}\`: :${name}:\n`).join('')}
-`;
-					}
 
-					msgText += `*New emoji found!*
-${addedEmoji.map(name => `\`${name}\`: :${name}:\n`).join('')}
-`;
+					let blocks = [
+						{ type: 'divider' },
+						{
+							type: 'section',
+							text: {
+								type: 'mrkdwn',
+								text: `*${addedNuji.length} New Anuji Found!*`,
+							},
+						},
+						{ type: 'divider' },
+					];
+
+					blocks = blocks.concat(
+						addedNuji.map(name => ({
+							type: 'image',
+							title: {
+								type: 'plain_text',
+								text: `${name} :${name}:`,
+								emoji: true,
+							},
+							image_url: newEmoji[name],
+							alt_text: name,
+						})),
+					);
+
 					web.chat
 						.postMessage({
 							channel: process.env.SLACK_EMOJI_CHANNEL,
-							text: msgText,
+							blocks,
 						})
 						.then(() => {
 							process.exit(0);
