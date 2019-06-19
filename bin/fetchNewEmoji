@@ -27,92 +27,120 @@ process.on('unhandledRejection', error => {
 	process.exit(1);
 });
 
-const EmojiModel = mongoose.model('Emoji', {
-	emoji: Object,
+const AnujiModel = mongoose.model('Anuji', {
+	anuji: Object,
 });
 
-let storedEmojiModel;
-EmojiModel.findOne(undefined)
+let storedAnujiModel;
+AnujiModel.findOne(undefined)
 	.exec()
-	.then(newEmojiModel => {
-		if (newEmojiModel) {
-			storedEmojiModel = {
-				emoji: newEmojiModel.get('emoji'),
+	.then(newAnujiModel => {
+		if (newAnujiModel) {
+			storedAnujiModel = {
+				anuji: newAnujiModel.get('anuji'),
 			};
 		} else {
-			storedEmojiModel = { emoji: {} };
+			storedAnujiModel = { anuji: {} };
 		}
-		fetchNewEmoji();
+		fetchNewAnuji();
 	})
 	.catch(e => {
 		console.log('Huh, we have an error', e);
 		process.exit(0);
 	});
 
-async function fetchNewEmoji() {
-	web.emoji.list().then(response => {
-		const newEmoji = response.emoji;
-		const oldEmoji = (storedEmojiModel && storedEmojiModel.emoji) || {};
-		const addedEmoji = _.difference(
-			Object.keys(newEmoji),
-			Object.keys(oldEmoji),
-		);
-		const addedNuji = _.filter(addedEmoji, name => name.search(/nuj/i) >= 0);
-		if (addedNuji.length || _.isEmpty(oldEmoji)) {
-			EmojiModel.remove(undefined, err => {
-				storedEmojiModel.emoji = newEmoji;
-				const newStoredEmojiModel = new EmojiModel(storedEmojiModel);
+async function fetchNewAnuji() {
+	web
+		.apiCall('emoji.adminList', {
+			query: 'nuj',
+			count: 100,
+			page: 1,
+			sort_by: 'created',
+			sort_dir: 'desc',
+		})
+		.then(response => {
+			const newEmoji = response.emoji;
 
-				if (err) {
-					console.log('Error removing from database', err);
-					process.exit(1);
-				}
-				// store the new savedToots map!
-				newStoredEmojiModel.save(saveErr => {
-					if (saveErr) {
-						console.log('Error saving to database', saveErr);
+			const oldEmoji = (storedAnujiModel && storedAnujiModel.anuji) || {
+				anuji: {},
+			};
+			const addedEmoji = _.difference(
+				_.map(newEmoji, 'name'),
+				Object.keys(oldEmoji),
+			);
+
+			const addedAnuji = newEmoji.filter(({ name }) =>
+				addedEmoji.includes(name),
+			);
+
+			if (addedEmoji.length || _.isEmpty(oldEmoji)) {
+				AnujiModel.remove(undefined, err => {
+					newEmoji.forEach(emoji => {
+						storedAnujiModel.anuji[emoji.name] = emoji;
+					});
+
+					const newStoredAnujiModel = new AnujiModel(storedAnujiModel);
+
+					if (err) {
+						console.log('Error removing from database', err);
 						process.exit(1);
 					}
-					console.log(`done! Saved new emoji!`);
 
-					let blocks = [
-						{ type: 'divider' },
-						{
-							type: 'section',
-							text: {
-								type: 'mrkdwn',
-								text: `*${addedNuji.length} New Anuji Found!*`,
-							},
-						},
-						{ type: 'divider' },
-					];
+					// Promise.resolve().then(saveErr => {
+					newStoredAnujiModel.save(saveErr => {
+						if (saveErr) {
+							console.log('Error saving to database', saveErr);
+							process.exit(1);
+						}
+						console.log(`done! Saved new ${addedAnuji.length} emoji!`);
 
-					blocks = blocks.concat(
-						addedNuji.map(name => ({
-							type: 'image',
-							title: {
-								type: 'plain_text',
-								text: `${name} :${name}:`,
-								emoji: true,
-							},
-							image_url: newEmoji[name],
-							alt_text: name,
-						})),
-					);
+						const promises = _.chunk(addedAnuji, 16).map(chunk => {
+							const blocks = [];
 
-					web.chat
-						.postMessage({
-							channel: process.env.SLACK_EMOJI_CHANNEL,
-							blocks,
-						})
-						.then(() => {
+							// eslint-disable-next-line camelcase
+							chunk.forEach(({ name, url, user_id }) => {
+								blocks.push({
+									type: 'image',
+									title: {
+										type: 'plain_text',
+										text: `${name} :${name}:`,
+										emoji: true,
+									},
+									image_url: url,
+									alt_text: name,
+								});
+
+								blocks.push({
+									type: 'context',
+									elements: [
+										{
+											type: 'mrkdwn',
+											// eslint-disable-next-line camelcase
+											text: `*:art: Artist:* <@${user_id}>${
+												// eslint-disable-next-line camelcase
+												user_id === 'W4M23JZB6' ? ' :venmo-ss:' : ''
+											}`,
+										},
+									],
+								});
+								blocks.push({
+									type: 'divider',
+								});
+							});
+
+							return web.chat.postMessage({
+								channel: process.env.SLACK_EMOJI_CHANNEL,
+								blocks,
+							});
+						});
+						Promise.all(promises).then(() => {
 							process.exit(0);
 						});
+					});
 				});
-			});
-		} else {
-			console.log('no new emoji found, exiting');
-			process.exit(0);
-		}
-	});
+			} else {
+				console.log('no new emoji found, exiting');
+				process.exit(0);
+			}
+		});
 }
