@@ -119,7 +119,7 @@ async function fetchNewAnuji() {
 											text: `*:art: Artist:* <@${user_id}>${
 												// eslint-disable-next-line camelcase
 												user_id === 'W4M23JZB6'
-													? ' Venmo: `@Samantha-Siow` :venmo-ss:'
+													? "\n*:venmo: Artist's Venmo*: `@Samantha-Siow`"
 													: ''
 											}`,
 										},
