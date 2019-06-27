@@ -52,7 +52,7 @@ AnujiModel.findOne(undefined)
 async function fetchNewAnuji() {
 	web
 		.apiCall('emoji.adminList', {
-			query: 'nuj',
+			queries: ['nuj'],
 			count: 100,
 			page: 1,
 			sort_by: 'created',
