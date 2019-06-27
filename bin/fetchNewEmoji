@@ -73,6 +73,10 @@ async function fetchNewAnuji() {
 				addedEmoji.includes(name),
 			);
 
+			if (addedEmoji.length > 30) {
+				console.log('Something went terribly wrong, do nothing');
+				process.exit(1);
+			}
 			if (addedEmoji.length || _.isEmpty(oldEmoji)) {
 				AnujiModel.remove(undefined, err => {
 					newEmoji.forEach(emoji => {
