@@ -1,0 +1,23 @@
+#!/usr/bin/env node
+
+require('isomorphic-fetch');
+require('dotenv').config();
+
+const { WebClient } = require('@slack/client');
+
+const token = process.env.OH_NO || '';
+const emojis = ['frowning', 'hash', 'smile', 'tada'];
+const remove = false;
+const web = new WebClient(token);
+
+const promises = emojis.map(emoji =>
+	web.apiCall('chat.command', {
+		command: '/reacji-channeler',
+		channel: 'C2P7N92BG',
+		text: remove ? `remove :${emoji}:` : `:${emoji}: #random`,
+	}),
+);
+
+Promise.all(promises).then(() => {
+	process.exit(0);
+});

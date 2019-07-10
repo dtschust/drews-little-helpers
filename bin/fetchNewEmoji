@@ -140,7 +140,17 @@ async function fetchNewAnuji() {
 							});
 						});
 						Promise.all(promises).then(() => {
-							process.exit(0);
+							const reacjiIndexerPromises = addedAnuji.map(({ name }) =>
+								web.apiCall('chat.command', {
+									command: '/reacji-channeler',
+									channel: 'CKZ4U25UJ',
+									text: `:${name}: #reacji-indexer-anuj`,
+								}),
+							);
+
+							Promise.all(reacjiIndexerPromises).then(() => {
+								process.exit(0);
+							});
 						});
 					});
 				});
