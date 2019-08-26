@@ -29,7 +29,7 @@ const _ = require('lodash');
 const { WebClient } = require('@slack/client');
 
 const spotifyToken = process.env.SPOTIFY_TOKEN || '';
-const token = process.env.SLACK_API_TOKEN_DREW_AND_KRISTA || '';
+const token = process.env.SLACK_EMOJI_TOKEN || '';
 const web = new WebClient(token);
 
 let lastPlayingSongId = null;
@@ -45,9 +45,20 @@ async function getCurrentlyPlayingTrack() {
 				Authorization: `Bearer ${spotifyToken}`,
 			},
 		},
-	).then(resp => resp.json());
+	)
+		.then(resp => resp.json())
+		.catch(err => {
+			console.error(err);
+			throw err;
+		});
 
-	// console.log(JSON.stringify(data));
+	const error = _.get(data, 'error');
+	if (error) {
+		return {
+			error,
+		};
+	}
+
 	const isPlaying = _.get(data, 'is_playing');
 	if (!isPlaying) {
 		console.log('No song playing');
@@ -67,7 +78,7 @@ async function getCurrentlyPlayingTrack() {
 	const songName = _.get(data, 'item.name');
 	const albumArt = _.get(data, 'item.album.images[1].url');
 
-	const status = `:musical_note: ${songName} - ${artist}`;
+	const status = `:musical_note: Now Playing: ${songName} - ${artist}`;
 	return {
 		data,
 		songName,
@@ -103,7 +114,11 @@ async function uploadNewAlbumArtEmoji() {
 				name: 'drew_currently_playing_album',
 				image: fs.readFileSync(path.resolve('.', 'album.jpg')),
 			}),
-		);
+		)
+		.catch(err => {
+			console.error(err);
+			throw err;
+		});
 }
 
 let lastProfileSet = null;
@@ -145,7 +160,17 @@ async function updateStatus(status) {
 
 async function main() {
 	console.log('Maybe updating status');
-	const { status, albumArt } = await getCurrentlyPlayingTrack();
+	const response = await getCurrentlyPlayingTrack();
+	const { status, albumArt, error } = response || {};
+	if (error) {
+		const { status: errorStatus, message } = error;
+		if (status === 401) {
+			console.log('need to refresh auth');
+		}
+		console.error(`ERROR ${errorStatus}: ${message}`);
+		process.exit(1);
+		return;
+	}
 	if (!status || !albumArt) {
 		return;
 	}
@@ -162,4 +187,4 @@ async function main() {
 }
 
 main();
-setInterval(main, 5 * 1000);
+setInterval(main, 30 * 1000);
