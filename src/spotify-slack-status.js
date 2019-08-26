@@ -1,23 +1,3 @@
-/*
-TODO: Ability to refresh the Spotify API token. https://developer.spotify.com/documentation/general/guides/authorization-guide/#authorization-code-flow
-I should be able to post to https://accounts.spotify.com/api/token with application/x-www-form-urlencoded
-{
-	grant_type: 'refresh_token',
-	refresh_token: '',
-	client_id: '',
-	client_secret: ''
-}
-
-response will contain:
-{
-	access_token: '',
-}
-
-TODO: Ok, so I need to store the access token and refresh token in mongodb. On each
-status check, if it fails I'll need to use the refresh token to get a new access token,
-persist that to mongo db, and then refetch.
-*/
-
 require('isomorphic-fetch');
 require('dotenv').config();
 const childProcess = require('child_process');
@@ -28,11 +8,37 @@ const _ = require('lodash');
 
 const { WebClient } = require('@slack/client');
 
-const spotifyToken = process.env.SPOTIFY_TOKEN || '';
+let spotifyToken = process.env.SPOTIFY_TOKEN || '';
+const spotifyClientId = process.env.SPOTIFY_CLIENT_ID;
+const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+const spotifyRefreshToken = process.env.SPOTIFY_REFRESH_TOKEN;
 const token = process.env.SLACK_EMOJI_TOKEN || '';
 const web = new WebClient(token);
 
 let lastPlayingSongId = null;
+
+async function getNewSpotifyToken() {
+	console.log('fetching new spotify token');
+	const data = await fetch(
+		`https://accounts.spotify.com/api/token?grant_type=refresh_token&refresh_token=${spotifyRefreshToken}&client_id=${spotifyClientId}&client_secret=${spotifyClientSecret}`,
+		{
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/x-www-form-urlencoded',
+			},
+		},
+	)
+		.then(resp => resp.json())
+		.catch(err => {
+			console.error(err);
+			throw err;
+		});
+
+	const { access_token: accessToken } = data;
+	spotifyToken = accessToken;
+	console.log('New spotify token fetched!', accessToken);
+	return accessToken;
+}
 
 async function getCurrentlyPlayingTrack() {
 	const data = await fetch(
@@ -102,12 +108,22 @@ function downloadFile(fileUrl, DOWNLOAD_DIR = '.') {
 	});
 }
 
-async function uploadNewAlbumArtEmoji() {
+async function maybeDeleteCustomEmoji() {
 	return web
 		.apiCall('emoji.remove', {
 			mode: 'data',
 			name: 'drew_currently_playing_album',
 		})
+		.then(() => {
+			console.log('custom emoji deleted');
+		})
+		.catch(() => {
+			console.log('no custom emoji to delete, but that is ok.');
+		});
+}
+
+async function uploadNewAlbumArtEmoji() {
+	return maybeDeleteCustomEmoji()
 		.then(() =>
 			web.apiCall('emoji.add', {
 				mode: 'data',
@@ -158,6 +174,22 @@ async function updateStatus(status) {
 	});
 }
 
+async function clearStatus() {
+	console.log('Clearing status');
+	const profile = {
+		status_text: '',
+		status_emoji: '',
+		status_expiration: 0,
+	};
+	return web.users.profile
+		.set({
+			profile,
+		})
+		.then(() => {
+			console.log('status cleared.');
+		});
+}
+
 async function main() {
 	console.log('Maybe updating status');
 	const response = await getCurrentlyPlayingTrack();
@@ -168,7 +200,8 @@ async function main() {
 			console.log('need to refresh auth');
 		}
 		console.error(`ERROR ${errorStatus}: ${message}`);
-		process.exit(1);
+		await getNewSpotifyToken();
+		main();
 		return;
 	}
 	if (!status || !albumArt) {
@@ -179,7 +212,6 @@ async function main() {
 	const isStatusSafeToChange = await ensureStatusIsSafeToChange();
 	if (!isStatusSafeToChange) {
 		return;
-		// process.exit(0);
 	}
 	await downloadFile(albumArt);
 	await uploadNewAlbumArtEmoji();
@@ -188,3 +220,32 @@ async function main() {
 
 main();
 setInterval(main, 30 * 1000);
+
+process.stdin.resume(); // so the program will not close instantly
+
+async function exitHandler(/* options, exitCode */) {
+	await maybeDeleteCustomEmoji();
+
+	const isStatusSafeToChange = await ensureStatusIsSafeToChange();
+	if (isStatusSafeToChange) {
+		await clearStatus();
+	}
+	process.exit();
+	// console.log('exiting', options, exitCode);
+	// if (options.cleanup) console.log('clean');
+	// if (exitCode || exitCode === 0) console.log(exitCode);
+	// if (options.exit) process.exit();
+}
+
+// do something when app is closing
+// process.on('exit', exitHandler.bind(null, { cleanup: true }));
+
+// catches ctrl+c event
+process.on('SIGINT', exitHandler.bind(null, { exit: true }));
+
+// catches "kill pid" (for example: nodemon restart)
+// process.on('SIGUSR1', exitHandler.bind(null, { exit: true }));
+// process.on('SIGUSR2', exitHandler.bind(null, { exit: true }));
+
+// catches uncaught exceptions
+process.on('uncaughtException', exitHandler.bind(null, { exit: true }));
