@@ -205,6 +205,13 @@ async function main() {
 		return;
 	}
 	if (!status || !albumArt) {
+		console.log('nothing is playing, cleaning up');
+		lastPlayingSongId = null;
+		await maybeDeleteCustomEmoji();
+		const isStatusSafeToChange = await ensureStatusIsSafeToChange();
+		if (isStatusSafeToChange) {
+			await clearStatus();
+		}
 		return;
 	}
 	console.log(status);
