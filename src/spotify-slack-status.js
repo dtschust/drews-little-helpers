@@ -91,7 +91,10 @@ async function getCurrentlyPlayingTrack() {
 	const songName = _.get(data, 'item.name');
 	const albumArt = _.get(data, 'item.album.images[1].url');
 
-	const status = `:musical_note: Now Playing: ${songName} - ${artist}`;
+	const status = `:musical_note: Now Playing: ${songName} - ${artist}`.slice(
+		0,
+		100,
+	);
 	return {
 		data,
 		songName,
