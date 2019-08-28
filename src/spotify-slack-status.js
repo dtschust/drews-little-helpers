@@ -70,7 +70,7 @@ async function getCurrentlyPlayingTrack() {
 		console.log('No song playing');
 		console.log('nothing is playing, cleaning up');
 		lastPlayingSongId = null;
-		await maybeDeleteCustomEmoji();
+		await writePlaceholderCustomEmoji();
 		const isStatusSafeToChange = await ensureStatusIsSafeToChange();
 		if (isStatusSafeToChange) {
 			await clearStatus();
@@ -90,6 +90,7 @@ async function getCurrentlyPlayingTrack() {
 		.join(', ');
 	const songName = _.get(data, 'item.name');
 	const albumArt = _.get(data, 'item.album.images[1].url');
+	const duration = _.get(data, 'item.duration_ms');
 
 	const status = `:musical_note: Now Playing: ${songName} - ${artist}`.slice(
 		0,
@@ -100,6 +101,7 @@ async function getCurrentlyPlayingTrack() {
 		songName,
 		albumArt,
 		status,
+		duration,
 	};
 }
 
@@ -132,13 +134,17 @@ async function maybeDeleteCustomEmoji() {
 		});
 }
 
-async function uploadNewAlbumArtEmoji() {
+async function writePlaceholderCustomEmoji() {
+	return uploadNewAlbumArtEmoji('noMusic.png');
+}
+
+async function uploadNewAlbumArtEmoji(filename = 'album.jpg') {
 	return maybeDeleteCustomEmoji()
 		.then(() =>
 			web.apiCall('emoji.add', {
 				mode: 'data',
 				name: 'drew_currently_playing_album',
-				image: fs.readFileSync(path.resolve('.', 'album.jpg')),
+				image: fs.readFileSync(path.resolve('.', filename)),
 			}),
 		)
 		.catch(err => {
@@ -172,11 +178,15 @@ async function ensureStatusIsSafeToChange() {
 	return false;
 }
 
-async function updateStatus(status, emoji = ':drew_currently_playing_album:') {
+async function updateStatus(
+	status,
+	emoji = ':drew_currently_playing_album:',
+	duration = 5 * 60 * 1000,
+) {
 	const profile = {
 		status_text: status,
 		status_emoji: emoji,
-		status_expiration: (Date.now() + 5 * 60 * 1000) / 1000, // Five minutes from now
+		status_expiration: (Date.now() + duration) / 1000, // Five minutes from now, or the length of the song
 	};
 	lastProfileSet = profile;
 	return web.users.profile.set({
@@ -203,7 +213,7 @@ async function clearStatus() {
 async function main() {
 	console.log('Maybe updating status');
 	const response = await getCurrentlyPlayingTrack();
-	const { status, albumArt, error } = response || {};
+	const { status, albumArt, error, duration } = response || {};
 	if (error) {
 		const { status: errorStatus, message } = error;
 		if (status === 401) {
@@ -227,7 +237,11 @@ async function main() {
 		await downloadFile(albumArt);
 		await uploadNewAlbumArtEmoji();
 	}
-	await updateStatus(status, albumArt ? undefined : ':dancing_penguin:');
+	await updateStatus(
+		status,
+		albumArt ? undefined : ':dancing_penguin:',
+		duration,
+	);
 }
 
 main();
@@ -236,7 +250,7 @@ setInterval(main, 30 * 1000);
 process.stdin.resume(); // so the program will not close instantly
 
 async function exitHandler(/* options, exitCode */) {
-	await maybeDeleteCustomEmoji();
+	await writePlaceholderCustomEmoji();
 
 	const isStatusSafeToChange = await ensureStatusIsSafeToChange();
 	if (isStatusSafeToChange) {
