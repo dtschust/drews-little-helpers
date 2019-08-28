@@ -172,10 +172,10 @@ async function ensureStatusIsSafeToChange() {
 	return false;
 }
 
-async function updateStatus(status) {
+async function updateStatus(status, emoji = ':drew_currently_playing_album:') {
 	const profile = {
 		status_text: status,
-		status_emoji: ':drew_currently_playing_album:',
+		status_emoji: emoji,
 		status_expiration: (Date.now() + 5 * 60 * 1000) / 1000, // Five minutes from now
 	};
 	lastProfileSet = profile;
@@ -214,7 +214,7 @@ async function main() {
 		main();
 		return;
 	}
-	if (!status || !albumArt) {
+	if (!status) {
 		return;
 	}
 	console.log(status);
@@ -223,9 +223,11 @@ async function main() {
 	if (!isStatusSafeToChange) {
 		return;
 	}
-	await downloadFile(albumArt);
-	await uploadNewAlbumArtEmoji();
-	await updateStatus(status);
+	if (albumArt) {
+		await downloadFile(albumArt);
+		await uploadNewAlbumArtEmoji();
+	}
+	await updateStatus(status, albumArt ? undefined : ':dancing_penguin:');
 }
 
 main();
