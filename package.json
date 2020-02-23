@@ -22,7 +22,7 @@
 		"isomorphic-fetch": "^2.2.1",
 		"lodash": "^4.17.4",
 		"moment": "^2.23.0",
-		"mongoose": "^4.11.12",
+		"mongoose": "^5.7.5",
 		"puppeteer": "^1.7.0",
 		"request": "^2.88.0",
 		"request-promise": "^4.2.2",
