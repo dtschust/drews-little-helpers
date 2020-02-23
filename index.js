@@ -5,6 +5,7 @@ const addFwProxyRoute = require('./src/fw-proxy-route');
 const addFemFreqPodcastRoute = require('./src/fem-freq-podcast-route');
 const addRecDiffsPodcastRoute = require('./src/recdiffs-podcast-route');
 const addPtpSlackRoute = require('./src/ptp-slack-route');
+const addIFlicksRoute = require('./src/iflicks-route');
 const addPlausWanRoute = require('./src/plaus-wan-route');
 const addUnattendedConsequencesRoute = require('./src/unattended-consequences-route');
 
@@ -30,6 +31,7 @@ addFwProxyRoute(app);
 addFemFreqPodcastRoute(app);
 addRecDiffsPodcastRoute(app);
 addPtpSlackRoute(app);
+addIFlicksRoute(app);
 addPlausWanRoute(app);
 addUnattendedConsequencesRoute(app);
 
