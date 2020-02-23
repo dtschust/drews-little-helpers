@@ -13,6 +13,7 @@ function sendMessageToSlackResponseURL(responseURL, JSONmessage) {
 	};
 	request(postOptions, (error /* response, body */) => {
 		if (error) {
+			console.log('error: ', error);
 			// TODO: handle errors as you see fit
 		}
 	});
@@ -23,12 +24,14 @@ function addIFlicksRoute(app) {
 		res.status(200).end();
 		const reqBody = req.body;
 		const responseURL = process.env.IFLICKS_WEBHOOK_URL;
+		console.log('received:', reqBody.text);
 		if (reqBody.token !== process.env.PTP_SLACK_VERIFICATION_TOKEN) {
 			res.status(403).end('Access forbidden');
 		} else {
 			sendMessageToSlackResponseURL(responseURL, {
 				text: `${reqBody.text} - converted and ready to watch`,
 			});
+			res.status(200).end();
 		}
 	});
 }
