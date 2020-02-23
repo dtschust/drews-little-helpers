@@ -21,7 +21,6 @@ function sendMessageToSlackResponseURL(responseURL, JSONmessage) {
 
 function addIFlicksRoute(app) {
 	app.post('/iflicks', (req, res) => {
-		res.status(200).end();
 		const reqBody = req.body;
 		const responseURL = process.env.IFLICKS_WEBHOOK_URL;
 		console.log('received:', reqBody.text);
