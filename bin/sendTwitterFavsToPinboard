@@ -26,12 +26,9 @@ const T = new Twit({
 });
 
 mongoose.Promise = global.Promise;
-mongoose.connect(
-	process.env.MONGO_DB_URI,
-	{
-		useMongoClient: true,
-	},
-);
+mongoose.connect(process.env.MONGO_DB_URI, {
+	useMongoClient: true,
+});
 const SavedTwitterFavs = mongoose.model('SavedTwitterFavs', {
 	savedUrls: Object,
 });
@@ -50,11 +47,12 @@ SavedTwitterFavs.findOne(undefined)
 		process.exit(0);
 	});
 
-const oldestDate = new Date('01/01/2016').getTime();
+const oldestDate = new Date('01/01/2018').getTime();
 const now = Date.now();
 
 async function fetchAndProcessTwitterFavs() {
 	const favs = await fetchTwitterFavs();
+
 	let websites =
 		// Grab all urls and store as { url, description }
 		_.flatten(
@@ -63,9 +61,7 @@ async function fetchAndProcessTwitterFavs() {
 				.map(({ entities, user, id_str, full_text }) =>
 					entities.urls.map(({ expanded_url }) => ({
 						url: expanded_url,
-						description: `via tweet: https://twitter.com/${
-							user.screen_name
-						}/status/${id_str} : ${full_text}`,
+						description: `via tweet: https://twitter.com/${user.screen_name}/status/${id_str} : ${full_text}`,
 					})),
 				),
 
@@ -94,19 +90,14 @@ async function fetchAndProcessTwitterFavs() {
 	);
 
 	const tweetsToFav = favs
-		.filter(({ user, id_str }) => {
-			const permalink = `https://twitter.com/${
-				user.screen_name
-			}/status/${id_str}`;
-			return !SAVED_TWITTER_FAVS[getUrlKey(permalink)];
-		})
+		.filter(({ id_str }) => !SAVED_TWITTER_FAVS[id_str])
 		.map(({ user, created_at, full_text, id_str }) => {
 			const url = `https://twitter.com/${user.screen_name}/status/${id_str}`;
 			const description = full_text;
 			const title = `Tweet from @${user.screen_name} on ${moment(
 				new Date(created_at),
 			).format('lll')}`;
-			return { url, title, description };
+			return { url, title, description, id_str };
 		});
 
 	const toPostToPinboard = websites.concat(tweetsToFav);
@@ -117,7 +108,7 @@ async function fetchAndProcessTwitterFavs() {
 	}
 
 	await Promise.all(
-		toPostToPinboard.map(({ url, title, description }) =>
+		toPostToPinboard.map(({ url, title, description, id_str }) =>
 			fetch(
 				`${process.env.PINBOARD_API_URL}?url=${encodeURI(
 					url,
@@ -133,7 +124,12 @@ async function fetchAndProcessTwitterFavs() {
 					console.log(
 						`Successfully saved to pinboard: ${title} ${description} ${url}`,
 					);
-					SAVED_TWITTER_FAVS[getUrlKey(url)] = now;
+
+					if (id_str) {
+						SAVED_TWITTER_FAVS[id_str] = now;
+					} else {
+						SAVED_TWITTER_FAVS[getUrlKey(url)] = now;
+					}
 				})
 				.catch(async e => {
 					console.log('Error saving this bookmark!', url, description, title);
@@ -141,7 +137,11 @@ async function fetchAndProcessTwitterFavs() {
 					await sendMessage(
 						`Error saving bookmark: ${url} ${description} ${title} ${e}`,
 					);
-					delete SAVED_TWITTER_FAVS[getUrlKey(url)];
+					if (id_str) {
+						delete SAVED_TWITTER_FAVS[id_str];
+					} else {
+						delete SAVED_TWITTER_FAVS[getUrlKey(url)];
+					}
 				}),
 		),
 	);
@@ -192,6 +192,11 @@ function fetchTwitterFavs(maxId, prevResults = []) {
 			const { created_at: lastCreatedAt, id: lastId } = data[data.length - 1];
 
 			const ts = new Date(lastCreatedAt).getTime();
+
+			if (data.length === 1) {
+				// Something's probably broken (sometimes we keep getting the same 1 tweet over and over), just stop here.
+				return results;
+			}
 
 			if (ts >= oldestDate) {
 				console.log(`Fetching more`);
