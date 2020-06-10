@@ -7,12 +7,9 @@ const { Dropbox } = require('dropbox');
 const dbx = new Dropbox({ accessToken: process.env.DROPBOX_TOKEN });
 
 mongoose.Promise = global.Promise;
-mongoose.connect(
-	process.env.MONGO_DB_URI,
-	{
-		useMongoClient: true,
-	},
-);
+mongoose.connect(process.env.MONGO_DB_URI, {
+	useMongoClient: true,
+});
 
 const Cookie = mongoose.model('Cookie', {
 	cookie: String,
@@ -51,6 +48,20 @@ function sortTorrents(a, b) {
 	if (b.GoldenPopcorn && !a.GoldenPopcorn) {
 		return 1;
 	}
+	if (
+		a.Quality === 'Ultra High Definition' &&
+		!b.quality !== 'Ultra High Definition'
+	) {
+		return -1;
+	}
+
+	if (
+		b.Quality === 'Ultra High Definition' &&
+		!a.quality !== 'Ultra High Definition'
+	) {
+		return 1;
+	}
+
 	if (a.Quality === 'High Definition' && !b.quality !== 'High Definition') {
 		return -1;
 	}
@@ -65,7 +76,7 @@ function sortTorrents(a, b) {
 let COOKIE;
 Cookie.findOne(undefined)
 	.exec()
-	.then(newCookie => {
+	.then((newCookie) => {
 		if (newCookie) {
 			COOKIE = newCookie.get('cookie');
 		}
@@ -102,17 +113,17 @@ function getLoginCookies(responseURL) {
 
 			const cookies = response.headers['set-cookie'];
 			const cookieString = cookies
-				.map(cookie => `${cookie.split(';')[0]};`)
+				.map((cookie) => `${cookie.split(';')[0]};`)
 				.join('');
 			COOKIE = cookieString;
 
 			// remove all persisted cookies now that they are bad
-			Cookie.remove(undefined, err => {
+			Cookie.remove(undefined, (err) => {
 				console.log('Error removing cookie', err);
 				// eslint-disable-line no-unused-vars
 				const cookieToPersist = new Cookie({ cookie: cookieString });
 				// store the new cookie!
-				cookieToPersist.save(saveErr => {
+				cookieToPersist.save((saveErr) => {
 					message = {
 						text: 'New login succeeded, please search again!',
 						replace_original: true,
@@ -162,11 +173,11 @@ function addPtpSlackRoute(app) {
 				passKey = apiResponse.PassKey;
 
 				const movies = apiResponse.Movies.slice(0, 5);
-				movies.forEach(movie => {
+				movies.forEach((movie) => {
 					GroupIdMap[movie.GroupId] = movie;
 				});
 
-				const attachments = movies.map(movie => ({
+				const attachments = movies.map((movie) => ({
 					title: `${movie.Title} (${movie.Year})`,
 					image_url: movie.Cover,
 					callback_id: movie.GroupId,
@@ -205,15 +216,16 @@ function addPtpSlackRoute(app) {
 			const torrents = GroupIdMap[groupId].Torrents.slice(0)
 				.sort(sortTorrents)
 				.slice(0, 8);
-			const attachments = torrents.map(t => ({
+			const attachments = torrents.map((t) => ({
 				title: `\
 ${t.GoldenPopcorn ? ':popcorn: ' : ''}${t.Checked ? ':white_check_mark: ' : ''}\
 ${t.Quality} / ${t.Codec} / ${t.Container} / ${t.Source} /\
 ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${
 					t.RemasterTitle ? `/ ${t.RemasterTitle}` : ''
 				}`,
-				text: `Seeders: ${t.Seeders}, Snatched ${t.Snatched}, Size: ${t.Size /
-					1073741824} Gb`,
+				text: `Seeders: ${t.Seeders}, Snatched ${t.Snatched}, Size: ${
+					t.Size / 1073741824
+				} Gb`,
 				callback_id: t.Id,
 				actions: [
 					{
@@ -254,7 +266,7 @@ ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${
 							.filesSaveUrlCheckJobStatus({
 								async_job_id: asyncJobId,
 							})
-							.then(response => {
+							.then((response) => {
 								if (response['.tag'] === 'complete') {
 									const successMessage = {
 										text: `Successfully placed ${movieTitle} in dropbox, have a great day!`,
@@ -281,7 +293,7 @@ ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${
 					setTimeout(checkJobStatus, 5000);
 					thirtySecondCheck = setTimeout(checkJobStatus, 30000);
 				})
-				.catch(error => {
+				.catch((error) => {
 					const errorMessage = {
 						text: `Oops, something went wrong. Sorry, here's your URL to do it manually: https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey} . ${error}`,
 						replace_original: false,
