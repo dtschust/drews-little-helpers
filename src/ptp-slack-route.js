@@ -3,6 +3,10 @@ require('isomorphic-fetch');
 const request = require('request');
 const mongoose = require('mongoose');
 const { Dropbox } = require('dropbox');
+const { WebClient } = require('@slack/client');
+
+const token = process.env.PTP_SLACK_OAUTH_ACCESS_TOKEN || '';
+const web = new WebClient(token);
 
 const dbx = new Dropbox({ accessToken: process.env.DROPBOX_TOKEN });
 
@@ -276,6 +280,7 @@ ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${
 										actionJSONPayload.response_url,
 										successMessage,
 									);
+									sendMessage(`Started download of ${movieTitle}`)
 									clearTimeout(thirtySecondCheck);
 								}
 							})
@@ -310,3 +315,17 @@ ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${
 }
 
 module.exports = addPtpSlackRoute;
+
+function sendMessage(text) {
+	return web.chat
+		.postMessage({
+			channel: process.env.PTP_SLACK_CHANNEL_ID,
+			text,
+		})
+		.then(() => {
+			console.log('Message sent: ', text);
+		})
+		.catch(err => {
+			console.log('Error:', err);
+		});
+}
