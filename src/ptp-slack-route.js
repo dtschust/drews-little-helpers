@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const { Dropbox } = require('dropbox');
 const { WebClient } = require('@slack/client');
 
-const token = process.env.PTP_SLACK_OAUTH_ACCESS_TOKEN || '';
+const token = process.env.SLACK_API_TOKEN || '';
 const web = new WebClient(token);
 
 const dbx = new Dropbox({ accessToken: process.env.DROPBOX_TOKEN });
