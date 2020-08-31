@@ -280,7 +280,7 @@ ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${
 										actionJSONPayload.response_url,
 										successMessage,
 									);
-									sendMessage(`Started download of ${movieTitle}`)
+									sendMessage(`Started download of *${movieTitle}*`)
 									clearTimeout(thirtySecondCheck);
 								}
 							})
