@@ -112,7 +112,7 @@ async function fetchAndProcessTwitterFavs() {
 			fetch(
 				`${process.env.PINBOARD_API_URL}?url=${encodeURI(
 					url,
-				)}&description=${encodeURI(title)}&extended=${encodeURI(
+				)}&description=${encodeURIComponent(title)}&extended=${encodeURIComponent(
 					description,
 				)}&tags=${encodeURI(['customTwitterFav'])}`,
 			)
