@@ -12,7 +12,8 @@ const dbx = new Dropbox({ accessToken: process.env.DROPBOX_TOKEN });
 
 mongoose.Promise = global.Promise;
 mongoose.connect(process.env.MONGO_DB_URI, {
-	useMongoClient: true,
+		useNewUrlParser: true,
+		useUnifiedTopology: true,
 });
 
 const Cookie = mongoose.model('Cookie', {

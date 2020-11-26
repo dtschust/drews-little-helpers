@@ -27,7 +27,8 @@ const T = new Twit({
 
 mongoose.Promise = global.Promise;
 mongoose.connect(process.env.MONGO_DB_URI, {
-	useMongoClient: true,
+		useNewUrlParser: true,
+		useUnifiedTopology: true,
 });
 const SavedTwitterFavs = mongoose.model('SavedTwitterFavs', {
 	savedUrls: Object,

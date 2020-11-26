@@ -13,7 +13,8 @@ mongoose.Promise = global.Promise;
 mongoose.connect(
 	process.env.MONGO_DB_URI,
 	{
-		useMongoClient: true,
+		useNewUrlParser: true,
+		useUnifiedTopology: true,
 	},
 );
 
