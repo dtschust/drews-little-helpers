@@ -26,6 +26,7 @@ const VersionData = mongoose.model('VersionData', {
 	screensConnect: String,
 	rescueTime: String,
 	backBlaze: String,
+	onePassword: String,
 });
 
 const FunBridgeVersions = mongoose.model('FunBridgeVersions', {
@@ -42,6 +43,7 @@ VersionData.findOne(undefined)
 				screensConnect: newVersionData.get('screensConnect'),
 				rescueTime: newVersionData.get('rescueTime'),
 				backBlaze: newVersionData.get('backBlaze'),
+				onePassword: newVersionData.get('onePassword'),
 			};
 		}
 		checkVersions(); // eslint-disable-line no-use-before-define
@@ -56,13 +58,15 @@ function checkVersions() {
 		checkScreensConnect(),
 		checkRescueTime(),
 		checkBackBlaze(),
-	]).then(async ([funbridge, screensConnect, rescueTime, backBlaze]) => {
+		checkOnePassword(),
+	]).then(async ([funbridge, screensConnect, rescueTime, backBlaze, onePassword]) => {
 		const newVersionData = {
 			screensConnect,
 			rescueTime,
 			backBlaze,
+			onePassword,
 		};
-		_.forEach(['screensConnect', 'rescueTime', 'backBlaze'], key => {
+		_.forEach(['screensConnect', 'rescueTime', 'backBlaze', 'onePassword'], key => {
 			// If the network request failed to get a version number, just ignore it for now
 			// and copy from the old version data
 			if (!newVersionData[key] || newVersionData[key].length === 0) {
@@ -136,6 +140,7 @@ ${changes}
 						screensConnect: newVersionDataModel.get('screensConnect'),
 						rescueTime: newVersionDataModel.get('rescueTime'),
 						backBlaze: newVersionDataModel.get('backBlaze'),
+						onePassword: newVersionDataModel.get('onePassword'),
 					};
 				});
 			});
@@ -167,6 +172,17 @@ function getNewestVersionFromItems(items = []) {
 	}
 
 	return versions[versions.length - 1];
+}
+
+function checkOnePassword() {
+	return fetch(`https://app-updates.agilebits.com/check/1/19.6.0/OPM7/en/${VERSION_DATA.onePassword}`)
+		.then(response => response.json())
+		.then(({available, relnotes}) => {
+			if (available === "0") return Promise.resolve(VERSION_DATA.onePassword);
+
+			const newVersion = relnotes.split('/').slice(-1)[0].split('?')[0]
+			return Promise.resolve(newVersion);
+		});
 }
 
 function checkScreensConnect() {
