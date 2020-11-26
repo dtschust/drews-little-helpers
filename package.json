@@ -23,7 +23,7 @@
 		"lodash": "^4.17.4",
 		"moment": "^2.23.0",
 		"mongoose": "^5.10.16",
-		"puppeteer": "^1.7.0",
+		"puppeteer": "^1.13.0",
 		"request": "^2.88.0",
 		"request-promise": "^4.2.2",
 		"twit": "^2.2.11",
