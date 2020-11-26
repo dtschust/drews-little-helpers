@@ -148,6 +148,8 @@ ${changes}
 			console.log('Version checked, no updates!');
 			process.exit(0);
 		}
+	}).catch((e) => {
+		sendMessage(`Something went wrong with my update script! ${e}`).then(() => { process.exit(0)})
 	});
 }
 
