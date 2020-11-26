@@ -20,7 +20,7 @@
 		"forever": "^0.15.3",
 		"http-proxy": "^1.17.0",
 		"isomorphic-fetch": "^2.2.1",
-		"lodash": "^4.17.4",
+		"lodash": "^4.17.19",
 		"moment": "^2.23.0",
 		"mongoose": "^5.10.16",
 		"puppeteer": "^1.7.0",
