@@ -71,8 +71,7 @@ async function fetchAndProcessTwitterFavs() {
 
 	// Add page titles to the sites
 	websites = await Promise.all(
-		websites.map(({ url, description }) =>
-			rp(url)
+		websites.map(({ url, description }) => rp({ url, timeout: 2000 })
 				.then(htmlString => {
 					const $ = cheerio.load(htmlString);
 					const title =
@@ -86,8 +85,7 @@ async function fetchAndProcessTwitterFavs() {
 					console.log(`Error fetching title for ${url} : ${err}`);
 					// Crawling failed...
 					return { url, description, title: 'Cannot fetch title' };
-				}),
-		),
+				})),
 	);
 
 	const tweetsToFav = favs
