@@ -184,7 +184,7 @@ function fetchTwitterFavs(maxId, prevResults = []) {
 			console.log(`Fetched ${data.length}`);
 			const results = prevResults.concat(data);
 			if (!data.length) {
-				console.log('no data');
+				console.log(`no data after id ${maxId}`);
 				return results;
 			}
 
@@ -194,6 +194,7 @@ function fetchTwitterFavs(maxId, prevResults = []) {
 
 			if (data.length === 1) {
 				// Something's probably broken (sometimes we keep getting the same 1 tweet over and over), just stop here.
+				console.log('data length of 1, stopping now');
 				return results;
 			}
 
@@ -206,7 +207,8 @@ function fetchTwitterFavs(maxId, prevResults = []) {
 		.catch(async err => {
 			console.log('ERROR: ', err);
 			await sendMessage(`Error: ${err}`);
-			process.exit(0);
+			return prevResults;
+			// process.exit(0);
 		});
 }
 
