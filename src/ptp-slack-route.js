@@ -87,7 +87,7 @@ Cookie.findOne(undefined)
 		}
 	});
 
-function getLoginCookies(responseURL) {
+function getLoginCookies(query, responseURL, retry) {
 	let message = {
 		text: 'Oops, need to log in again, please hold!',
 	};
@@ -130,13 +130,16 @@ function getLoginCookies(responseURL) {
 				// store the new cookie!
 				cookieToPersist.save((saveErr) => {
 					message = {
-						text: 'New login succeeded, please search again!',
+						text: `New login succeeded, ${retry ? 'searching again': 'please search again!'}`,
 						replace_original: true,
 					};
 					if (saveErr) {
 						message.text = saveErr;
 					}
 					sendMessageToSlackResponseURL(responseURL, message);
+					if (retry) {
+						searchAndRespond(query, responseURL, false);
+					}
 				});
 			});
 		},
@@ -154,15 +157,7 @@ function search(query, cb) {
 	);
 }
 
-function addPtpSlackRoute(app) {
-	app.post('/slash-command', (req, res) => {
-		res.status(200).end();
-		const reqBody = req.body;
-		const responseURL = reqBody.response_url;
-		const query = reqBody.text;
-		if (reqBody.token !== process.env.PTP_SLACK_VERIFICATION_TOKEN) {
-			res.status(403).end('Access forbidden');
-		} else {
+function searchAndRespond(query, responseURL, retry = true) {
 			search(query, (error, response, body) => {
 				let apiResponse;
 				try {
@@ -170,7 +165,7 @@ function addPtpSlackRoute(app) {
 				} catch (e) {
 					console.error('exception parsing JSON body: ', e);
 					console.error('Body is ', body);
-					getLoginCookies(responseURL);
+					getLoginCookies(query, responseURL, retry);
 					return;
 				}
 
@@ -202,6 +197,19 @@ function addPtpSlackRoute(app) {
 				};
 				sendMessageToSlackResponseURL(responseURL, message);
 			});
+}
+
+function addPtpSlackRoute(app) {
+	app.post('/slash-command', (req, res) => {
+		res.status(200).end();
+		const reqBody = req.body;
+		const responseURL = reqBody.response_url;
+		const query = reqBody.text;
+		if (reqBody.token !== process.env.PTP_SLACK_VERIFICATION_TOKEN) {
+			res.status(403).end('Access forbidden');
+		} else {
+			const retry = true;
+			searchAndRespond(query, responseURL, retry);
 		}
 	});
 
