@@ -1,0 +1,60 @@
+#!/usr/bin/env node
+
+require('dotenv').config();
+const Twit = require('twit');
+
+const yourScreenName = 'nuncamind';
+
+const T = new Twit({
+	consumer_key: process.env.TWITTER_CONSUMER_KEY,
+	consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
+	access_token: process.env.TWITTER_ACCESS_TOKEN,
+	access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
+	timeout_ms: 60 * 1000, // optional HTTP request timeout to apply to all requests.
+	strictSSL: true, // optional - requires SSL certificates to be valid.
+});
+
+(async function unfollowEthUsers() {
+	const toUnfollow = [];
+	const friends = await fetchTwitterFriends();
+	friends.forEach(({ name, id, screen_name: handle }) => {
+		if (name.includes('.eth')) {
+			toUnfollow.push({name, id, handle});
+		}
+	})
+
+	await Promise.all(toUnfollow.map(({name, id, handle}) => {
+		console.log(`trying to unfollow ${name} @${handle}`)
+		return T.post('friendships/destroy', {
+			user_id: id
+		}).then(() => {
+			console.log(`successfully unfollowed ${name}`)
+		});
+	}));
+	process.exit(0);
+})();
+
+function fetchTwitterFriends(cursor, prevFriends = []) {
+	return T.get('friends/list', {
+		screen_name: yourScreenName,
+		count: 200,
+		skip_status: true,
+		cursor,
+	})
+		.then(result => {
+			const { users, next_cursor: nextCursor } = result.data;
+			const results = prevFriends.concat(users);
+			if (!users.length) {
+				return results;
+			}
+
+			if (nextCursor) {
+				return fetchTwitterFriends(nextCursor, results);
+			}
+			return results;
+		})
+		.catch(async err => {
+			console.log('ERROR: ', err);
+			return prevFriends;
+		});
+}
