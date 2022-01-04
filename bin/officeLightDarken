@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+const { darken } = require('./officeLight');
+
+darken().then(()=>{process.exit(0)})
