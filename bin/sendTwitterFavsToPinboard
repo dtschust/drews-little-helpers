@@ -27,8 +27,8 @@ const T = new Twit({
 
 mongoose.Promise = global.Promise;
 mongoose.connect(process.env.MONGO_DB_URI, {
-		useNewUrlParser: true,
-		useUnifiedTopology: true,
+	useNewUrlParser: true,
+	useUnifiedTopology: true,
 });
 const SavedTwitterFavs = mongoose.model('SavedTwitterFavs', {
 	savedUrls: Object,
@@ -37,13 +37,13 @@ const SavedTwitterFavs = mongoose.model('SavedTwitterFavs', {
 let SAVED_TWITTER_FAVS = {};
 SavedTwitterFavs.findOne(undefined)
 	.exec()
-	.then(newSavedTwitterFavs => {
+	.then((newSavedTwitterFavs) => {
 		if (newSavedTwitterFavs) {
 			SAVED_TWITTER_FAVS = newSavedTwitterFavs.savedUrls || {};
 		}
 		fetchAndProcessTwitterFavs();
 	})
-	.catch(e => {
+	.catch((e) => {
 		console.log('Huh, we have an error', e);
 		process.exit(0);
 	});
@@ -63,29 +63,27 @@ async function fetchAndProcessTwitterFavs() {
 					entities.urls.map(({ expanded_url }) => ({
 						url: expanded_url,
 						description: `via tweet: https://twitter.com/${user.screen_name}/status/${id_str} : ${full_text}`,
-					})),
-				),
+					}))
+				)
 
 			// Filter out any that have already been saved to pinboard
 		).filter(({ url }) => !SAVED_TWITTER_FAVS[getUrlKey(url)]);
 
 	// Add page titles to the sites
 	websites = await Promise.all(
-		websites.map(({ url, description }) => rp({ url, timeout: 2000 })
-				.then(htmlString => {
+		websites.map(({ url, description }) =>
+			rp({ url, timeout: 2000 })
+				.then((htmlString) => {
 					const $ = cheerio.load(htmlString);
-					const title =
-						$('title')
-							.eq(0)
-							.text()
-							.trim() || 'untitled';
+					const title = $('title').eq(0).text().trim() || 'untitled';
 					return { url, description, title };
 				})
-				.catch(err => {
+				.catch((err) => {
 					console.log(`Error fetching title for ${url} : ${err}`);
 					// Crawling failed...
 					return { url, description, title: 'Cannot fetch title' };
-				})),
+				})
+		)
 	);
 
 	const tweetsToFav = favs
@@ -93,9 +91,9 @@ async function fetchAndProcessTwitterFavs() {
 		.map(({ user, created_at, full_text, id_str }) => {
 			const url = `https://twitter.com/${user.screen_name}/status/${id_str}`;
 			const description = full_text;
-			const title = `Tweet from @${user.screen_name} on ${moment(
-				new Date(created_at),
-			).format('lll')}`;
+			const title = `Tweet from @${user.screen_name} on ${moment(new Date(created_at)).format(
+				'lll'
+			)}`;
 			return { url, title, description, id_str };
 		});
 
@@ -110,19 +108,17 @@ async function fetchAndProcessTwitterFavs() {
 		toPostToPinboard.map(({ url, title, description, id_str }) =>
 			fetch(
 				`${process.env.PINBOARD_API_URL}?url=${encodeURI(
-					url,
+					url
 				)}&description=${encodeURIComponent(title)}&extended=${encodeURIComponent(
-					description,
-				)}&tags=${encodeURI(['customTwitterFav'])}`,
+					description
+				)}&tags=${encodeURI(['customTwitterFav'])}`
 			)
-				.then(resp => resp.text())
-				.then(resp => {
+				.then((resp) => resp.text())
+				.then((resp) => {
 					if (!resp || !resp.indexOf('<result code="done" />')) {
 						throw new Error(`Pinboard write failed with error ${resp}`);
 					}
-					console.log(
-						`Successfully saved to pinboard: ${title} ${description} ${url}`,
-					);
+					console.log(`Successfully saved to pinboard: ${title} ${description} ${url}`);
 
 					if (id_str) {
 						SAVED_TWITTER_FAVS[id_str] = now;
@@ -130,23 +126,21 @@ async function fetchAndProcessTwitterFavs() {
 						SAVED_TWITTER_FAVS[getUrlKey(url)] = now;
 					}
 				})
-				.catch(async e => {
+				.catch(async (e) => {
 					console.log('Error saving this bookmark!', url, description, title);
 					console.log('error:', e);
-					await sendMessage(
-						`Error saving bookmark: ${url} ${description} ${title} ${e}`,
-					);
+					await sendMessage(`Error saving bookmark: ${url} ${description} ${title} ${e}`);
 					if (id_str) {
 						delete SAVED_TWITTER_FAVS[id_str];
 					} else {
 						delete SAVED_TWITTER_FAVS[getUrlKey(url)];
 					}
-				}),
-		),
+				})
+		)
 	);
 
 	console.log('Done saving, now let us persist to mongo!');
-	SavedTwitterFavs.remove(undefined, err => {
+	SavedTwitterFavs.remove(undefined, (err) => {
 		if (err) {
 			console.log('Error removing from database', err);
 		}
@@ -154,7 +148,7 @@ async function fetchAndProcessTwitterFavs() {
 			savedUrls: SAVED_TWITTER_FAVS,
 		});
 		// store the new savedToots map!
-		newSavedTwitterFavs.save(async saveErr => {
+		newSavedTwitterFavs.save(async (saveErr) => {
 			if (saveErr) {
 				console.log('Error saving to database', saveErr);
 			}
@@ -179,7 +173,7 @@ function fetchTwitterFavs(maxId, prevResults = []) {
 		tweet_mode: 'extended',
 		max_id: maxId,
 	})
-		.then(result => {
+		.then((result) => {
 			const { data } = result;
 			console.log(`Fetched ${data.length}`);
 			const results = prevResults.concat(data);
@@ -204,7 +198,7 @@ function fetchTwitterFavs(maxId, prevResults = []) {
 			}
 			return results;
 		})
-		.catch(async err => {
+		.catch(async (err) => {
 			console.log('ERROR: ', err);
 			await sendMessage(`Error: ${err}`);
 			return prevResults;

@@ -19,18 +19,20 @@ const T = new Twit({
 	const friends = await fetchTwitterFriends();
 	friends.forEach(({ name, id, screen_name: handle }) => {
 		if (name.includes('.eth')) {
-			toUnfollow.push({name, id, handle});
+			toUnfollow.push({ name, id, handle });
 		}
-	})
+	});
 
-	await Promise.all(toUnfollow.map(({name, id, handle}) => {
-		console.log(`trying to unfollow ${name} @${handle}`)
-		return T.post('friendships/destroy', {
-			user_id: id
-		}).then(() => {
-			console.log(`successfully unfollowed ${name}`)
-		});
-	}));
+	await Promise.all(
+		toUnfollow.map(({ name, id, handle }) => {
+			console.log(`trying to unfollow ${name} @${handle}`);
+			return T.post('friendships/destroy', {
+				user_id: id,
+			}).then(() => {
+				console.log(`successfully unfollowed ${name}`);
+			});
+		})
+	);
 	process.exit(0);
 })();
 
@@ -41,7 +43,7 @@ function fetchTwitterFriends(cursor, prevFriends = []) {
 		skip_status: true,
 		cursor,
 	})
-		.then(result => {
+		.then((result) => {
 			const { users, next_cursor: nextCursor } = result.data;
 			const results = prevFriends.concat(users);
 			if (!users.length) {
@@ -53,7 +55,7 @@ function fetchTwitterFriends(cursor, prevFriends = []) {
 			}
 			return results;
 		})
-		.catch(async err => {
+		.catch(async (err) => {
 			console.log('ERROR: ', err);
 			return prevFriends;
 		});

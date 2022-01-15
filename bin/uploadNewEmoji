@@ -28,7 +28,7 @@ if (fs.existsSync(folderPath) && fs.lstatSync(folderPath).isDirectory()) {
 }
 
 const promises = [];
-files.forEach(file => {
+files.forEach((file) => {
 	// Do whatever you want to do with the file
 	const [filename, extension] = file.split('.');
 	if (!extension || !['png', 'gif'].includes(extension.toLocaleLowerCase())) {
@@ -42,16 +42,16 @@ files.forEach(file => {
 				name: filename,
 				image: fs.readFileSync(path.resolve(folderPath, file)),
 			})
-			.then(response => {
+			.then((response) => {
 				console.log(
 					`successfully ${
 						endpoint === 'emoji.add' ? 'uploaded' : 'deleted'
-					} ${filename}, ${JSON.stringify(response)}`,
+					} ${filename}, ${JSON.stringify(response)}`
 				);
 			})
-			.catch(error => {
+			.catch((error) => {
 				console.error(`oh no failure with ${filename}, ${error}`);
-			}),
+			})
 	);
 
 	console.log(file);

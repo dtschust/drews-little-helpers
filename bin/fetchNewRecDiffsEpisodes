@@ -10,15 +10,12 @@ const token = process.env.SLACK_API_TOKEN || '';
 const web = new WebClient(token);
 
 mongoose.Promise = global.Promise;
-mongoose.connect(
-	process.env.MONGO_DB_URI,
-	{
-		useNewUrlParser: true,
-		useUnifiedTopology: true,
-	},
-);
+mongoose.connect(process.env.MONGO_DB_URI, {
+	useNewUrlParser: true,
+	useUnifiedTopology: true,
+});
 
-process.on('unhandledRejection', error => {
+process.on('unhandledRejection', (error) => {
 	console.log('unhandledRejection', error);
 	process.exit(1);
 });
@@ -31,7 +28,7 @@ const RecDiffsEpisodesModel = mongoose.model('RecDiffsEpisodes', {
 let storedEpisodesModel;
 RecDiffsEpisodesModel.findOne(undefined)
 	.exec()
-	.then(newStoredEpisodesModel => {
+	.then((newStoredEpisodesModel) => {
 		if (newStoredEpisodesModel) {
 			storedEpisodesModel = {
 				episodes: newStoredEpisodesModel.get('episodes'),
@@ -42,7 +39,7 @@ RecDiffsEpisodesModel.findOne(undefined)
 		}
 		fetchNewEpisodes();
 	})
-	.catch(e => {
+	.catch((e) => {
 		console.log('Huh, we have an error', e);
 		process.exit(0);
 	});
@@ -50,15 +47,22 @@ RecDiffsEpisodesModel.findOne(undefined)
 async function fetchNewEpisodes() {
 	let nextEpisodeNumber;
 	try {
-		const mostRecentEpisodeKey = storedEpisodesModel.order[storedEpisodesModel.order.length - 1];
+		const mostRecentEpisodeKey =
+			storedEpisodesModel.order[storedEpisodesModel.order.length - 1];
 		const mostRecentEpisodeUrl = storedEpisodesModel.episodes[mostRecentEpisodeKey].url;
-		const mostRecentEpisodeNumber = parseInt(mostRecentEpisodeUrl.match(/recdifferences(\d*).mp3/)[1], 10);
+		const mostRecentEpisodeNumber = parseInt(
+			mostRecentEpisodeUrl.match(/recdifferences(\d*).mp3/)[1],
+			10
+		);
 		nextEpisodeNumber = mostRecentEpisodeNumber + 1;
 	} catch (e) {
 		nextEpisodeNumber = 84;
 	}
 
-	const newEpisodeUrl = `https://www.podtrac.com/pts/redirect.mp3/traffic.libsyn.com/recdiffs/recdifferences${lpad(nextEpisodeNumber, 3)}.mp3`;
+	const newEpisodeUrl = `https://www.podtrac.com/pts/redirect.mp3/traffic.libsyn.com/recdiffs/recdifferences${lpad(
+		nextEpisodeNumber,
+		3
+	)}.mp3`;
 	console.log(newEpisodeUrl);
 	const newEpisodeResponse = await fetch(newEpisodeUrl);
 	if (newEpisodeResponse.status !== 200) {
@@ -70,41 +74,40 @@ async function fetchNewEpisodes() {
 		url: newEpisodeUrl,
 		title: `Reconcilable Differences ${nextEpisodeNumber}`,
 		pubDate: pubDate(new Date()),
+	};
+
+	const urlKey = newEpisode.url.replace(/\./g, ''); // can't store periods in keys for mongodb
+	if (!storedEpisodesModel.episodes[urlKey]) {
+		storedEpisodesModel.episodes[urlKey] = newEpisode;
+		storedEpisodesModel.order.push(urlKey);
 	}
 
-		const urlKey = newEpisode.url.replace(/\./g, ''); // can't store periods in keys for mongodb
-		if (!storedEpisodesModel.episodes[urlKey]) {
-			storedEpisodesModel.episodes[urlKey] = newEpisode;
-			storedEpisodesModel.order.push(urlKey);
+	// remove old map, we've got a new one to store!
+	RecDiffsEpisodesModel.remove(undefined, (err) => {
+		console.log('new model!', storedEpisodesModel);
+		const newStoredEpisodesModel = new RecDiffsEpisodesModel(storedEpisodesModel);
+
+		if (err) {
+			console.log('Error removing from database', err);
+			process.exit(1);
 		}
-
-		// remove old map, we've got a new one to store!
-		RecDiffsEpisodesModel.remove(undefined, err => {
-			console.log('new model!', storedEpisodesModel);
-			const newStoredEpisodesModel = new RecDiffsEpisodesModel(
-				storedEpisodesModel,
-			);
-
-			if (err) {
-				console.log('Error removing from database', err);
+		// store the new savedToots map!
+		newStoredEpisodesModel.save((saveErr) => {
+			if (saveErr) {
+				console.log('Error saving to database', saveErr);
 				process.exit(1);
 			}
-			// store the new savedToots map!
-			newStoredEpisodesModel.save(saveErr => {
-				if (saveErr) {
-					console.log('Error saving to database', saveErr);
-					process.exit(1);
-				}
-				console.log(`done! Saved new episode #${nextEpisodeNumber}!`);
-				web.chat
-					.postMessage({
-						channel: process.env.FEMFREQ_SLACK_CHANNEL_ID,
-						text: `New episode of Reconcilable Differences posted, #${nextEpisodeNumber}!`
-					}).then(() => {
-						process.exit(0);
-					})
-			});
+			console.log(`done! Saved new episode #${nextEpisodeNumber}!`);
+			web.chat
+				.postMessage({
+					channel: process.env.FEMFREQ_SLACK_CHANNEL_ID,
+					text: `New episode of Reconcilable Differences posted, #${nextEpisodeNumber}!`,
+				})
+				.then(() => {
+					process.exit(0);
+				});
 		});
+	});
 }
 
 function pubDate(date = new Date()) {
@@ -114,19 +117,12 @@ function pubDate(date = new Date()) {
 
 	const offset = offsetTime || pieces[5];
 
-	const parts = [
-		`${pieces[0]},`,
-		pieces[2],
-		pieces[1],
-		pieces[3],
-		pieces[4],
-		offset,
-	];
+	const parts = [`${pieces[0]},`, pieces[2], pieces[1], pieces[3], pieces[4], offset];
 
 	return parts.join(' ');
 }
 
 function lpad(value, padding) {
-	const zeroes = new Array(padding + 1).join("0");
+	const zeroes = new Array(padding + 1).join('0');
 	return (zeroes + value).slice(-padding);
 }

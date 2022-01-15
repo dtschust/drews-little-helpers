@@ -5,47 +5,40 @@ require('isomorphic-fetch');
 
 const endpoint = process.env.HUE_ENDPOINT;
 const username = process.env.HUE_USERNAME;
-const light = process.env.HUE_LIGHT
+const light = process.env.HUE_LIGHT;
 const INCREMENT = 60;
 
-
 function getCurrentLightStatus() {
-	return fetch(
-		`http://${endpoint}/api/${username}/lights/${light}`,
-		{
-			method: 'GET',
-		},
-	)
-	.then(resp => resp.json())
-	.then(((resp ) => {
-		const { state } = resp;
-		const { on, bri } = state;
-		console.log(`on: ${on} bri: ${bri}`);
-		return { on, bri, resp }
-	}))
-	.catch(err => {
-		console.error(err);
-		throw err;
+	return fetch(`http://${endpoint}/api/${username}/lights/${light}`, {
+		method: 'GET',
 	})
+		.then((resp) => resp.json())
+		.then((resp) => {
+			const { state } = resp;
+			const { on, bri } = state;
+			console.log(`on: ${on} bri: ${bri}`);
+			return { on, bri, resp };
+		})
+		.catch((err) => {
+			console.error(err);
+			throw err;
+		});
 }
 
 function updateLightState(payload) {
-	return fetch(
-		`http://${endpoint}/api/${username}/lights/${light}/state`,
-		{
-			method: 'PUT',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify(payload)
+	return fetch(`http://${endpoint}/api/${username}/lights/${light}/state`, {
+		method: 'PUT',
+		headers: {
+			'Content-Type': 'application/json',
 		},
-	)
-	.then(resp => resp.json())
-	.then(console.log)
-	.catch(err => {
-		console.error(err);
-		throw err;
-	});
+		body: JSON.stringify(payload),
+	})
+		.then((resp) => resp.json())
+		.then(console.log)
+		.catch((err) => {
+			console.error(err);
+			throw err;
+		});
 }
 
 function changeBri(briInc) {
@@ -60,7 +53,7 @@ async function toggleLight(inputOn) {
 		const { on: currentOn } = await getCurrentLightStatus();
 		on = !currentOn;
 	}
-	return updateLightState({on})
+	return updateLightState({ on });
 }
 
 async function brighten() {
@@ -71,7 +64,7 @@ async function brighten() {
 	}
 
 	if (bri === 254) {
-		await updateLightState({ alert: 'select'})
+		await updateLightState({ alert: 'select' });
 		return;
 	}
 
@@ -86,7 +79,7 @@ async function darken() {
 	}
 
 	if (bri === 1) {
-		await updateLightState({ alert: 'select'})
+		await updateLightState({ alert: 'select' });
 		return;
 	}
 
@@ -98,4 +91,4 @@ module.exports = {
 	toggleLight,
 	brighten,
 	darken,
-}
+};

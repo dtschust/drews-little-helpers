@@ -26,10 +26,10 @@ async function getNewSpotifyToken() {
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded',
 			},
-		},
+		}
 	)
-		.then(resp => resp.json())
-		.catch(err => {
+		.then((resp) => resp.json())
+		.catch((err) => {
 			console.error(err);
 			throw err;
 		});
@@ -41,19 +41,16 @@ async function getNewSpotifyToken() {
 }
 
 async function getCurrentlyPlayingTrack() {
-	const data = await fetch(
-		'https://api.spotify.com/v1/me/player/currently-playing?market=us',
-		{
-			method: 'GET',
-			headers: {
-				Accept: 'application/json',
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${spotifyToken}`,
-			},
+	const data = await fetch('https://api.spotify.com/v1/me/player/currently-playing?market=us', {
+		method: 'GET',
+		headers: {
+			Accept: 'application/json',
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${spotifyToken}`,
 		},
-	)
-		.then(resp => resp.json())
-		.catch(err => {
+	})
+		.then((resp) => resp.json())
+		.catch((err) => {
 			console.error(err);
 			throw err;
 		});
@@ -92,10 +89,7 @@ async function getCurrentlyPlayingTrack() {
 	const albumArt = _.get(data, 'item.album.images[1].url');
 	const duration = _.get(data, 'item.duration_ms');
 
-	const status = `:musical_note: Now Playing: ${songName} - ${artist}`.slice(
-		0,
-		100,
-	);
+	const status = `:musical_note: Now Playing: ${songName} - ${artist}`.slice(0, 100);
 	return {
 		data,
 		songName,
@@ -115,9 +109,7 @@ function downloadFile(fileUrl, DOWNLOAD_DIR = '.') {
 
 		// excute wget using childProcess' exec function
 		// eslint-disable-next-line no-unused-vars
-		childProcess.exec(wget, (err, stdout, stderr) =>
-			err ? reject(err) : resolve(fileName),
-		);
+		childProcess.exec(wget, (err, stdout, stderr) => (err ? reject(err) : resolve(fileName)));
 	});
 }
 
@@ -146,9 +138,9 @@ async function uploadNewAlbumArtEmoji(filename = 'album.jpg') {
 				mode: 'data',
 				name: 'drew_currently_playing_album',
 				image: fs.readFileSync(path.resolve('.', filename)),
-			}),
+			})
 		)
-		.catch(err => {
+		.catch((err) => {
 			console.error(err);
 			throw err;
 		});
@@ -182,7 +174,7 @@ async function ensureStatusIsSafeToChange() {
 async function updateStatus(
 	status,
 	emoji = ':drew_currently_playing_album:',
-	duration = 5 * 60 * 1000,
+	duration = 5 * 60 * 1000
 ) {
 	const profile = {
 		status_text: status,
@@ -238,11 +230,7 @@ async function main() {
 		await downloadFile(albumArt);
 		await uploadNewAlbumArtEmoji();
 	}
-	await updateStatus(
-		status,
-		albumArt ? undefined : ':dancing_penguin:',
-		duration,
-	);
+	await updateStatus(status, albumArt ? undefined : ':dancing_penguin:', duration);
 }
 
 main();

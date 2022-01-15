@@ -15,9 +15,7 @@ if (hour < 7 || hour >= 22) {
 	process.exit(0);
 }
 
-console.log(
-	'We are outside of "DnD" time, let us post some pops if we find any',
-);
+console.log('We are outside of "DnD" time, let us post some pops if we find any');
 
 const T = new Twit({
 	consumer_key: process.env.NUNCAPOPS_TWITTER_CONSUMER_KEY,
@@ -29,13 +27,10 @@ const T = new Twit({
 });
 
 mongoose.Promise = global.Promise;
-mongoose.connect(
-	process.env.MONGO_DB_URI,
-	{
-		useNewUrlParser: true,
-		useUnifiedTopology: true,
-	},
-);
+mongoose.connect(process.env.MONGO_DB_URI, {
+	useNewUrlParser: true,
+	useUnifiedTopology: true,
+});
 const SavedPinboardPops = mongoose.model('SavedPinboardPops', {
 	savedUrls: Object,
 });
@@ -44,21 +39,19 @@ const SHORT_URL_LENGTH = 23;
 let SAVED_PINBOARD_POPS = {};
 SavedPinboardPops.findOne(undefined)
 	.exec()
-	.then(newSavedPinboardPops => {
+	.then((newSavedPinboardPops) => {
 		if (newSavedPinboardPops) {
 			SAVED_PINBOARD_POPS = newSavedPinboardPops.savedUrls || {};
 		}
 		fetchAndProcessPinboardPops();
 	})
-	.catch(e => {
+	.catch((e) => {
 		console.log('Huh, we have an error', e);
 		process.exit(0);
 	});
 
 async function fetchAndProcessPinboardPops() {
-	const pins = await fetch('https://feeds.pinboard.in/json/popular/').then(
-		resp => resp.json(),
-	);
+	const pins = await fetch('https://feeds.pinboard.in/json/popular/').then((resp) => resp.json());
 
 	const newPins = pins
 		.filter(({ u: url }) => !SAVED_PINBOARD_POPS[getUrlKey(url)])
@@ -80,14 +73,14 @@ async function fetchAndProcessPinboardPops() {
 				.then(() => {
 					SAVED_PINBOARD_POPS[getUrlKey(url)] = now;
 				})
-				.catch(err => {
+				.catch((err) => {
 					console.log(`Error posting ${title} ${url} to twitter. ${err}`);
 				});
-		}),
+		})
 	);
 
 	console.log(`Posted ${newPins.length} pins, now let us persist to mongo!`);
-	SavedPinboardPops.remove(undefined, err => {
+	SavedPinboardPops.remove(undefined, (err) => {
 		if (err) {
 			console.log('Error removing from database', err);
 		}
@@ -95,7 +88,7 @@ async function fetchAndProcessPinboardPops() {
 			savedUrls: SAVED_PINBOARD_POPS,
 		});
 		// store the new savedPinboardPops map!
-		newSavedPinboardPops.save(saveErr => {
+		newSavedPinboardPops.save((saveErr) => {
 			if (saveErr) {
 				console.log('Error saving to database', saveErr);
 			}

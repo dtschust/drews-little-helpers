@@ -2,13 +2,10 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 
 mongoose.Promise = global.Promise;
-mongoose.connect(
-	process.env.MONGO_DB_URI,
-	{
-		useNewUrlParser: true,
-		useUnifiedTopology: true,
-	},
-);
+mongoose.connect(process.env.MONGO_DB_URI, {
+	useNewUrlParser: true,
+	useUnifiedTopology: true,
+});
 
 const FemFreqEpisodesModel = mongoose.model('FemFreqEpisodes', {
 	episodes: Object,
@@ -20,7 +17,7 @@ function addFemFreqPodcastRoute(app) {
 		let storedEpisodesModel;
 		FemFreqEpisodesModel.findOne(undefined)
 			.exec()
-			.then(newStoredEpisodesModel => {
+			.then((newStoredEpisodesModel) => {
 				storedEpisodesModel = newStoredEpisodesModel || {
 					episodes: {},
 					order: [],
@@ -46,16 +43,11 @@ function addFemFreqPodcastRoute(app) {
 <itunes:image href="https://media.simplecast.com/podcast/image/3736/1532460967-artwork.jpg" />
 
 ${storedEpisodesModel.order
-					.slice()
-					.reverse()
-					.map(key => {
-						const {
-							description,
-							url,
-							title,
-							pubDate,
-						} = storedEpisodesModel.episodes[key];
-						return `<item>
+	.slice()
+	.reverse()
+	.map((key) => {
+		const { description, url, title, pubDate } = storedEpisodesModel.episodes[key];
+		return `<item>
 	<title>${title}</title>
 	<itunes:summary>${description}</itunes:summary>
 	<description>${description}</description>
@@ -67,8 +59,8 @@ ${storedEpisodesModel.order
 	<itunes:explicit>no</itunes:explicit>
 	<guid>${url}</guid>
 </item>`;
-					})
-					.join('\n')}
+	})
+	.join('\n')}
 
 </channel>
 </rss>
@@ -77,7 +69,7 @@ ${storedEpisodesModel.order
 				res.type('application/xml');
 				res.send(xml);
 			})
-			.catch(e => {
+			.catch((e) => {
 				console.log('Huh, we have an error', e);
 				process.exit(0);
 			});

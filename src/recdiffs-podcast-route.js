@@ -2,13 +2,10 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 
 mongoose.Promise = global.Promise;
-mongoose.connect(
-	process.env.MONGO_DB_URI,
-	{
-		useNewUrlParser: true,
-		useUnifiedTopology: true,
-	},
-);
+mongoose.connect(process.env.MONGO_DB_URI, {
+	useNewUrlParser: true,
+	useUnifiedTopology: true,
+});
 
 const RecDiffsEpisodesModel = mongoose.model('RecDiffsEpisodes', {
 	episodes: Object,
@@ -20,7 +17,7 @@ function addRecDiffsPodcastRoute(app) {
 		let storedEpisodesModel;
 		RecDiffsEpisodesModel.findOne(undefined)
 			.exec()
-			.then(newStoredEpisodesModel => {
+			.then((newStoredEpisodesModel) => {
 				storedEpisodesModel = newStoredEpisodesModel || {
 					episodes: {},
 					order: [],
@@ -46,15 +43,11 @@ function addRecDiffsPodcastRoute(app) {
 <itunes:image href="https://relayfm.s3.amazonaws.com/uploads/broadcast/image_3x/18/rd_artwork.png" />
 
 ${storedEpisodesModel.order
-					.slice()
-					.reverse()
-					.map(key => {
-						const {
-							url,
-							title,
-							pubDate,
-						} = storedEpisodesModel.episodes[key];
-						return `<item>
+	.slice()
+	.reverse()
+	.map((key) => {
+		const { url, title, pubDate } = storedEpisodesModel.episodes[key];
+		return `<item>
 	<title>${title}</title>
 	<itunes:summary>${title}</itunes:summary>
 	<description>${title}</description>
@@ -66,8 +59,8 @@ ${storedEpisodesModel.order
 	<itunes:explicit>no</itunes:explicit>
 	<guid>${url}</guid>
 </item>`;
-					})
-					.join('\n')}
+	})
+	.join('\n')}
 
 </channel>
 </rss>
@@ -76,7 +69,7 @@ ${storedEpisodesModel.order
 				res.type('application/xml');
 				res.send(xml);
 			})
-			.catch(e => {
+			.catch((e) => {
 				console.log('Huh, we have an error', e);
 				process.exit(0);
 			});

@@ -1,10 +1,4 @@
-const approvals = [
-	'LGTM',
-	'+1',
-	':thumbsup:',
-	':ship:',
-	':shipit:',
-]
+const approvals = ['LGTM', '+1', ':thumbsup:', ':ship:', ':shipit:'];
 
 const flair = [
 	':tada:',
@@ -18,7 +12,7 @@ const flair = [
 	':nail_care:',
 	':v:',
 	':white_check_mark:',
-]
+];
 
 const nits = [
 	`Is your dev environment up to date? I'm not seeing these changes.`,
@@ -47,7 +41,7 @@ const nits = [
 	`Might want to wait until tomorrow to ship.`,
 	`Ping me if you need a rebonk.`,
 	`:thinking_face:`,
-]
+];
 
 const comments = [
 	`This is great. Thanks for doing this!`,
@@ -80,7 +74,7 @@ const comments = [
 	`This feels right.`,
 	`Finally!`,
 	`We should consider emergency merging this.`,
-]
+];
 
 function getRandomFrom(array = []) {
 	const index = Math.floor(Math.random() * array.length);
@@ -93,4 +87,4 @@ module.exports = {
 	flair,
 	comments,
 	getRandomFrom,
-}
+};

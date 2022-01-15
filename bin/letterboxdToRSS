@@ -9,7 +9,6 @@ const feedWranglerToken = process.env.FEED_WRANGLER_ACCESS_TOKEN;
 const token = process.env.SLACK_API_TOKEN || '';
 const web = new WebClient(token);
 
-
 function sendMessage(text) {
 	return web.chat.postMessage({
 		channel: process.env.PTP_SLACK_CHANNEL_ID,
@@ -25,15 +24,19 @@ async function main() {
 	const page = await browser.newPage();
 	await page.goto('https://letterboxd.com/dtschust/following/');
 
-	const { feeds } = await fetch(`https://feedwrangler.net/api/v2/subscriptions/list?access_token=${feedWranglerToken}`).then(response=>response.json());
-	const existingFeedUrls = feeds.map((feed) => feed.feed_url).filter((url) => url.includes('letterboxd'))
+	const { feeds } = await fetch(
+		`https://feedwrangler.net/api/v2/subscriptions/list?access_token=${feedWranglerToken}`
+	).then((response) => response.json());
+	const existingFeedUrls = feeds
+		.map((feed) => feed.feed_url)
+		.filter((url) => url.includes('letterboxd'));
 
 	const followingElements = await page.$$('a.name');
 	let feedsToSubscribeTo = await Promise.all(
-		followingElements.map(async element => {
-			const href = await page.evaluate(el => el.href, element);
-			const username = href.match(/https:\/\/letterboxd.com\/(.*)\//)[1]
-			return `https://letterboxd.com/${username}/rss/`
+		followingElements.map(async (element) => {
+			const href = await page.evaluate((el) => el.href, element);
+			const username = href.match(/https:\/\/letterboxd.com\/(.*)\//)[1];
+			return `https://letterboxd.com/${username}/rss/`;
 		})
 	);
 
@@ -41,14 +44,28 @@ async function main() {
 
 	console.log(feedsToSubscribeTo);
 
-	await Promise.all(feedsToSubscribeTo.map((feed) => fetch(`https://feedwrangler.net/api/v2/subscriptions/add_feed?access_token=${feedWranglerToken}&feed_url=${encodeURIComponent(feed)}`).then(response => response.json()).then(async ({ error, result})=> {
-		if (error || result !== 'success') {
-			console.error(`Error subscribing to ${feed}, error: ${error}, result: ${result}`);
-			return sendMessage(`Error subscribing to ${feed}, error: ${error}, result: ${result}`)
-		}
-		console.log(`Successfully subscribed to ${feed}`)
-		return sendMessage(`Successfully subscribed to ${feed}`);
-	})));
+	await Promise.all(
+		feedsToSubscribeTo.map((feed) =>
+			fetch(
+				`https://feedwrangler.net/api/v2/subscriptions/add_feed?access_token=${feedWranglerToken}&feed_url=${encodeURIComponent(
+					feed
+				)}`
+			)
+				.then((response) => response.json())
+				.then(async ({ error, result }) => {
+					if (error || result !== 'success') {
+						console.error(
+							`Error subscribing to ${feed}, error: ${error}, result: ${result}`
+						);
+						return sendMessage(
+							`Error subscribing to ${feed}, error: ${error}, result: ${result}`
+						);
+					}
+					console.log(`Successfully subscribed to ${feed}`);
+					return sendMessage(`Successfully subscribed to ${feed}`);
+				})
+		)
+	);
 }
 
-main().then(process.exit)
+main().then(process.exit);

@@ -7,14 +7,7 @@ function pubDate(date = new Date()) {
 
 	const offset = offsetTime || pieces[5];
 
-	const parts = [
-		`${pieces[0]},`,
-		pieces[2],
-		pieces[1],
-		pieces[3],
-		pieces[4],
-		offset,
-	];
+	const parts = [`${pieces[0]},`, pieces[2], pieces[1], pieces[3], pieces[4], offset];
 
 	return parts.join(' ');
 }
@@ -243,8 +236,8 @@ function addUnattendedConsequencesRoute(app) {
 <itunes:image href="https://media.simplecast.com/podcast/logo_image/1227/unnamed.jpg" />
 
 ${eps
-			.map(
-				({ url, title, description, pubdate } = {}) => `<item>
+	.map(
+		({ url, title, description, pubdate } = {}) => `<item>
 	<title>${title}</title>
 	<itunes:summary>${title}</itunes:summary>
 	<description>${description}</description>
@@ -255,9 +248,9 @@ ${eps
 	<itunes:duration>00:32:16</itunes:duration>
 	<itunes:explicit>no</itunes:explicit>
 	<guid>${url}</guid>
-</item>`,
-			)
-			.join('\n')}
+</item>`
+	)
+	.join('\n')}
 
 </channel>
 </rss>

@@ -19,7 +19,7 @@ T.get('friends/ids', {
 	screen_name: 'nuncamind',
 	count: 5000,
 	include_user_entities: false,
-}).then(result => {
+}).then((result) => {
 	const followingIds = result.data.ids;
 
 	Promise.all(
@@ -36,15 +36,15 @@ T.get('friends/ids', {
 						user_id,
 						include_entities: false,
 					})
-						.then(response => {
+						.then((response) => {
 							console.log('FAILED for', user_id);
 							console.log(response.data);
 						})
 						.catch(() => {
 							console.log('DOUBLE FAILED for', user_id, index);
-						}),
-				),
-		),
+						})
+				)
+		)
 	).then(() => {
 		console.log('done');
 		process.exit(0);

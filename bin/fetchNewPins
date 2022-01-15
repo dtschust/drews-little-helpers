@@ -12,11 +12,11 @@ const web = new WebClient(token);
 
 mongoose.Promise = global.Promise;
 mongoose.connect(process.env.MONGO_DB_URI, {
-		useNewUrlParser: true,
-		useUnifiedTopology: true,
+	useNewUrlParser: true,
+	useUnifiedTopology: true,
 });
 
-process.on('unhandledRejection', error => {
+process.on('unhandledRejection', (error) => {
 	console.log('unhandledRejection', error);
 	process.exit(1);
 });
@@ -28,7 +28,7 @@ const PinModel = mongoose.model('Pins', {
 let storedPinModel;
 PinModel.findOne(undefined)
 	.exec()
-	.then(newPinModel => {
+	.then((newPinModel) => {
 		if (newPinModel) {
 			storedPinModel = {
 				pins: newPinModel.get('pins'),
@@ -38,67 +38,75 @@ PinModel.findOne(undefined)
 		}
 		fetchNewPins();
 	})
-	.catch(e => {
+	.catch((e) => {
 		console.log('Huh, we have an error', e);
 		process.exit(0);
 	});
 
 async function fetchNewPins() {
+	web.apiCall('search.messages', {
+		query: process.env.SLACK_NEW_PINS_QUERY,
+	}).then((response) => {
+		const matches = (response && response.messages && response.messages.matches) || [];
+		if (!matches.length) {
+			console.error('no matches?');
+			process.exit(1);
+		}
 
-	web
-		.apiCall('search.messages', {
-			query: process.env.SLACK_NEW_PINS_QUERY
-		})
-		.then(response => {
-			const matches = response && response.messages && response.messages.matches || [];
-			if (!matches.length) {
-				console.error('no matches?');
-				process.exit(1);
-			}
+		const freshTimestamps = matches.map((message) => message.ts.replace('.', ''));
 
-			const freshTimestamps = matches.map((message) => message.ts.replace('.',''));
+		const oldTimestamps =
+			(storedPinModel && storedPinModel.pins && Object.keys(storedPinModel.pins)) || [];
+		const addedTimestamps = _.difference(freshTimestamps, oldTimestamps);
 
-			const oldTimestamps = storedPinModel && storedPinModel.pins && Object.keys(storedPinModel.pins) || []
-			const addedTimestamps = _.difference(
-				freshTimestamps,
-				oldTimestamps
-			);
+		if (addedTimestamps.length > 30) {
+			console.log('Something went terribly wrong, too many results. do nothing');
+			process.exit(1);
+		}
+		if (addedTimestamps.length || _.isEmpty(storedPinModel && storedPinModel.pins)) {
+			PinModel.remove(undefined, (err) => {
+				addedTimestamps.forEach((timestamp) => {
+					storedPinModel.pins[timestamp] = timestamp;
+				});
 
-			if (addedTimestamps.length > 30) {
-				console.log('Something went terribly wrong, too many results. do nothing');
-				process.exit(1);
-			}
-			if (addedTimestamps.length || _.isEmpty(storedPinModel && storedPinModel.pins)) {
-				PinModel.remove(undefined, err => {
-					addedTimestamps.forEach(timestamp => {
-						storedPinModel.pins[timestamp] = timestamp;
-					});
+				const newStoredPinModel = new PinModel(storedPinModel);
 
-					const newStoredPinModel = new PinModel(storedPinModel);
+				if (err) {
+					console.log('Error removing from database', err);
+					process.exit(1);
+				}
 
-					if (err) {
-						console.log('Error removing from database', err);
+				// Promise.resolve().then(saveErr => {
+				newStoredPinModel.save((saveErr) => {
+					if (saveErr) {
+						console.log('Error saving to database', saveErr);
 						process.exit(1);
 					}
+					console.log(`done! Saved new ${addedTimestamps.length} pins!`);
 
-					// Promise.resolve().then(saveErr => {
-					newStoredPinModel.save(saveErr => {
-						if (saveErr) {
-							console.log('Error saving to database', saveErr);
-							process.exit(1);
-						}
-						console.log(`done! Saved new ${addedTimestamps.length} pins!`);
-
-						const promises = addedTimestamps.map(timestamp => {
-							const message = matches.find((msg)=> msg.ts.replace('.','') === timestamp);
-							const { permalink } = message;
-							return web.reactions.get({
+					const promises = addedTimestamps.map((timestamp) => {
+						const message = matches.find(
+							(msg) => msg.ts.replace('.', '') === timestamp
+						);
+						const { permalink } = message;
+						return web.reactions
+							.get({
 								channel: process.env.SLACK_NEW_PINS_CHANNEL,
 								timestamp: message.ts,
-							}).then((reactionsResp) => {
-								const pinReaction = (reactionsResp && reactionsResp.message && reactionsResp.message.reactions || []).find((reaction) => reaction && reaction.name === 'pinned-on-the-patio')
-								const firstUser = pinReaction && pinReaction.users && pinReaction.users[0];
-								const pinnedBy = firstUser? ` pinned by <@${firstUser}>` : '';
+							})
+							.then((reactionsResp) => {
+								const pinReaction = (
+									(reactionsResp &&
+										reactionsResp.message &&
+										reactionsResp.message.reactions) ||
+									[]
+								).find(
+									(reaction) =>
+										reaction && reaction.name === 'pinned-on-the-patio'
+								);
+								const firstUser =
+									pinReaction && pinReaction.users && pinReaction.users[0];
+								const pinnedBy = firstUser ? ` pinned by <@${firstUser}>` : '';
 								return web.chat.postMessage({
 									channel: process.env.SLACK_NEW_PINS_CHANNEL,
 									text: ` :pinned-on-the-patio: New "pin"${pinnedBy}\n${permalink}`,
@@ -107,15 +115,15 @@ async function fetchNewPins() {
 									thread_ts: process.env.SLACK_NEW_PINS_THREAD,
 								});
 							});
-						});
-						Promise.all(promises).then(() => {
-							process.exit(0);
-						});
+					});
+					Promise.all(promises).then(() => {
+						process.exit(0);
 					});
 				});
-			} else {
-				console.log('no new pins found, exiting');
-				process.exit(0);
-			}
-		});
+			});
+		} else {
+			console.log('no new pins found, exiting');
+			process.exit(0);
+		}
+	});
 }

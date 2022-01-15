@@ -1,4 +1,6 @@
 #!/usr/bin/env node
 const { toggleLight } = require('./officeLight');
 
-toggleLight(true).then(()=>{process.exit(0)})
+toggleLight(true).then(() => {
+	process.exit(0);
+});

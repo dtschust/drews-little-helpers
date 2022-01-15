@@ -35,9 +35,8 @@ function addPlausWanRoute(app) {
 			addReaction({ name: 'eyes', channel, timestamp: ts })
 				// Delay between 1 and 11 seconds
 				.delay(1000 + Math.floor(Math.random() * 10) * 1000)
-				.then(() => (
-					addReaction({ name: 'white_check_mark', channel, timestamp: ts })
-				)).delay(1000)
+				.then(() => addReaction({ name: 'white_check_mark', channel, timestamp: ts }))
+				.delay(1000)
 				.then(() => {
 					if (user === process.env.ANUJ_ID && !anujHasBeenPranked) {
 						anujHasBeenPranked = true;
@@ -63,9 +62,9 @@ function addPlausWanRoute(app) {
 							}
 							// delay 10 seconds the first time, then go wild
 							setTimeout(tick, anujCount === 1 ? 10000 : anujDelay);
-						}
+						};
 
-						setTimeout(tick, anujDelay)
+						setTimeout(tick, anujDelay);
 					} else {
 						sendMessage({
 							text: buildResponse(),
@@ -96,9 +95,9 @@ function buildResponse() {
 		response = `${nit}\n${response}`;
 	}
 	if (approvalBefore) {
-		response = `${approval} ${response}`
+		response = `${approval} ${response}`;
 	} else {
-		response += ` ${approval}`
+		response += ` ${approval}`;
 	}
 
 	if (isInPercent(50)) {
@@ -107,7 +106,6 @@ function buildResponse() {
 	}
 
 	return response;
-
 }
 
 // eslint-disable-next-line camelcase
@@ -122,7 +120,7 @@ function sendMessage({ text, channel, thread_ts, reply_broadcast } = {}) {
 		.then(() => {
 			console.log('Message sent: ', text);
 		})
-		.catch(err => {
+		.catch((err) => {
 			console.log('Error:', err);
 		});
 }
@@ -137,7 +135,7 @@ function addReaction({ name, channel, timestamp } = {}) {
 		.then(() => {
 			console.log('reaction added: ', name);
 		})
-		.catch(err => {
+		.catch((err) => {
 			console.log('Error:', err);
 		});
 }

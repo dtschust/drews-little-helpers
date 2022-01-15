@@ -12,8 +12,8 @@ const dbx = new Dropbox({ accessToken: process.env.DROPBOX_TOKEN });
 
 mongoose.Promise = global.Promise;
 mongoose.connect(process.env.MONGO_DB_URI, {
-		useNewUrlParser: true,
-		useUnifiedTopology: true,
+	useNewUrlParser: true,
+	useUnifiedTopology: true,
 });
 
 const Cookie = mongoose.model('Cookie', {
@@ -53,17 +53,11 @@ function sortTorrents(a, b) {
 	if (b.GoldenPopcorn && !a.GoldenPopcorn) {
 		return 1;
 	}
-	if (
-		a.Quality === 'Ultra High Definition' &&
-		!b.quality !== 'Ultra High Definition'
-	) {
+	if (a.Quality === 'Ultra High Definition' && !b.quality !== 'Ultra High Definition') {
 		return -1;
 	}
 
-	if (
-		b.Quality === 'Ultra High Definition' &&
-		!a.quality !== 'Ultra High Definition'
-	) {
+	if (b.Quality === 'Ultra High Definition' && !a.quality !== 'Ultra High Definition') {
 		return 1;
 	}
 
@@ -108,8 +102,7 @@ function getLoginCookies(query, responseURL, retry) {
 		(error, response) => {
 			if (response.statusCode === 403) {
 				message = {
-					text:
-						"Looks like I got captcha-ed and can't login, please stop trying for a bit!",
+					text: "Looks like I got captcha-ed and can't login, please stop trying for a bit!",
 					replace_original: true,
 				};
 				sendMessageToSlackResponseURL(responseURL, message);
@@ -117,9 +110,7 @@ function getLoginCookies(query, responseURL, retry) {
 			}
 
 			const cookies = response.headers['set-cookie'];
-			const cookieString = cookies
-				.map((cookie) => `${cookie.split(';')[0]};`)
-				.join('');
+			const cookieString = cookies.map((cookie) => `${cookie.split(';')[0]};`).join('');
 			COOKIE = cookieString;
 
 			// remove all persisted cookies now that they are bad
@@ -130,7 +121,9 @@ function getLoginCookies(query, responseURL, retry) {
 				// store the new cookie!
 				cookieToPersist.save((saveErr) => {
 					message = {
-						text: `New login succeeded, ${retry ? 'searching again': 'please search again!'}`,
+						text: `New login succeeded, ${
+							retry ? 'searching again' : 'please search again!'
+						}`,
 						replace_original: true,
 					};
 					if (saveErr) {
@@ -142,7 +135,7 @@ function getLoginCookies(query, responseURL, retry) {
 					}
 				});
 			});
-		},
+		}
 	);
 }
 function search(query, cb) {
@@ -153,50 +146,50 @@ function search(query, cb) {
 				cookie: COOKIE,
 			},
 		},
-		cb,
+		cb
 	);
 }
 
 function searchAndRespond(query, responseURL, retry = true) {
-			search(query, (error, response, body) => {
-				let apiResponse;
-				try {
-					apiResponse = JSON.parse(body);
-				} catch (e) {
-					console.error('exception parsing JSON body: ', e);
-					console.error('Body is ', body);
-					getLoginCookies(query, responseURL, retry);
-					return;
-				}
+	search(query, (error, response, body) => {
+		let apiResponse;
+		try {
+			apiResponse = JSON.parse(body);
+		} catch (e) {
+			console.error('exception parsing JSON body: ', e);
+			console.error('Body is ', body);
+			getLoginCookies(query, responseURL, retry);
+			return;
+		}
 
-				authKey = apiResponse.AuthKey;
-				passKey = apiResponse.PassKey;
+		authKey = apiResponse.AuthKey;
+		passKey = apiResponse.PassKey;
 
-				const movies = apiResponse.Movies.slice(0, 5);
-				movies.forEach((movie) => {
-					GroupIdMap[movie.GroupId] = movie;
-				});
+		const movies = apiResponse.Movies.slice(0, 5);
+		movies.forEach((movie) => {
+			GroupIdMap[movie.GroupId] = movie;
+		});
 
-				const attachments = movies.map((movie) => ({
-					title: `${movie.Title} (${movie.Year})`,
-					image_url: movie.Cover,
-					callback_id: movie.GroupId,
-					actions: [
-						{
-							name: `selectMovie ${movie.Title}`,
-							text: `Select ${movie.Title}`,
-							type: 'button',
-							value: movie.GroupId,
-						},
-					],
-				}));
+		const attachments = movies.map((movie) => ({
+			title: `${movie.Title} (${movie.Year})`,
+			image_url: movie.Cover,
+			callback_id: movie.GroupId,
+			actions: [
+				{
+					name: `selectMovie ${movie.Title}`,
+					text: `Select ${movie.Title}`,
+					type: 'button',
+					value: movie.GroupId,
+				},
+			],
+		}));
 
-				const message = {
-					text: `Results for ${query} :`,
-					attachments,
-				};
-				sendMessageToSlackResponseURL(responseURL, message);
-			});
+		const message = {
+			text: `Results for ${query} :`,
+			attachments,
+		};
+		sendMessageToSlackResponseURL(responseURL, message);
+	});
 }
 
 function addPtpSlackRoute(app) {
@@ -226,16 +219,12 @@ function addPtpSlackRoute(app) {
 
 		if (name.indexOf('selectMovie') === 0) {
 			const movieTitle = name.split('selectMovie ')[1];
-			const torrents = GroupIdMap[groupId].Torrents.slice(0)
-				.sort(sortTorrents)
-				.slice(0, 8);
+			const torrents = GroupIdMap[groupId].Torrents.slice(0).sort(sortTorrents).slice(0, 8);
 			const attachments = torrents.map((t) => ({
 				title: `\
 ${t.GoldenPopcorn ? ':popcorn: ' : ''}${t.Checked ? ':white_check_mark: ' : ''}\
 ${t.Quality} / ${t.Codec} / ${t.Container} / ${t.Source} /\
-${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${
-					t.RemasterTitle ? `/ ${t.RemasterTitle}` : ''
-				}`,
+${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${t.RemasterTitle ? `/ ${t.RemasterTitle}` : ''}`,
 				text: `Seeders: ${t.Seeders}, Snatched ${t.Snatched}, Size: ${
 					t.Size / 1073741824
 				} Gb`,
@@ -257,9 +246,7 @@ ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${
 			sendMessageToSlackResponseURL(actionJSONPayload.response_url, message);
 		} else if (name.indexOf('downloadMovie') === 0) {
 			const torrentId = actionJSONPayload.actions[0].value;
-			const movieTitle = actionJSONPayload.actions[0].name.split(
-				'downloadMovie ',
-			)[1];
+			const movieTitle = actionJSONPayload.actions[0].name.split('downloadMovie ')[1];
 
 			const message = {
 				text: `Chill, i'll download ${movieTitle} for you. If I fail, here's the url and you can do it yourself: https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey}`,
@@ -267,18 +254,16 @@ ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${
 			};
 			sendMessageToSlackResponseURL(actionJSONPayload.response_url, message);
 
-			dbx
-				.filesSaveUrl({
-					url: `https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey}`,
-					path: `/torrents/${Date.now()}.torrent`,
-				})
+			dbx.filesSaveUrl({
+				url: `https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey}`,
+				path: `/torrents/${Date.now()}.torrent`,
+			})
 				.then(({ async_job_id: asyncJobId }) => {
 					let thirtySecondCheck;
 					const checkJobStatus = () => {
-						dbx
-							.filesSaveUrlCheckJobStatus({
-								async_job_id: asyncJobId,
-							})
+						dbx.filesSaveUrlCheckJobStatus({
+							async_job_id: asyncJobId,
+						})
 							.then((response) => {
 								if (response['.tag'] === 'complete') {
 									const successMessage = {
@@ -287,9 +272,9 @@ ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${
 									};
 									sendMessageToSlackResponseURL(
 										actionJSONPayload.response_url,
-										successMessage,
+										successMessage
 									);
-									sendMessage(`Started download of *${movieTitle}*`)
+									sendMessage(`Started download of *${movieTitle}*`);
 									clearTimeout(thirtySecondCheck);
 								}
 							})
@@ -300,7 +285,7 @@ ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${
 								};
 								sendMessageToSlackResponseURL(
 									actionJSONPayload.response_url,
-									failMessage,
+									failMessage
 								);
 							});
 					};
@@ -312,10 +297,7 @@ ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${
 						text: `Oops, something went wrong. Sorry, here's your URL to do it manually: https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey} . ${error}`,
 						replace_original: false,
 					};
-					sendMessageToSlackResponseURL(
-						actionJSONPayload.response_url,
-						errorMessage,
-					);
+					sendMessageToSlackResponseURL(actionJSONPayload.response_url, errorMessage);
 				});
 		} else {
 			// Unknown action!
@@ -334,7 +316,7 @@ function sendMessage(text) {
 		.then(() => {
 			console.log('Message sent: ', text);
 		})
-		.catch(err => {
+		.catch((err) => {
 			console.log('Error:', err);
 		});
 }

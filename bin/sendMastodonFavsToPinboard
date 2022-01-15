@@ -10,13 +10,10 @@ const token = process.env.SLACK_API_TOKEN || '';
 const web = new WebClient(token);
 
 mongoose.Promise = global.Promise;
-mongoose.connect(
-	process.env.MONGO_DB_URI,
-	{
-		useNewUrlParser: true,
-		useUnifiedTopology: true,
-	},
-);
+mongoose.connect(process.env.MONGO_DB_URI, {
+	useNewUrlParser: true,
+	useUnifiedTopology: true,
+});
 const SavedToots = mongoose.model('SavedToots', {
 	savedIds: Object,
 });
@@ -24,31 +21,27 @@ const SavedToots = mongoose.model('SavedToots', {
 let SAVED_TOOTS;
 SavedToots.findOne(undefined)
 	.exec()
-	.then(newSavedToots => {
+	.then((newSavedToots) => {
 		if (newSavedToots) {
 			SAVED_TOOTS = newSavedToots.savedIds || {};
 		}
 		fetchMastodonFavs();
 	})
-	.catch(e => {
+	.catch((e) => {
 		console.log('Huh, we have an error', e);
 		process.exit(0);
 	});
 
 function fetchMastodonFavs() {
 	return fetch(
-		`${process.env.MASTODON_INSTANCE_URL}/api/v1/favourites?access_token=${
-			process.env.MASTODON_TOKEN
-		}&limit=40`,
+		`${process.env.MASTODON_INSTANCE_URL}/api/v1/favourites?access_token=${process.env.MASTODON_TOKEN}&limit=40`
 	)
-		.then(response => response.json())
-		.then(favs => {
+		.then((response) => response.json())
+		.then((favs) => {
 			console.log(`Fetched ${favs.length} favs`);
 			const pinboardPostPromises = [];
 			favs.forEach(({ content, url, account, id }) => {
-				const description = `Mastodon post from ${account.display_name} (${
-					account.acct
-				})`;
+				const description = `Mastodon post from ${account.display_name} (${account.acct})`;
 				const extended = `${content}`;
 
 				if (account.acct.indexOf('toot.rip') >= 0) {
@@ -71,14 +64,12 @@ function fetchMastodonFavs() {
 						links.push(matches[1]);
 					}
 
-					const bookmarksToMake = [
-						{ url, description, content, digest },
-					].concat(
-						links.map(link => ({
+					const bookmarksToMake = [{ url, description, content, digest }].concat(
+						links.map((link) => ({
 							url: link,
 							description: link,
 							digest: link,
-						})),
+						}))
 					);
 					bookmarksToMake.forEach(
 						// eslint-disable-next-line no-shadow
@@ -86,29 +77,29 @@ function fetchMastodonFavs() {
 							pinboardPostPromises.push(
 								fetch(
 									`${process.env.PINBOARD_API_URL}?url=${encodeURI(
-										url,
+										url
 									)}&description=${encodeURI(description)}&extended=${encodeURI(
-										content,
-									)}&tags=${encodeURI(['mastodonFav'])}`,
+										content
+									)}&tags=${encodeURI(['mastodonFav'])}`
 								)
-									.then(resp => resp.text())
-									.then(resp => {
+									.then((resp) => resp.text())
+									.then((resp) => {
 										if (!resp || !resp.indexOf('<result code="done" />')) {
 											throw new Error(
-												`Pinboard write failed with error ${resp}`,
+												`Pinboard write failed with error ${resp}`
 											);
 										}
 										console.log(`Successfully saved to pinboard: ${digest}`);
 										SAVED_TOOTS[id] = true;
 										return digest;
 									})
-									.catch(e => {
+									.catch((e) => {
 										console.log('Error saving this toot!', url, extended);
 										console.log('error:', e);
 										SAVED_TOOTS[id] = false;
 										throw e;
-									}),
-							),
+									})
+							)
 					);
 				}
 			});
@@ -121,13 +112,13 @@ function fetchMastodonFavs() {
 					console.log('posting to slack', digests);
 					sendMessage(`New bookmarks!
 ${digests.join('\n')}`)
-						.catch(err => {
+						.catch((err) => {
 							console.log('Error posting update to slack', err);
 						})
 						.then(() => {
 							// remove old savedToots map, we've got a new one to store!
 							console.log('Done saving, now let us persist to mongo!');
-							SavedToots.remove(undefined, err => {
+							SavedToots.remove(undefined, (err) => {
 								if (err) {
 									console.log('Error removing from database', err);
 								}
@@ -135,19 +126,19 @@ ${digests.join('\n')}`)
 									savedIds: SAVED_TOOTS,
 								});
 								// store the new savedToots map!
-								newSavedTootsModel.save(saveErr => {
+								newSavedTootsModel.save((saveErr) => {
 									if (saveErr) {
 										console.log('Error saving to database', saveErr);
 									}
 									console.log(
-										`done! Saved ${pinboardPostPromises.length} new bookmarks`,
+										`done! Saved ${pinboardPostPromises.length} new bookmarks`
 									);
 									process.exit(0);
 								});
 							});
 						});
 				})
-				.catch(e => {
+				.catch((e) => {
 					console.log('Error for some reason', e);
 					process.exit(0);
 				});

@@ -15,13 +15,10 @@ const web = new WebClient(token);
 // I don't get bit by the app store going back and forth between old and new versions
 
 mongoose.Promise = global.Promise;
-mongoose.connect(
-	process.env.MONGO_DB_URI,
-	{
-		useNewUrlParser: true,
-		useUnifiedTopology: true,
-	},
-);
+mongoose.connect(process.env.MONGO_DB_URI, {
+	useNewUrlParser: true,
+	useUnifiedTopology: true,
+});
 
 const VersionData = mongoose.model('VersionData', {
 	screensConnect: String,
@@ -38,7 +35,7 @@ const FunBridgeVersions = mongoose.model('FunBridgeVersions', {
 let VERSION_DATA;
 VersionData.findOne(undefined)
 	.exec()
-	.then(newVersionData => {
+	.then((newVersionData) => {
 		if (newVersionData) {
 			VERSION_DATA = {
 				screensConnect: newVersionData.get('screensConnect'),
@@ -60,115 +57,114 @@ function checkVersions() {
 		checkRescueTime(),
 		checkBackBlaze(),
 		checkOnePassword(),
-	]).then(async ([funbridge, screensConnect, rescueTime, backBlaze, onePassword]) => {
-		const newVersionData = {
-			screensConnect,
-			rescueTime,
-			backBlaze,
-			onePassword,
-		};
-		_.forEach(['screensConnect', 'rescueTime', 'backBlaze', 'onePassword'], key => {
-			// If the network request failed to get a version number, just ignore it for now
-			// and copy from the old version data
-			if (!newVersionData[key] || newVersionData[key].length === 0) {
-				newVersionData[key] = VERSION_DATA[key];
-			}
-		});
-
-		await new Promise(resolve => {
-			FunBridgeVersions.findOne({ version: funbridge }, (err, response) => {
-				if (err) {
-					console.log(`Error querying the database for ${funbridge}`);
-					return;
+	])
+		.then(async ([funbridge, screensConnect, rescueTime, backBlaze, onePassword]) => {
+			const newVersionData = {
+				screensConnect,
+				rescueTime,
+				backBlaze,
+				onePassword,
+			};
+			_.forEach(['screensConnect', 'rescueTime', 'backBlaze', 'onePassword'], (key) => {
+				// If the network request failed to get a version number, just ignore it for now
+				// and copy from the old version data
+				if (!newVersionData[key] || newVersionData[key].length === 0) {
+					newVersionData[key] = VERSION_DATA[key];
 				}
-				if (response) {
-					// Nothing to do, we're already following this person.
-					resolve();
-					return;
-				}
-
-				// we have a new version of funbridge!
-				console.log(`New funbridge version! ${funbridge}`);
-				sendMessage(
-					`
-*Laptop needs updates!*
-New FunBridge Version: ${funbridge}
-					`,
-				).then(() => {
-					const newFunBridgeVersion = new FunBridgeVersions({
-						version: funbridge,
-						timestamp: Date.now(),
-					});
-
-					newFunBridgeVersion.save(saveErr => {
-						if (saveErr) {
-							console.log('Error saving to database', saveErr);
-						}
-						console.log(`done! Stored funbridge version ${funbridge}!`);
-						resolve();
-					});
-				});
 			});
-		});
 
-		if (!VERSION_DATA || !_.isEqual(VERSION_DATA, newVersionData)) {
-			// remove all persisted versionData now that it's bad
-			VersionData.remove(undefined, () => {
-				const newVersionDataModel = new VersionData(newVersionData);
-				// store the new version info!
-				newVersionDataModel.save(() => {
-					const changes = _.filter(
-						// eslint-disable-next-line consistent-return
-						_.map(newVersionData, (value, key) => {
-							if (!VERSION_DATA || VERSION_DATA[key] !== value) {
-								return `*${_.startCase(
-									key,
-								)}* update available: from *${VERSION_DATA &&
-									VERSION_DATA[key]}* to *${value}*`;
-							}
-						}),
-					).join('\n');
+			await new Promise((resolve) => {
+				FunBridgeVersions.findOne({ version: funbridge }, (err, response) => {
+					if (err) {
+						console.log(`Error querying the database for ${funbridge}`);
+						return;
+					}
+					if (response) {
+						// Nothing to do, we're already following this person.
+						resolve();
+						return;
+					}
+
+					// we have a new version of funbridge!
+					console.log(`New funbridge version! ${funbridge}`);
 					sendMessage(
 						`
 *Laptop needs updates!*
-${changes}
-					`,
+New FunBridge Version: ${funbridge}
+					`
 					).then(() => {
-						process.exit(0);
-					});
+						const newFunBridgeVersion = new FunBridgeVersions({
+							version: funbridge,
+							timestamp: Date.now(),
+						});
 
-					VERSION_DATA = {
-						screensConnect: newVersionDataModel.get('screensConnect'),
-						rescueTime: newVersionDataModel.get('rescueTime'),
-						backBlaze: newVersionDataModel.get('backBlaze'),
-						onePassword: newVersionDataModel.get('onePassword'),
-					};
+						newFunBridgeVersion.save((saveErr) => {
+							if (saveErr) {
+								console.log('Error saving to database', saveErr);
+							}
+							console.log(`done! Stored funbridge version ${funbridge}!`);
+							resolve();
+						});
+					});
 				});
 			});
-		} else {
-			console.log('Version checked, no updates!');
-			process.exit(0);
-		}
-	}).catch((e) => {
-		sendMessage(`Something went wrong with my update script! ${e}`).then(() => { process.exit(0)})
-	});
+
+			if (!VERSION_DATA || !_.isEqual(VERSION_DATA, newVersionData)) {
+				// remove all persisted versionData now that it's bad
+				VersionData.remove(undefined, () => {
+					const newVersionDataModel = new VersionData(newVersionData);
+					// store the new version info!
+					newVersionDataModel.save(() => {
+						const changes = _.filter(
+							// eslint-disable-next-line consistent-return
+							_.map(newVersionData, (value, key) => {
+								if (!VERSION_DATA || VERSION_DATA[key] !== value) {
+									return `*${_.startCase(key)}* update available: from *${
+										VERSION_DATA && VERSION_DATA[key]
+									}* to *${value}*`;
+								}
+							})
+						).join('\n');
+						sendMessage(
+							`
+*Laptop needs updates!*
+${changes}
+					`
+						).then(() => {
+							process.exit(0);
+						});
+
+						VERSION_DATA = {
+							screensConnect: newVersionDataModel.get('screensConnect'),
+							rescueTime: newVersionDataModel.get('rescueTime'),
+							backBlaze: newVersionDataModel.get('backBlaze'),
+							onePassword: newVersionDataModel.get('onePassword'),
+						};
+					});
+				});
+			} else {
+				console.log('Version checked, no updates!');
+				process.exit(0);
+			}
+		})
+		.catch((e) => {
+			sendMessage(`Something went wrong with my update script! ${e}`).then(() => {
+				process.exit(0);
+			});
+		});
 }
 
 function getNewestVersionFromItems(items = []) {
 	const versions = _.filter(
-		items.map(item => {
-			const version = _.get(
-				item,
-				`enclosure[0].$['sparkle:shortVersionString']`,
-				undefined,
-			);
+		items.map((item) => {
+			const version = _.get(item, `enclosure[0].$['sparkle:shortVersionString']`, undefined);
 
 			// Filter out version that don't have a . in them, to fix incremental versions that are high numbers
 			if (!version || version.indexOf('.') === -1) {
 				return null;
 			}
 			return version;
-		}),
+		})
 	).sort();
 	if (!versions.length) {
 		return '';
@@ -178,25 +174,25 @@ function getNewestVersionFromItems(items = []) {
 }
 
 function checkOnePassword() {
-	return fetch(`https://app-updates.agilebits.com/check/1/19.6.0/OPM7/en/${VERSION_DATA.onePassword}`)
-		.then(response => response.json())
-		.then(({available, relnotes}) => {
-			if (available === "0") return Promise.resolve(VERSION_DATA.onePassword);
+	return fetch(
+		`https://app-updates.agilebits.com/check/1/19.6.0/OPM7/en/${VERSION_DATA.onePassword}`
+	)
+		.then((response) => response.json())
+		.then(({ available, relnotes }) => {
+			if (available === '0') return Promise.resolve(VERSION_DATA.onePassword);
 
-			const newVersion = relnotes.split('/').slice(-1)[0].split('?')[0]
+			const newVersion = relnotes.split('/').slice(-1)[0].split('?')[0];
 			return Promise.resolve(newVersion);
 		});
 }
 
 function checkScreensConnect() {
 	return fetch('https://updates.devmate.com/com.edovia.Screens-Connect.xml')
-		.then(response => response.text())
-		.then(xml => {
-			const promise = new Promise(resolve => {
+		.then((response) => response.text())
+		.then((xml) => {
+			const promise = new Promise((resolve) => {
 				parseString(xml, (err, result) => {
-					const version = getNewestVersionFromItems(
-						_.get(result, 'rss.channel[0].item'),
-					);
+					const version = getNewestVersionFromItems(_.get(result, 'rss.channel[0].item'));
 					resolve(version);
 				});
 			});
@@ -206,13 +202,11 @@ function checkScreensConnect() {
 
 function checkRescueTime() {
 	return fetch('https://www.rescuetime.com/installers/appcast')
-		.then(response => response.text())
-		.then(xml => {
-			const promise = new Promise(resolve => {
+		.then((response) => response.text())
+		.then((xml) => {
+			const promise = new Promise((resolve) => {
 				parseString(xml, (err, result) => {
-					const version = getNewestVersionFromItems(
-						_.get(result, 'rss.channel[0].item'),
-					);
+					const version = getNewestVersionFromItems(_.get(result, 'rss.channel[0].item'));
 					resolve(version);
 				});
 			});
@@ -222,14 +216,11 @@ function checkRescueTime() {
 
 function checkBackBlaze() {
 	return fetch('https://ca001.backblaze.com/api/clientversion.xml')
-		.then(response => response.text())
-		.then(xml => {
-			const promise = new Promise(resolve => {
+		.then((response) => response.text())
+		.then((xml) => {
+			const promise = new Promise((resolve) => {
 				parseString(xml, (err, result) => {
-					const version = _.get(
-						result,
-						'clientversion.update[0].$.mac_version',
-					);
+					const version = _.get(result, 'clientversion.update[0].$.mac_version');
 					resolve(version);
 				});
 			});
@@ -238,15 +229,13 @@ function checkBackBlaze() {
 }
 
 function checkFunbridge() {
-	return fetch(
-		'https://itunes.apple.com/search?entity=macSoftware&term=funbridge',
-	)
-		.then(resp => resp.json())
-		.then(resp => {
+	return fetch('https://itunes.apple.com/search?entity=macSoftware&term=funbridge')
+		.then((resp) => resp.json())
+		.then((resp) => {
 			const { version } = resp.results[0];
 			return version;
 		})
-		.catch(err => {
+		.catch((err) => {
 			console.error(err);
 			return '';
 		});
@@ -261,7 +250,7 @@ function sendMessage(text) {
 		.then(() => {
 			console.log('Message sent: ', text);
 		})
-		.catch(err => {
+		.catch((err) => {
 			console.log('Error:', err);
 		});
 }

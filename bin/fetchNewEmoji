@@ -12,8 +12,8 @@ const web = new WebClient(token);
 
 mongoose.Promise = global.Promise;
 mongoose.connect(process.env.MONGO_DB_URI, {
-		useNewUrlParser: true,
-		useUnifiedTopology: true,
+	useNewUrlParser: true,
+	useUnifiedTopology: true,
 });
 
 const hour = new Date().getHours();
@@ -23,7 +23,7 @@ if (hour !== 16 && hour !== 13 && hour !== 9) {
 	process.exit(0);
 }
 
-process.on('unhandledRejection', error => {
+process.on('unhandledRejection', (error) => {
 	console.log('unhandledRejection', error);
 	process.exit(1);
 });
@@ -35,7 +35,7 @@ const AnujiModel = mongoose.model('Anuji', {
 let storedAnujiModel;
 AnujiModel.findOne(undefined)
 	.exec()
-	.then(newAnujiModel => {
+	.then((newAnujiModel) => {
 		if (newAnujiModel) {
 			storedAnujiModel = {
 				anuji: newAnujiModel.get('anuji'),
@@ -45,119 +45,112 @@ AnujiModel.findOne(undefined)
 		}
 		fetchNewAnuji();
 	})
-	.catch(e => {
+	.catch((e) => {
 		console.log('Huh, we have an error', e);
 		process.exit(0);
 	});
 
 async function fetchNewAnuji() {
-	web
-		.apiCall('emoji.adminList', {
-			queries: ['nuj'],
-			count: 100,
-			page: 1,
-			sort_by: 'created',
-			sort_dir: 'desc',
-		})
-		.then(response => {
-			const newEmoji = response.emoji;
+	web.apiCall('emoji.adminList', {
+		queries: ['nuj'],
+		count: 100,
+		page: 1,
+		sort_by: 'created',
+		sort_dir: 'desc',
+	}).then((response) => {
+		const newEmoji = response.emoji;
 
-			const oldEmoji = (storedAnujiModel && storedAnujiModel.anuji) || {
-				anuji: {},
-			};
-			const addedEmoji = _.difference(
-				_.map(newEmoji, 'name'),
-				Object.keys(oldEmoji),
-			);
+		const oldEmoji = (storedAnujiModel && storedAnujiModel.anuji) || {
+			anuji: {},
+		};
+		const addedEmoji = _.difference(_.map(newEmoji, 'name'), Object.keys(oldEmoji));
 
-			const addedAnuji = newEmoji.filter(({ name }) =>
-				addedEmoji.includes(name),
-			);
+		const addedAnuji = newEmoji.filter(({ name }) => addedEmoji.includes(name));
 
-			if (addedEmoji.length > 30) {
-				console.log('Something went terribly wrong, do nothing');
-				process.exit(1);
-			}
-			if (addedEmoji.length || _.isEmpty(oldEmoji)) {
-				AnujiModel.remove(undefined, err => {
-					newEmoji.forEach(emoji => {
-						storedAnujiModel.anuji[emoji.name] = emoji;
-					});
+		if (addedEmoji.length > 30) {
+			console.log('Something went terribly wrong, do nothing');
+			process.exit(1);
+		}
+		if (addedEmoji.length || _.isEmpty(oldEmoji)) {
+			AnujiModel.remove(undefined, (err) => {
+				newEmoji.forEach((emoji) => {
+					storedAnujiModel.anuji[emoji.name] = emoji;
+				});
 
-					const newStoredAnujiModel = new AnujiModel(storedAnujiModel);
+				const newStoredAnujiModel = new AnujiModel(storedAnujiModel);
 
-					if (err) {
-						console.log('Error removing from database', err);
+				if (err) {
+					console.log('Error removing from database', err);
+					process.exit(1);
+				}
+
+				// Promise.resolve().then(saveErr => {
+				newStoredAnujiModel.save((saveErr) => {
+					if (saveErr) {
+						console.log('Error saving to database', saveErr);
 						process.exit(1);
 					}
+					console.log(`done! Saved new ${addedAnuji.length} emoji!`);
 
-					// Promise.resolve().then(saveErr => {
-					newStoredAnujiModel.save(saveErr => {
-						if (saveErr) {
-							console.log('Error saving to database', saveErr);
-							process.exit(1);
-						}
-						console.log(`done! Saved new ${addedAnuji.length} emoji!`);
+					const promises = _.chunk(addedAnuji, 16).map((chunk) => {
+						const blocks = [];
 
-						const promises = _.chunk(addedAnuji, 16).map(chunk => {
-							const blocks = [];
-
-							// eslint-disable-next-line camelcase
-							chunk.forEach(({ name, url, user_id }) => {
-								blocks.push({
-									type: 'image',
-									title: {
-										type: 'plain_text',
-										text: `${name} :${name}:`,
-										emoji: true,
-									},
-									image_url: url,
-									alt_text: name,
-								});
-
-								blocks.push({
-									type: 'context',
-									elements: [
-										{
-											type: 'mrkdwn',
-											// eslint-disable-next-line camelcase
-											text: `*:art: Artist:* <@${user_id}>${
-												// eslint-disable-next-line camelcase
-												user_id === 'W4M23JZB6'
-													? "\n*:venmo: Artist's Venmo*: `@samantha-siow`"
-													: ''
-											}`,
-										},
-									],
-								});
-								blocks.push({
-									type: 'divider',
-								});
+						// eslint-disable-next-line camelcase
+						chunk.forEach(({ name, url, user_id }) => {
+							blocks.push({
+								type: 'image',
+								title: {
+									type: 'plain_text',
+									text: `${name} :${name}:`,
+									emoji: true,
+								},
+								image_url: url,
+								alt_text: name,
 							});
 
-							return web.chat.postMessage({
-								channel: process.env.SLACK_EMOJI_CHANNEL,
-								blocks,
+							blocks.push({
+								type: 'context',
+								elements: [
+									{
+										type: 'mrkdwn',
+										// eslint-disable-next-line camelcase
+										text: `*:art: Artist:* <@${user_id}>${
+											// eslint-disable-next-line camelcase
+											user_id === 'W4M23JZB6'
+												? "\n*:venmo: Artist's Venmo*: `@samantha-siow`"
+												: ''
+										}`,
+									},
+								],
+							});
+							blocks.push({
+								type: 'divider',
 							});
 						});
-						Promise.all(promises).then(() => {
-							const reacjiIndexerPromises = addedAnuji.map(({ name }) =>
-								web.apiCall('chat.command', {
-									command: '/reacji-channeler',
-									channel: 'CKZ4U25UJ',
-									text: `:${name}: #reacji-indexer-anuj`,
-								}),
-							);
 
-							Promise.all(reacjiIndexerPromises).then(() => {
-								process.exit(0);
-							});
+						return web.chat.postMessage({
+							channel: process.env.SLACK_EMOJI_CHANNEL,
+							blocks,
+						});
+					});
+					Promise.all(promises).then(() => {
+						const reacjiIndexerPromises = addedAnuji.map(({ name }) =>
+							web.apiCall('chat.command', {
+								command: '/reacji-channeler',
+								channel: 'CKZ4U25UJ',
+								text: `:${name}: #reacji-indexer-anuj`,
+							})
+						);
+
+						Promise.all(reacjiIndexerPromises).then(() => {
+							process.exit(0);
 						});
 					});
 				});
-			} else {
-				console.log('no new emoji found, exiting');
-				process.exit(0);
-			}
-		});
+			});
+		} else {
+			console.log('no new emoji found, exiting');
+			process.exit(0);
+		}
+	});
 }
