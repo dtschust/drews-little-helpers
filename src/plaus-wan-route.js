@@ -114,7 +114,9 @@ function sendMessage({ text, channel, thread_ts, reply_broadcast } = {}) {
 		.postMessage({
 			channel,
 			text,
+			// eslint-disable-next-line camelcase
 			thread_ts,
+			// eslint-disable-next-line camelcase
 			reply_broadcast,
 		})
 		.then(() => {
