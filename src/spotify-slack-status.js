@@ -114,6 +114,7 @@ function downloadFile(fileUrl, DOWNLOAD_DIR = '.') {
 		const wget = `wget -P ${DOWNLOAD_DIR} -O album.jpg ${fileUrl}`;
 
 		// excute wget using childProcess' exec function
+		// eslint-disable-next-line no-unused-vars
 		childProcess.exec(wget, (err, stdout, stderr) =>
 			err ? reject(err) : resolve(fileName),
 		);

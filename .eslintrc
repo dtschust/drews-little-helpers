@@ -1,5 +1,6 @@
 {
-	"extends": ["airbnb", "prettier"],
+	"plugins": ["react", "prettier"],
+	"extends": ["airbnb", "plugin:prettier/recommended"],
 	"rules": {
 		"no-console": "off",
 		"no-use-before-define": "off"
