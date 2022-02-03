@@ -1,0 +1,62 @@
+#!/usr/bin/env node
+
+require('dotenv').config();
+const childProcess = require('child_process');
+const path = require('path');
+const { WebClient } = require('@slack/client');
+
+const token = process.env.SLACK_API_TOKEN || '';
+const web = new WebClient(token);
+
+const tasks = ['checkUpdatesForMomo', 'letterboxdToRSS'];
+
+const logs = [];
+
+function log(message) {
+	console.log(message);
+	logs.push(message);
+}
+
+tasks.forEach((task) => {
+	log(`*Executing task \`${task}\`*
+`);
+	const { status, stderr, stdout } = childProcess.spawnSync(path.resolve(__dirname, `./${task}`));
+
+	if (status) {
+		log(`Error executing \`${task}\`! Error: ${status}
+\`\`\`
+${stderr}
+\`\`\`
+`);
+	} else {
+		if (stderr.length) {
+			log(`Error Output:
+\`\`\`
+${stderr.toString().trim()}
+\`\`\`
+`);
+		}
+		if (stdout.length) {
+			log(`Output:
+\`\`\`
+${stdout.toString().trim()}
+\`\`\`
+`);
+		}
+	}
+	log(`*${status ? '❌' : '✅'} Task \`${task}\` complete*\n\n`);
+});
+
+web.chat
+	.postMessage({
+		channel: process.env.CRON_LOGS_CHANNEL_ID,
+		text: logs.join('\n'),
+	})
+	.then(() => {
+		console.log('Logs sent to Slack');
+		process.exit(0);
+	})
+	.catch((err) => {
+		console.log('Failed to send logs to Slack:', err);
+		process.exit(1);
+	});
