@@ -83,7 +83,7 @@ async function fetchNewEpisodes() {
 	}
 
 	// remove old map, we've got a new one to store!
-	RecDiffsEpisodesModel.remove(undefined, (err) => {
+	RecDiffsEpisodesModel.deleteMany(undefined, (err) => {
 		console.log('new model!', storedEpisodesModel);
 		const newStoredEpisodesModel = new RecDiffsEpisodesModel(storedEpisodesModel);
 

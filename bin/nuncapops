@@ -80,7 +80,7 @@ async function fetchAndProcessPinboardPops() {
 	);
 
 	console.log(`Posted ${newPins.length} pins, now let us persist to mongo!`);
-	SavedPinboardPops.remove(undefined, (err) => {
+	SavedPinboardPops.deleteMany(undefined, (err) => {
 		if (err) {
 			console.log('Error removing from database', err);
 		}

@@ -140,7 +140,7 @@ async function fetchAndProcessTwitterFavs() {
 	);
 
 	console.log('Done saving, now let us persist to mongo!');
-	SavedTwitterFavs.remove(undefined, (err) => {
+	SavedTwitterFavs.deleteMany(undefined, (err) => {
 		if (err) {
 			console.log('Error removing from database', err);
 		}

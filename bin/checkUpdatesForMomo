@@ -111,7 +111,7 @@ New FunBridge Version: ${funbridge}
 
 			if (!VERSION_DATA || !_.isEqual(VERSION_DATA, newVersionData)) {
 				// remove all persisted versionData now that it's bad
-				VersionData.remove(undefined, () => {
+				VersionData.deleteMany(undefined, () => {
 					const newVersionDataModel = new VersionData(newVersionData);
 					// store the new version info!
 					newVersionDataModel.save(() => {

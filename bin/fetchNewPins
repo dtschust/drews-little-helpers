@@ -64,7 +64,7 @@ async function fetchNewPins() {
 			process.exit(1);
 		}
 		if (addedTimestamps.length || _.isEmpty(storedPinModel && storedPinModel.pins)) {
-			PinModel.remove(undefined, (err) => {
+			PinModel.deleteMany(undefined, (err) => {
 				addedTimestamps.forEach((timestamp) => {
 					storedPinModel.pins[timestamp] = timestamp;
 				});

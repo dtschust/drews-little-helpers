@@ -140,7 +140,7 @@ async function fetchNewEpisodes() {
 
 	if (newEpisodesFound) {
 		// remove old map, we've got a new one to store!
-		FemFreqEpisodesModel.remove(undefined, (err) => {
+		FemFreqEpisodesModel.deleteMany(undefined, (err) => {
 			console.log('new model!', storedEpisodesModel);
 			const newStoredEpisodesModel = new FemFreqEpisodesModel(storedEpisodesModel);
 

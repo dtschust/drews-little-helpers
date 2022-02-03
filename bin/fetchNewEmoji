@@ -72,7 +72,7 @@ async function fetchNewAnuji() {
 			process.exit(1);
 		}
 		if (addedEmoji.length || _.isEmpty(oldEmoji)) {
-			AnujiModel.remove(undefined, (err) => {
+			AnujiModel.deleteMany(undefined, (err) => {
 				newEmoji.forEach((emoji) => {
 					storedAnujiModel.anuji[emoji.name] = emoji;
 				});

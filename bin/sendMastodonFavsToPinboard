@@ -118,7 +118,7 @@ ${digests.join('\n')}`)
 						.then(() => {
 							// remove old savedToots map, we've got a new one to store!
 							console.log('Done saving, now let us persist to mongo!');
-							SavedToots.remove(undefined, (err) => {
+							SavedToots.deleteMany(undefined, (err) => {
 								if (err) {
 									console.log('Error removing from database', err);
 								}
