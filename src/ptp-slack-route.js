@@ -114,7 +114,7 @@ function getLoginCookies(query, responseURL, retry) {
 			COOKIE = cookieString;
 
 			// remove all persisted cookies now that they are bad
-			Cookie.remove(undefined, (err) => {
+			Cookie.deleteMany(undefined, (err) => {
 				console.log('Error removing cookie', err);
 				// eslint-disable-line no-unused-vars
 				const cookieToPersist = new Cookie({ cookie: cookieString });
@@ -260,6 +260,7 @@ ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${t.RemasterTitle ? `/ ${t.Remaster
 			})
 				.then(({ async_job_id: asyncJobId }) => {
 					let thirtySecondCheck;
+					let numTries = 0;
 					const checkJobStatus = () => {
 						dbx.filesSaveUrlCheckJobStatus({
 							async_job_id: asyncJobId,
@@ -276,6 +277,21 @@ ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${t.RemasterTitle ? `/ ${t.Remaster
 									);
 									sendMessage(`Started download of *${movieTitle}*`);
 									clearTimeout(thirtySecondCheck);
+								} else {
+									const successMessage = {
+										text: `Saving ${movieTitle} in dropbox is taking a while, will try again in 30 seconds. This is attempt number ${numTries}`,
+										replace_original: true,
+									};
+									sendMessageToSlackResponseURL(
+										actionJSONPayload.response_url,
+										successMessage
+									);
+									numTries += 1;
+									if (numTries > 5) {
+										clearTimeout(thirtySecondCheck);
+										throw new Error('unable to save to dropbox, it appears');
+									}
+									thirtySecondCheck = setTimeout(checkJobStatus, 30000);
 								}
 							})
 							.catch(() => {
@@ -290,7 +306,6 @@ ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${t.RemasterTitle ? `/ ${t.Remaster
 							});
 					};
 					setTimeout(checkJobStatus, 5000);
-					thirtySecondCheck = setTimeout(checkJobStatus, 30000);
 				})
 				.catch((error) => {
 					const errorMessage = {
