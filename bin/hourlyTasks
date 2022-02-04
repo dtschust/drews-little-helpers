@@ -23,7 +23,7 @@ tasks.forEach((task) => {
 	const { status, stderr, stdout } = childProcess.spawnSync(path.resolve(__dirname, `./${task}`));
 
 	if (status) {
-		log(`Error executing \`${task}\`! Error: ${status}
+		log(`@drew Error executing \`${task}\`! Error: ${status}
 \`\`\`
 ${stderr}
 \`\`\`
@@ -51,6 +51,7 @@ web.chat
 	.postMessage({
 		channel: process.env.CRON_LOGS_CHANNEL_ID,
 		text: logs.join('\n'),
+		link_names: true,
 	})
 	.then(() => {
 		console.log('Logs sent to Slack');
