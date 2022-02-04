@@ -8,7 +8,7 @@ const { WebClient } = require('@slack/client');
 const token = process.env.SLACK_API_TOKEN || '';
 const web = new WebClient(token);
 
-const tasks = ['checkUpdatesForMomo', 'letterboxdToRSS'];
+const tasks = ['checkUpdatesForMomo', 'letterboxdToRSS', 'checkUpdatesForGaryKamiya'];
 
 const logs = [];
 

@@ -1,0 +1,70 @@
+#!/usr/bin/env node
+
+require('isomorphic-fetch');
+require('dotenv').config();
+const puppeteer = require('puppeteer');
+const { WebClient } = require('@slack/client');
+const mongoose = require('mongoose');
+
+const token = process.env.SLACK_API_TOKEN || '';
+const web = new WebClient(token);
+
+mongoose.Promise = global.Promise;
+mongoose.connect(process.env.MONGO_DB_URI, {
+	useNewUrlParser: true,
+	useUnifiedTopology: true,
+});
+
+const GaryPageContent = mongoose.model('GaryPageContent', {
+	pageContent: String,
+});
+
+let OLD_PAGE_CONTENT = {};
+GaryPageContent.findOne(undefined)
+	.exec()
+	.then((newData) => {
+		if (newData) {
+			OLD_PAGE_CONTENT = {
+				pageContent: newData.get('pageContent'),
+			};
+		}
+		checkForUpdates().then(process.exit); // eslint-disable-line no-use-before-define
+	})
+	.catch(() => {
+		checkForUpdates().then(process.exit); // eslint-disable-line no-use-before-define
+	});
+
+function sendMessage(text) {
+	return web.chat.postMessage({
+		channel: process.env.PTP_SLACK_CHANNEL_ID,
+		text,
+	});
+}
+
+async function checkForUpdates() {
+	const browser = await puppeteer.launch({
+		headless: true,
+		args: ['--no-sandbox', '--disable-setuid-sandbox'],
+	});
+	const page = await browser.newPage();
+	await page.goto('https://www.garykamiya.com/');
+
+	const contentDiv = await page.$('#content');
+	const contentText = await page.evaluate((el) => el.innerText, contentDiv);
+
+	if (contentText !== OLD_PAGE_CONTENT.pageContent) {
+		console.log('New updates!');
+		await sendMessage(`New updates from Gary Kamiya at https://www.garykamiya.com!
+${contentText}`);
+		await GaryPageContent.deleteMany(undefined).then(async () => {
+			const newGaryPageContent = new GaryPageContent({
+				pageContent: contentText,
+			});
+			await newGaryPageContent.save().then(() => {
+				console.log('New page content saved to database');
+			});
+		});
+	} else {
+		console.log('No Updates!');
+	}
+}
