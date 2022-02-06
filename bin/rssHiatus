@@ -82,6 +82,7 @@ async function main() {
 			},
 		])
 		.then(({ feedsToHiatus, weeks }) => {
+			// TODO: Ensure that none of these feeds have unreads
 			if (!feedsToHiatus.length) {
 				return Promise.resolve();
 			}
