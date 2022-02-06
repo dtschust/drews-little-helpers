@@ -2,12 +2,10 @@
 
 require('isomorphic-fetch');
 require('dotenv').config();
-const path = require('path');
-const fs = require('fs');
 
 const { WebClient } = require('@slack/client');
 
-const token = process.env.SLACK_API_TOKEN_DREW_AND_KRISTA || '';
+const token = process.env.SLACK_API_TOKEN || '';
 const web = new WebClient(token);
 
 async function main() {
