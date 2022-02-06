@@ -1,0 +1,109 @@
+#!/usr/bin/env node
+/* eslint-disable camelcase */
+
+require('isomorphic-fetch');
+require('dotenv').config();
+const _ = require('lodash');
+const mongoose = require('mongoose');
+const inquirer = require('inquirer');
+const { WebClient } = require('@slack/client');
+const FeedHiatus = require('../src/Feed-Hiatus');
+
+const feedWranglerToken = process.env.FEED_WRANGLER_ACCESS_TOKEN;
+const token = process.env.SLACK_API_TOKEN || '';
+const web = new WebClient(token);
+
+mongoose.Promise = global.Promise;
+mongoose.connect(process.env.MONGO_DB_URI, {
+	useNewUrlParser: true,
+	useUnifiedTopology: true,
+});
+
+function sendMessage(text) {
+	return web.chat.postMessage({
+		channel: process.env.PTP_SLACK_CHANNEL_ID,
+		text,
+	});
+}
+
+function unsubscribeToFeed({ feed_id, title, site_url, weeks, end_time } = {}) {
+	return fetch(
+		`https://feedwrangler.net/api/v2/subscriptions/remove_feed?access_token=${feedWranglerToken}&feed_id=${feed_id}`
+	)
+		.then((response) => response.json())
+		.then(async ({ error, result }) => {
+			if (error || result !== 'success') {
+				console.error(
+					`Error unsubscribing to ${title}, error: ${error}, result: ${result}`
+				);
+				return sendMessage(
+					`Error unsubscribing to ${title}, error: ${error}, result: ${result}`
+				);
+			}
+			console.log(
+				`On Hiatus! Unsubscribed to ${title} (${site_url}) for ${weeks} weeks. Will be back on ${new Date(
+					end_time
+				).toLocaleDateString('en-US')}`
+			);
+			return sendMessage(
+				`On Hiatus! Unsubscribed to ${title} (${site_url}) for ${weeks} weeks. Will be back on ${new Date(
+					end_time
+				).toLocaleDateString('en-US')}`
+			);
+		});
+}
+
+async function main() {
+	const { feeds } = await fetch(
+		`https://feedwrangler.net/api/v2/subscriptions/list?access_token=${feedWranglerToken}`
+	).then((response) => response.json());
+
+	await inquirer
+		.prompt([
+			{
+				type: 'checkbox',
+				name: 'feedsToHiatus',
+				message: 'Which feeds would you like to put on a hiatus?',
+				loop: false,
+				pageSize: 30,
+				choices: _.sortBy(
+					feeds.map(({ title, feed_id, site_url, feed_url }) => ({
+						name: `${title} (${site_url})`,
+						value: { title, feed_id, feed_url, site_url },
+					})),
+					'name'
+				),
+			},
+			{
+				type: 'number',
+				name: 'weeks',
+				message: 'How many weeks would you like to put these on hiatus for?',
+				default: 1,
+			},
+		])
+		.then(({ feedsToHiatus, weeks }) => {
+			if (!feedsToHiatus.length) {
+				return Promise.resolve();
+			}
+			console.log(feedsToHiatus);
+			const end_time = Date.now() + weeks * 604800000;
+			// TODO: Hit an API endpoint that executes all the code below. That way I can
+			// move this to in-app
+			return Promise.all(
+				feedsToHiatus.map(async ({ feed_id, title, feed_url, site_url }) => {
+					const feedHiatus = new FeedHiatus({
+						feed_id,
+						title,
+						feed_url,
+						site_url,
+						end_time,
+					});
+					await feedHiatus.save();
+
+					await unsubscribeToFeed({ feed_id, title, site_url, weeks, end_time });
+				})
+			);
+		});
+}
+
+main().then(process.exit);

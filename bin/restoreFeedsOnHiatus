@@ -1,0 +1,67 @@
+#!/usr/bin/env node
+/* eslint-disable camelcase */
+
+require('isomorphic-fetch');
+require('dotenv').config();
+const { WebClient } = require('@slack/client');
+const mongoose = require('mongoose');
+const FeedHiatus = require('../src/Feed-Hiatus');
+
+const token = process.env.SLACK_API_TOKEN || '';
+const feedWranglerToken = process.env.FEED_WRANGLER_ACCESS_TOKEN;
+const web = new WebClient(token);
+
+mongoose.Promise = global.Promise;
+mongoose.connect(process.env.MONGO_DB_URI, {
+	useNewUrlParser: true,
+	useUnifiedTopology: true,
+});
+
+const now = Date.now();
+
+function subscribeToFeed({ feed_url, title, site_url } = {}) {
+	return fetch(
+		`https://feedwrangler.net/api/v2/subscriptions/add_feed?access_token=${feedWranglerToken}&feed_url=${encodeURIComponent(
+			feed_url
+		)}`
+	)
+		.then((response) => response.json())
+		.then(async ({ error, result }) => {
+			if (error || result !== 'success') {
+				console.error(`Error subscribing to ${title}, error: ${error}, result: ${result}`);
+				return sendMessage(
+					`Error subscribing to ${title}, error: ${error}, result: ${result}`
+				);
+			}
+			console.log(`Successfully resubscribed to ${title} (${site_url})`);
+			return sendMessage(`Back from hiatus! Resubscribed to ${title} (${site_url})`);
+		});
+}
+
+async function main() {
+	// This will find and restore all hiatus feeds
+	// const feedsToRestore = await FeedHiatus.find();
+
+	const feedsToRestore = await FeedHiatus.find({ end_time: { $lte: now } });
+
+	if (!feedsToRestore.length) {
+		console.log('No feeds to restore from hiatus');
+	}
+
+	await Promise.all(
+		feedsToRestore.map(async (feed) => {
+			await subscribeToFeed(feed);
+			// TODO: Maybe mark all as read??
+			await feed.remove();
+		})
+	);
+}
+
+main().then(process.exit);
+
+function sendMessage(text) {
+	return web.chat.postMessage({
+		channel: process.env.PTP_SLACK_CHANNEL_ID,
+		text,
+	});
+}
