@@ -13,6 +13,7 @@ const tasks = [
 	'letterboxdToRSS',
 	'checkUpdatesForGaryKamiya',
 	'restoreFeedsOnHiatus',
+	'clearOldCronLogs',
 ];
 
 const logs = [];
