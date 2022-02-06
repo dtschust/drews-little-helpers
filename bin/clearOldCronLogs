@@ -16,16 +16,18 @@ async function main() {
 
 	// TODO: theoretically I should support pagination here, but if I'm going to
 	// delete 100 old messages every hour I shouldn't have a problem
-	const response = await web.apiCall('conversations.history', {
-		channel: process.env.CRON_LOGS_CHANNEL_ID,
-		limit: 100,
-		latest: expirationDate / 1000,
+
+	// Use the search API so that I also get threaded messages, conversations.history doesn't do that
+	const response = await web.apiCall('search.messages', {
+		query: `in:<#${process.env.CRON_LOGS_CHANNEL_ID}>`,
+		count: 100,
 	});
-	const { messages } = response;
+
+	const matches = (response && response.messages && response.messages.matches) || [];
 	let numDeleted = 0;
 
 	await Promise.all(
-		messages.map(async (message) => {
+		matches.map(async (message) => {
 			const { ts } = message;
 			const time = parseInt(ts.split('.')[0], 10) * 1000;
 			if (time < expirationDate) {

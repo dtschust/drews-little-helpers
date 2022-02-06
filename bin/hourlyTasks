@@ -16,6 +16,8 @@ const tasks = [
 	'clearOldCronLogs',
 ];
 
+let someFailed = false;
+
 const logs = [];
 
 function log(message) {
@@ -29,13 +31,15 @@ tasks.forEach((task) => {
 	const { status, stderr, stdout } = childProcess.spawnSync(path.resolve(__dirname, `./${task}`));
 
 	if (status) {
-		log(`@drew Error executing \`${task}\`! Error: ${status}
+		someFailed = true;
+		log(`Error executing \`${task}\`! Error: ${status}
 \`\`\`
 ${stderr}
 \`\`\`
 `);
 	} else {
 		if (stderr.length) {
+			someFailed = true;
 			log(`Error Output:
 \`\`\`
 ${stderr.toString().trim()}
@@ -56,12 +60,27 @@ ${stdout.toString().trim()}
 web.chat
 	.postMessage({
 		channel: process.env.CRON_LOGS_CHANNEL_ID,
-		text: logs.join('\n'),
+		text: someFailed
+			? '❌: At least one hourly task failed! @drew 🧵'
+			: '✅ Hourly Tasks completed successfully!',
 		link_names: true,
 	})
-	.then(() => {
-		console.log('Logs sent to Slack');
-		process.exit(0);
+	.then(({ ts }) => {
+		web.chat
+			.postMessage({
+				channel: process.env.CRON_LOGS_CHANNEL_ID,
+				text: logs.join('\n'),
+				thread_ts: ts,
+				link_names: true,
+			})
+			.then(() => {
+				console.log('Logs sent to Slack');
+				process.exit(0);
+			})
+			.catch((err) => {
+				console.log('Failed to send logs to Slack:', err);
+				process.exit(1);
+			});
 	})
 	.catch((err) => {
 		console.log('Failed to send logs to Slack:', err);
