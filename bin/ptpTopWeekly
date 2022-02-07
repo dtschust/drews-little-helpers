@@ -88,10 +88,27 @@ async function main() {
 	const titlesInfo = await Promise.all(
 		titles.map((t) => {
 			return page.evaluate((el) => {
-				return { href: el.href, title: el.innerText, id: el.href.split('id=')[1] };
+				return {
+					href: el.href,
+					title: el.innerText,
+					id: el.href.split('id=')[1],
+				};
 			}, t);
 		})
 	);
+	const moviePosterElements = await page.$$(
+		'[data-coverviewindex="1"] .cover-movie-list__movie__cover-link'
+	);
+	const moviePosters = await Promise.all(
+		moviePosterElements.map((t) => {
+			return page.evaluate((el) => {
+				return el.style.background.match(/url\("(.*)"\)/)[1];
+			}, t);
+		})
+	);
+	moviePosters.forEach((url, i) => {
+		titlesInfo[i].posterUrl = url;
+	});
 
 	const topMoviesModel = new TopMovies({
 		movies: titlesInfo,
