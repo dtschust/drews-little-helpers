@@ -71,17 +71,18 @@ function sendMessageToSlackResponseURL(responseURL, JSONmessage) {
 }
 
 function sortTorrents(a, b) {
-	if (a.GoldenPopcorn && !b.GoldenPopcorn) {
-		return -1;
-	}
-	if (b.GoldenPopcorn && !a.GoldenPopcorn) {
-		return 1;
-	}
 	if (a.Quality === 'Ultra High Definition' && !b.quality !== 'Ultra High Definition') {
 		return -1;
 	}
 
 	if (b.Quality === 'Ultra High Definition' && !a.quality !== 'Ultra High Definition') {
+		return 1;
+	}
+
+	if (a.GoldenPopcorn && !b.GoldenPopcorn) {
+		return -1;
+	}
+	if (b.GoldenPopcorn && !a.GoldenPopcorn) {
 		return 1;
 	}
 
@@ -229,7 +230,7 @@ function searchAndRespond(
 	});
 }
 function selectMovie(movieTitle, groupId, responseURL) {
-	const torrents = GroupIdMap[groupId].Torrents.slice(0).sort(sortTorrents).slice(0, 8);
+	const torrents = GroupIdMap[groupId].Torrents.slice(0).sort(sortTorrents).slice(0, 12);
 	const attachments = torrents.map((t) => ({
 		title: `\
 ${t.GoldenPopcorn ? ':popcorn: ' : ''}${t.Checked ? ':white_check_mark: ' : ''}\
