@@ -2,10 +2,18 @@
 
 const doTasks = require('../src/do-tasks');
 
-const tasks = ['ptpTopWeekly'];
+const tasks = ['checkUpdatesForGaryKamiya'];
+
+const weeklyTasks = ['ptpTopWeekly'];
 
 async function main() {
-	await doTasks(tasks);
+	await doTasks(tasks, 'Daily');
+	// 2 = Tuesday, but this script runs at midnight UTC 4PM PST
+	// so it'll be Monday in California
+	if (new Date().getDay() === 2) {
+		console.log('Also running weekly tasks!');
+		await doTasks(weeklyTasks, 'Weekly');
+	}
 }
 
 main().then(process.exit);

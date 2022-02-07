@@ -5,13 +5,12 @@ const doTasks = require('../src/do-tasks');
 const tasks = [
 	'checkUpdatesForMomo',
 	'letterboxdToRSS',
-	'checkUpdatesForGaryKamiya',
 	'restoreFeedsOnHiatus',
 	'clearOldCronLogs',
 ];
 
 async function main() {
-	await doTasks(tasks);
+	await doTasks(tasks, 'Hourly');
 }
 
 main().then(process.exit);

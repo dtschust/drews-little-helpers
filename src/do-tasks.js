@@ -20,7 +20,8 @@ function newLogGroup() {
 	logs.push([]);
 }
 
-async function doTasks(tasks) {
+async function doTasks(tasks, cadence) {
+	if (!tasks.length) return true;
 	tasks.forEach((task) => {
 		log(task);
 		const { status, stderr, stdout } = childProcess.spawnSync(
@@ -58,8 +59,8 @@ ${stdout.toString().trim()}
 		.postMessage({
 			channel: process.env.CRON_LOGS_CHANNEL_ID,
 			text: someFailed
-				? '❌: At least one hourly task failed! @drew 🧵'
-				: '✅ Hourly Tasks completed successfully!',
+				? `❌: At least one ${cadence} Task failed! @drew 🧵`
+				: `✅ ${cadence} Tasks completed successfully!`,
 			link_names: true,
 		})
 		.then(({ ts }) => {
@@ -79,6 +80,9 @@ ${stdout.toString().trim()}
 				blocks.push({ type: 'divider' });
 			});
 
+			if (!blocks.length) {
+				return true;
+			}
 			// Remove the trailing divider
 			blocks.pop();
 
