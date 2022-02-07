@@ -280,6 +280,11 @@ function addPtpSlackRoute(app) {
 			res.status(403).end('Access forbidden');
 			return;
 		}
+
+		if (!actionJSONPayload.actions) {
+			// This is not a legacy slash comand, so it's probably a workflow
+			return;
+		}
 		const { name, value: groupId } = actionJSONPayload.actions[0];
 
 		if (name.indexOf('searchMovie') === 0) {
