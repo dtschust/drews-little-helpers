@@ -62,12 +62,23 @@ async function main() {
 		})
 	);
 
+	await page.setViewport({
+		width: 640,
+		height: 480,
+		deviceScaleFactor: 2,
+	});
 	await page.goto('https://passthepopcorn.me/top10.php');
 	const topMovies = await page.$('[data-coverviewindex="1"]');
+	await topMovies.evaluate((el) => {
+		// eslint-disable-next-line
+		el.style.width = `${600}px`;
+	});
 	const titles = await page.$$('[data-coverviewindex="1"] .cover-movie-list__movie__title');
 	const titlesText = await Promise.all(
 		titles.map((t) => {
-			return page.evaluate((el) => el.innerText, t);
+			return page.evaluate((el) => {
+				return `<${el.href}|${el.innerText}>`;
+			}, t);
 		})
 	);
 	const screenshot = await topMovies.screenshot();
