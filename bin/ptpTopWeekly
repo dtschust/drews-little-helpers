@@ -27,7 +27,7 @@ async function getLoginCookies() {
 					passkey: process.env.PTP_PASSKEY,
 					// WhatsYourSecret:
 					// 	'Hacker! Do you really have nothing better do than this?',
-					keeplogged: 1,
+					keeplogged: 0,
 				},
 			},
 			(error, response) => {
