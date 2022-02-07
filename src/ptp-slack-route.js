@@ -175,7 +175,13 @@ function search(query, cb) {
 	);
 }
 
-function searchAndRespond(query, responseURL, retry = true, replaceOriginal = false) {
+function searchAndRespond(
+	query,
+	responseURL,
+	retry = true,
+	replaceOriginal = false,
+	groupId = undefined
+) {
 	search(query, (error, response, body) => {
 		let apiResponse;
 		try {
@@ -195,27 +201,57 @@ function searchAndRespond(query, responseURL, retry = true, replaceOriginal = fa
 			GroupIdMap[movie.GroupId] = movie;
 		});
 
-		const attachments = movies.map((movie) => ({
-			title: `${movie.Title} (${movie.Year})`,
-			image_url: movie.Cover,
-			callback_id: movie.GroupId,
-			actions: [
-				{
-					name: `selectMovie ${movie.Title}`,
-					text: `Select ${movie.Title}`,
-					type: 'button',
-					value: movie.GroupId,
-				},
-			],
-		}));
+		if (groupId) {
+			// We already know the id of the movie we want, so we can skip the results
+			selectMovie(query, groupId, responseURL);
+		} else {
+			const attachments = movies.map((movie) => ({
+				title: `${movie.Title} (${movie.Year})`,
+				image_url: movie.Cover,
+				callback_id: movie.GroupId,
+				actions: [
+					{
+						name: `selectMovie ${movie.Title}`,
+						text: `Select ${movie.Title}`,
+						type: 'button',
+						value: movie.GroupId,
+					},
+				],
+			}));
 
-		const message = {
-			text: `Results for ${query} :`,
-			replace_original: replaceOriginal,
-			attachments,
-		};
-		sendMessageToSlackResponseURL(responseURL, message);
+			const message = {
+				text: `Results for ${query} :`,
+				replace_original: replaceOriginal,
+				attachments,
+			};
+			sendMessageToSlackResponseURL(responseURL, message);
+		}
 	});
+}
+function selectMovie(movieTitle, groupId, responseURL) {
+	const torrents = GroupIdMap[groupId].Torrents.slice(0).sort(sortTorrents).slice(0, 8);
+	const attachments = torrents.map((t) => ({
+		title: `\
+${t.GoldenPopcorn ? ':popcorn: ' : ''}${t.Checked ? ':white_check_mark: ' : ''}\
+${t.Quality} / ${t.Codec} / ${t.Container} / ${t.Source} /\
+${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${t.RemasterTitle ? `/ ${t.RemasterTitle}` : ''}`,
+		text: `Seeders: ${t.Seeders}, Snatched ${t.Snatched}, Size: ${t.Size / 1073741824} Gb`,
+		callback_id: t.Id,
+		actions: [
+			{
+				name: `downloadMovie ${movieTitle}`,
+				text: `Download ${movieTitle}`,
+				type: 'button',
+				value: t.Id,
+			},
+		],
+	}));
+	const message = {
+		text: `Available versions to download ${movieTitle}:`,
+		replace_original: true,
+		attachments,
+	};
+	sendMessageToSlackResponseURL(responseURL, message);
 }
 
 function addPtpSlackRoute(app) {
@@ -249,35 +285,16 @@ function addPtpSlackRoute(app) {
 			const query = name.split('searchMovie ')[1];
 			const retry = true;
 			const replaceOriginal = true;
-			searchAndRespond(query, actionJSONPayload.response_url, retry, replaceOriginal);
-		}
-		if (name.indexOf('selectMovie') === 0) {
+			searchAndRespond(
+				query,
+				actionJSONPayload.response_url,
+				retry,
+				replaceOriginal,
+				groupId
+			);
+		} else if (name.indexOf('selectMovie') === 0) {
 			const movieTitle = name.split('selectMovie ')[1];
-			const torrents = GroupIdMap[groupId].Torrents.slice(0).sort(sortTorrents).slice(0, 8);
-			const attachments = torrents.map((t) => ({
-				title: `\
-${t.GoldenPopcorn ? ':popcorn: ' : ''}${t.Checked ? ':white_check_mark: ' : ''}\
-${t.Quality} / ${t.Codec} / ${t.Container} / ${t.Source} /\
-${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${t.RemasterTitle ? `/ ${t.RemasterTitle}` : ''}`,
-				text: `Seeders: ${t.Seeders}, Snatched ${t.Snatched}, Size: ${
-					t.Size / 1073741824
-				} Gb`,
-				callback_id: t.Id,
-				actions: [
-					{
-						name: `downloadMovie ${movieTitle}`,
-						text: `Download ${movieTitle}`,
-						type: 'button',
-						value: t.Id,
-					},
-				],
-			}));
-			const message = {
-				text: `Available versions to download ${movieTitle}:`,
-				replace_original: true,
-				attachments,
-			};
-			sendMessageToSlackResponseURL(actionJSONPayload.response_url, message);
+			selectMovie(movieTitle, actionJSONPayload.response_url, groupId);
 		} else if (name.indexOf('downloadMovie') === 0) {
 			const torrentId = actionJSONPayload.actions[0].value;
 			const movieTitle = actionJSONPayload.actions[0].name.split('downloadMovie ')[1];
