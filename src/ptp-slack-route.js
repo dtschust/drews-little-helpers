@@ -173,10 +173,16 @@ function getLoginCookies(query, responseURL, retry) {
 		}
 	);
 }
+
+// https://stackoverflow.com/questions/10896807/javascript-encodeuricomponent-doesnt-encode-single-quotes
+function fixedEncodeURIComponent(str) {
+	return encodeURIComponent(str).replace(/[!'()*]/g, escape);
+}
+
 function search(query, cb) {
 	request(
 		{
-			url: `https://passthepopcorn.me/torrents.php?json=noredirect&order_by=relevance&searchstr=${encodeURIComponent(
+			url: `https://passthepopcorn.me/torrents.php?json=noredirect&order_by=relevance&searchstr=${fixedEncodeURIComponent(
 				query
 			)}`,
 			headers: {
