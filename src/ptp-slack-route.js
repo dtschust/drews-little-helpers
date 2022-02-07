@@ -30,6 +30,41 @@ setInterval(() => {
 	GroupIdMap = {};
 }, 60 * 1000 * 1000);
 
+function sendTopTenMoviesOfTheWeek(responseURL) {
+	// TODO: Actually go get this
+	const movies = [
+		'House of Gucci',
+		'Nightmare Alley',
+		'American Underdog',
+		'Language Lessons',
+		'Ghostbusters: Afterlife',
+		'King Richard',
+		'Last Looks',
+		'Fruitcake Fraud',
+		'Fantastic Fungi',
+		'The Tinder Swindler',
+	];
+
+	const attachments = movies.map((movie) => ({
+		title: movie,
+		callback_id: movie,
+		actions: [
+			{
+				name: `searchMovie ${movie}`,
+				text: `Select ${movie}`,
+				type: 'button',
+				value: movie,
+			},
+		],
+	}));
+
+	const message = {
+		text: `Top Ten Movies of the Week :`,
+		attachments,
+	};
+	sendMessageToSlackResponseURL(responseURL, message);
+}
+
 function sendMessageToSlackResponseURL(responseURL, JSONmessage) {
 	const postOptions = {
 		uri: responseURL,
@@ -141,7 +176,9 @@ function getLoginCookies(query, responseURL, retry) {
 function search(query, cb) {
 	request(
 		{
-			url: `https://passthepopcorn.me/torrents.php?json=noredirect&order_by=relevance&searchstr=${query}`,
+			url: `https://passthepopcorn.me/torrents.php?json=noredirect&order_by=relevance&searchstr=${encodeURIComponent(
+				query
+			)}`,
 			headers: {
 				cookie: COOKIE,
 			},
@@ -150,7 +187,7 @@ function search(query, cb) {
 	);
 }
 
-function searchAndRespond(query, responseURL, retry = true) {
+function searchAndRespond(query, responseURL, retry = true, replaceOriginal = false) {
 	search(query, (error, response, body) => {
 		let apiResponse;
 		try {
@@ -186,6 +223,7 @@ function searchAndRespond(query, responseURL, retry = true) {
 
 		const message = {
 			text: `Results for ${query} :`,
+			replace_original: replaceOriginal,
 			attachments,
 		};
 		sendMessageToSlackResponseURL(responseURL, message);
@@ -200,6 +238,9 @@ function addPtpSlackRoute(app) {
 		const query = reqBody.text;
 		if (reqBody.token !== process.env.PTP_SLACK_VERIFICATION_TOKEN) {
 			res.status(403).end('Access forbidden');
+		} else if (!query || !query.length) {
+			// TODO: add retry
+			sendTopTenMoviesOfTheWeek(responseURL);
 		} else {
 			const retry = true;
 			searchAndRespond(query, responseURL, retry);
@@ -217,6 +258,12 @@ function addPtpSlackRoute(app) {
 		}
 		const { name, value: groupId } = actionJSONPayload.actions[0];
 
+		if (name.indexOf('searchMovie') === 0) {
+			const query = name.split('selectMovie ')[1];
+			const retry = true;
+			const replaceOriginal = true;
+			searchAndRespond(query, actionJSONPayload.response_url, retry, replaceOriginal);
+		}
 		if (name.indexOf('selectMovie') === 0) {
 			const movieTitle = name.split('selectMovie ')[1];
 			const torrents = GroupIdMap[groupId].Torrents.slice(0).sort(sortTorrents).slice(0, 8);
