@@ -265,7 +265,7 @@ function addPtpSlackRoute(app) {
 		const { name, value: groupId } = actionJSONPayload.actions[0];
 
 		if (name.indexOf('searchMovie') === 0) {
-			const query = name.split('selectMovie ')[1];
+			const query = name.split('searchMovie ')[1];
 			const retry = true;
 			const replaceOriginal = true;
 			searchAndRespond(query, actionJSONPayload.response_url, retry, replaceOriginal);
