@@ -34,15 +34,15 @@ setInterval(() => {
 async function sendTopTenMoviesOfTheWeek(responseURL) {
 	const { movies } = await TopMovies.findOne(undefined);
 
-	const attachments = movies.map((movie) => ({
-		title: movie,
-		callback_id: movie,
+	const attachments = movies.map(({ title, id }) => ({
+		title,
+		callback_id: title,
 		actions: [
 			{
-				name: `searchMovie ${movie}`,
-				text: `Select ${movie}`,
+				name: `searchMovie ${title}`,
+				text: `Select ${title}`,
 				type: 'button',
-				value: movie,
+				value: id,
 			},
 		],
 	}));

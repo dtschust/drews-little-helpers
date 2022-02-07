@@ -82,23 +82,16 @@ async function main() {
 		el.style.width = `${600}px`;
 	});
 	const titles = await page.$$('[data-coverviewindex="1"] .cover-movie-list__movie__title');
-	const titlesText = await Promise.all(
+	const titlesInfo = await Promise.all(
 		titles.map((t) => {
 			return page.evaluate((el) => {
-				return `<${el.href}|${el.innerText}>`;
-			}, t);
-		})
-	);
-	const titlesRawText = await Promise.all(
-		titles.map((t) => {
-			return page.evaluate((el) => {
-				return el.innerText;
+				return { href: el.href, title: el.innerText, id: el.href.split('id=')[1] };
 			}, t);
 		})
 	);
 
 	const topMoviesModel = new TopMovies({
-		movies: titlesRawText,
+		movies: titlesInfo,
 	});
 	await TopMovies.deleteMany();
 	await topMoviesModel.save();
@@ -114,7 +107,7 @@ async function main() {
 		channels: process.env.PTP_SLACK_CHANNEL_ID,
 		file: screenshot,
 	});
-	await sendMessage(titlesText.join('\n'));
+	await sendMessage(titlesInfo.map(({ href, title }) => `<${href}|${title}>`).join('\n'));
 	console.log('Success!');
 }
 
