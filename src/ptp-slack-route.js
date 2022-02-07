@@ -34,9 +34,10 @@ setInterval(() => {
 async function sendTopTenMoviesOfTheWeek(responseURL) {
 	const { movies } = await TopMovies.findOne(undefined);
 
-	const attachments = movies.map(({ title, id }) => ({
+	const attachments = movies.map(({ title, id, posterUrl }) => ({
 		title,
 		callback_id: title,
+		image_url: posterUrl,
 		actions: [
 			{
 				name: `searchMovie ${title}`,
