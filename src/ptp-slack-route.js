@@ -135,8 +135,6 @@ function getLoginCookies(query, responseURL, retry) {
 			}
 
 			const cookies = response.headers['set-cookie'];
-			console.log(cookies);
-			console.log(cookieString);
 			const cookieString = cookies.map((cookie) => `${cookie.split(';')[0]};`).join('');
 			COOKIE = cookieString;
 
