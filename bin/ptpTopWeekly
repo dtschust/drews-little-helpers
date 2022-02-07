@@ -5,9 +5,17 @@ require('dotenv').config();
 const request = require('request');
 const puppeteer = require('puppeteer');
 const { WebClient } = require('@slack/client');
+const mongoose = require('mongoose');
+const TopMovies = require('../src/Top-Movies');
 
 const token = process.env.SLACK_API_TOKEN || '';
 const web = new WebClient(token);
+
+mongoose.Promise = global.Promise;
+mongoose.connect(process.env.MONGO_DB_URI, {
+	useNewUrlParser: true,
+	useUnifiedTopology: true,
+});
 
 function sendMessage(text) {
 	return web.chat.postMessage({
@@ -81,6 +89,20 @@ async function main() {
 			}, t);
 		})
 	);
+	const titlesRawText = await Promise.all(
+		titles.map((t) => {
+			return page.evaluate((el) => {
+				return el.innerText;
+			}, t);
+		})
+	);
+
+	const topMoviesModel = new TopMovies({
+		movies: titlesRawText,
+	});
+	await TopMovies.deleteMany();
+	await topMoviesModel.save();
+
 	const screenshot = await topMovies.screenshot();
 
 	await page.close(); // Close the website
@@ -93,7 +115,6 @@ async function main() {
 		file: screenshot,
 	});
 	await sendMessage(titlesText.join('\n'));
-
 	console.log('Success!');
 }
 

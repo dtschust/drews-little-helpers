@@ -245,7 +245,6 @@ function addPtpSlackRoute(app) {
 		if (reqBody.token !== process.env.PTP_SLACK_VERIFICATION_TOKEN) {
 			res.status(403).end('Access forbidden');
 		} else if (!query || !query.length) {
-			// TODO: add retry
 			sendTopTenMoviesOfTheWeek(responseURL);
 		} else {
 			const retry = true;
