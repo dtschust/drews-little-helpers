@@ -135,13 +135,14 @@ function getLoginCookies(query, responseURL, retry) {
 			}
 
 			const cookies = response.headers['set-cookie'];
+			console.log(cookies);
+			console.log(cookieString);
 			const cookieString = cookies.map((cookie) => `${cookie.split(';')[0]};`).join('');
 			COOKIE = cookieString;
 
 			// remove all persisted cookies now that they are bad
 			Cookie.deleteMany(undefined, (err) => {
 				console.log('Error removing cookie', err);
-				// eslint-disable-line no-unused-vars
 				const cookieToPersist = new Cookie({ cookie: cookieString });
 				// store the new cookie!
 				cookieToPersist.save((saveErr) => {
@@ -295,7 +296,7 @@ function addPtpSlackRoute(app) {
 			);
 		} else if (name.indexOf('selectMovie') === 0) {
 			const movieTitle = name.split('selectMovie ')[1];
-			selectMovie(movieTitle, actionJSONPayload.response_url, groupId);
+			selectMovie(movieTitle, groupId, actionJSONPayload.response_url);
 		} else if (name.indexOf('downloadMovie') === 0) {
 			const torrentId = actionJSONPayload.actions[0].value;
 			const movieTitle = actionJSONPayload.actions[0].name.split('downloadMovie ')[1];
