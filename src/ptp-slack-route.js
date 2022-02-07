@@ -4,6 +4,7 @@ const request = require('request');
 const mongoose = require('mongoose');
 const { Dropbox } = require('dropbox');
 const { WebClient } = require('@slack/client');
+const TopMovies = require('./Top-Movies');
 
 const token = process.env.SLACK_API_TOKEN || '';
 const web = new WebClient(token);
@@ -30,20 +31,8 @@ setInterval(() => {
 	GroupIdMap = {};
 }, 60 * 1000 * 1000);
 
-function sendTopTenMoviesOfTheWeek(responseURL) {
-	// TODO: Actually go get this
-	const movies = [
-		'House of Gucci',
-		'Nightmare Alley',
-		'American Underdog',
-		'Language Lessons',
-		'Ghostbusters: Afterlife',
-		'King Richard',
-		'Last Looks',
-		'Fruitcake Fraud',
-		'Fantastic Fungi',
-		'The Tinder Swindler',
-	];
+async function sendTopTenMoviesOfTheWeek(responseURL) {
+	const { movies } = await TopMovies.findOne(undefined);
 
 	const attachments = movies.map((movie) => ({
 		title: movie,
@@ -174,17 +163,10 @@ function getLoginCookies(query, responseURL, retry) {
 	);
 }
 
-// https://stackoverflow.com/questions/10896807/javascript-encodeuricomponent-doesnt-encode-single-quotes
-function fixedEncodeURIComponent(str) {
-	return encodeURIComponent(str).replace(/[!'()*]/g, escape);
-}
-
 function search(query, cb) {
 	request(
 		{
-			url: `https://passthepopcorn.me/torrents.php?json=noredirect&order_by=relevance&searchstr=${fixedEncodeURIComponent(
-				query
-			)}`,
+			url: `https://passthepopcorn.me/torrents.php?json=noredirect&order_by=relevance&searchstr=${query}`,
 			headers: {
 				cookie: COOKIE,
 			},
