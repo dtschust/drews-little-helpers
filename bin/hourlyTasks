@@ -57,7 +57,7 @@ ${stdout.toString().trim()}
 `);
 		}
 	}
-	log(`*${status ? '❌' : '✅'} Task \`${task}\` complete*`);
+	log(`${status || stderr.length ? '❌' : '✅'}`);
 	newLogGroup();
 });
 
@@ -75,19 +75,16 @@ web.chat
 			if (!logGroup.length) return;
 			const title = logGroup.shift();
 			const result = logGroup.pop();
-			blocks.push({ type: 'header', text: { type: 'plain_text', text: title, emoji: true } });
-			blocks.push({ type: 'section', text: { type: 'mrkdwn', text: logGroup.join('\n') } });
 			blocks.push({
-				type: 'context',
-				elements: [
-					{
-						type: 'mrkdwn',
-						text: result,
-					},
-				],
+				type: 'header',
+				text: { type: 'plain_text', text: `${result} ${title}`, emoji: true },
 			});
+			blocks.push({ type: 'section', text: { type: 'mrkdwn', text: logGroup.join('\n') } });
 			blocks.push({ type: 'divider' });
 		});
+
+		// Remove the trailing divider
+		blocks.pop();
 
 		web.chat
 			.postMessage({
