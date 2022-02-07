@@ -2,13 +2,7 @@
 
 const doTasks = require('../src/do-tasks');
 
-const tasks = [
-	'checkUpdatesForMomo',
-	'letterboxdToRSS',
-	'checkUpdatesForGaryKamiya',
-	'restoreFeedsOnHiatus',
-	'clearOldCronLogs',
-];
+const tasks = ['ptpTopWeekly'];
 
 async function main() {
 	await doTasks(tasks);
