@@ -158,7 +158,7 @@ async function getTopTenMoviesUploadedInPastWeek(responseUrl) {
 	});
 	const page = await browser.newPage();
 
-	const rawCookies = cookies.split(';');
+	const rawCookies = COOKIE.split(';');
 	rawCookies.pop();
 	const cookies = rawCookies.map((cookie) => {
 		const [name, value] = cookie.split('=');
