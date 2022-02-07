@@ -1,7 +1,6 @@
 require('dotenv').config();
 require('isomorphic-fetch');
 const request = require('request');
-const puppeteer = require('puppeteer');
 const mongoose = require('mongoose');
 const { Dropbox } = require('dropbox');
 const { WebClient } = require('@slack/client');
@@ -151,46 +150,6 @@ function search(query, cb) {
 	);
 }
 
-async function getTopTenMoviesUploadedInPastWeek(responseUrl) {
-	const browser = await puppeteer.launch({
-		headless: true,
-		args: ['--no-sandbox', '--disable-setuid-sandbox'],
-	});
-	const page = await browser.newPage();
-
-	const rawCookies = cookies.split(';');
-	rawCookies.pop();
-	const cookies = rawCookies.map((cookie) => {
-		const [name, value] = cookie.split('=');
-		return { name, value, url: 'https://passthepopcorn.me' };
-	});
-
-	console.log(cookies);
-	await Promise.all(
-		cookies.map((cookie) => {
-			return page.setCookie(cookie);
-		})
-	);
-
-	await page.goto('https://passthepopcorn.me/top10.php');
-	const titles = await page.$$('[data-coverviewindex="1"] .cover-movie-list__movie__title');
-	const titlesText = await Promise.all(
-		titles.map((t) => {
-			return page.evaluate((el) => {
-				return `<${el.href}|${el.innerText}>`;
-			}, t);
-		})
-	);
-
-	sendMessageToSlackResponseURL(responseUrl, {
-		text: titlesText.join('\n'),
-	});
-
-	await page.close(); // Close the website
-
-	await browser.close();
-}
-
 function searchAndRespond(query, responseURL, retry = true) {
 	search(query, (error, response, body) => {
 		let apiResponse;
@@ -241,9 +200,6 @@ function addPtpSlackRoute(app) {
 		const query = reqBody.text;
 		if (reqBody.token !== process.env.PTP_SLACK_VERIFICATION_TOKEN) {
 			res.status(403).end('Access forbidden');
-		} else if (!query || !query.length) {
-			// Get the top ten available and return them
-			getTopTenMoviesUploadedInPastWeek();
 		} else {
 			const retry = true;
 			searchAndRespond(query, responseURL, retry);
