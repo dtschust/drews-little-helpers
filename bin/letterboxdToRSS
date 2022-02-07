@@ -42,6 +42,11 @@ async function main() {
 
 	feedsToSubscribeTo = feedsToSubscribeTo.filter((feed) => !existingFeedUrls.includes(feed));
 
+	if (!feedsToSubscribeTo.length) {
+		console.log('No new feeds to subscribe to');
+		return;
+	}
+
 	console.log(feedsToSubscribeTo);
 
 	await Promise.all(

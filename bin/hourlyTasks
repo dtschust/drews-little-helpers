@@ -18,16 +18,20 @@ const tasks = [
 
 let someFailed = false;
 
-const logs = [];
+const logs = [[]];
 
 function log(message) {
+	const currentLogGroup = logs[logs.length - 1];
 	console.log(message);
-	logs.push(message);
+	currentLogGroup.push(message);
+}
+
+function newLogGroup() {
+	logs.push([]);
 }
 
 tasks.forEach((task) => {
-	log(`*Executing task \`${task}\`*
-`);
+	log(task);
 	const { status, stderr, stdout } = childProcess.spawnSync(path.resolve(__dirname, `./${task}`));
 
 	if (status) {
@@ -47,14 +51,14 @@ ${stderr.toString().trim()}
 `);
 		}
 		if (stdout.length) {
-			log(`Output:
-\`\`\`
+			log(`\`\`\`
 ${stdout.toString().trim()}
 \`\`\`
 `);
 		}
 	}
-	log(`*${status ? '❌' : '✅'} Task \`${task}\` complete*\n\n`);
+	log(`*${status ? '❌' : '✅'} Task \`${task}\` complete*`);
+	newLogGroup();
 });
 
 web.chat
@@ -66,12 +70,31 @@ web.chat
 		link_names: true,
 	})
 	.then(({ ts }) => {
+		const blocks = [];
+		logs.forEach((logGroup) => {
+			if (!logGroup.length) return;
+			const title = logGroup.shift();
+			const result = logGroup.pop();
+			blocks.push({ type: 'header', text: { type: 'plain_text', text: title, emoji: true } });
+			blocks.push({ type: 'section', text: { type: 'mrkdwn', text: logGroup.join('\n') } });
+			blocks.push({
+				type: 'context',
+				elements: [
+					{
+						type: 'mrkdwn',
+						text: result,
+					},
+				],
+			});
+			blocks.push({ type: 'divider' });
+		});
+
 		web.chat
 			.postMessage({
 				channel: process.env.CRON_LOGS_CHANNEL_ID,
-				text: logs.join('\n'),
+				blocks,
 				thread_ts: ts,
-				link_names: true,
+				// link_names: true,
 			})
 			.then(() => {
 				console.log('Logs sent to Slack');
