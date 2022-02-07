@@ -22,10 +22,12 @@ function newLogGroup() {
 
 async function doTasks(tasks, cadence) {
 	if (!tasks.length) return true;
-	tasks.forEach((task) => {
+	tasks.forEach((inputTask) => {
+		const [task, ...args] = inputTask.split(' ');
 		log(task);
 		const { status, stderr, stdout } = childProcess.spawnSync(
-			path.resolve(__dirname, `../bin/${task}`)
+			path.resolve(__dirname, `../bin/${task}`),
+			args
 		);
 
 		if (status) {

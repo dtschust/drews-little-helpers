@@ -24,6 +24,9 @@ function sendMessage(text) {
 	});
 }
 
+const myArgs = process.argv.slice(2);
+const isWeekly = myArgs.length && myArgs[0] === 'week';
+
 async function getLoginCookies() {
 	return new Promise((resolve) => {
 		request.post(
@@ -96,18 +99,23 @@ async function main() {
 	await TopMovies.deleteMany();
 	await topMoviesModel.save();
 
-	const screenshot = await topMovies.screenshot();
+	let screenshot;
+	if (isWeekly) {
+		screenshot = await topMovies.screenshot();
+	}
 
 	await page.close(); // Close the website
 
 	await browser.close();
 
-	await sendMessage('*Top 10 Most Active Movies Uploaded in the Past Week*');
-	await web.files.upload({
-		channels: process.env.PTP_SLACK_CHANNEL_ID,
-		file: screenshot,
-	});
-	await sendMessage(titlesInfo.map(({ href, title }) => `<${href}|${title}>`).join('\n'));
+	if (isWeekly) {
+		await sendMessage('*Top 10 Most Active Movies Uploaded in the Past Week*');
+		await web.files.upload({
+			channels: process.env.PTP_SLACK_CHANNEL_ID,
+			file: screenshot,
+		});
+		await sendMessage(titlesInfo.map(({ href, title }) => `<${href}|${title}>`).join('\n'));
+	}
 	console.log('Success!');
 }
 
