@@ -6,6 +6,7 @@ const { Dropbox } = require('dropbox');
 const { WebClient } = require('@slack/client');
 const TopMovies = require('./mongoose-models/Top-Movies');
 const PtpCookie = require('./mongoose-models/Ptp-Cookie');
+const getPtpLoginCookies = require('./utils/get-ptp-login-cookie');
 
 const token = process.env.SLACK_API_TOKEN || '';
 const web = new WebClient(token);
@@ -104,61 +105,31 @@ PtpCookie.findOne(undefined)
 		}
 	});
 
-function getLoginCookies(query, responseURL, retry) {
+async function getLoginCookies(query, responseURL, retry) {
 	let message = {
 		text: 'Oops, need to log in again, please hold!',
 	};
 	sendMessageToSlackResponseURL(responseURL, message);
 
-	request.post(
-		'https://passthepopcorn.me/ajax.php?action=login',
-		{
-			form: {
-				username: process.env.PTP_USERNAME,
-				password: process.env.PTP_PASSWORD,
-				passkey: process.env.PTP_PASSKEY,
-				// WhatsYourSecret:
-				// 	'Hacker! Do you really have nothing better do than this?',
-				keeplogged: 1,
-			},
-		},
-		(error, response) => {
-			if (response.statusCode === 403) {
-				message = {
-					text: "Looks like I got captcha-ed and can't login, please stop trying for a bit!",
-					replace_original: true,
-				};
-				sendMessageToSlackResponseURL(responseURL, message);
-				return;
-			}
+	try {
+		COOKIE = await getPtpLoginCookies();
+	} catch (e) {
+		message = {
+			text: "Looks like I got captcha-ed and can't login, please stop trying for a bit!",
+			replace_original: true,
+		};
+		sendMessageToSlackResponseURL(responseURL, message);
+		return;
+	}
 
-			const cookies = response.headers['set-cookie'];
-			const cookieString = cookies.map((cookie) => cookie.split(';')[0]).join(';');
-			COOKIE = cookieString;
-
-			// remove all persisted cookies now that they are bad
-			PtpCookie.deleteMany(undefined, (err) => {
-				console.log('Error removing cookie', err);
-				const cookieToPersist = new PtpCookie({ cookie: cookieString });
-				// store the new cookie!
-				cookieToPersist.save((saveErr) => {
-					message = {
-						text: `New login succeeded, ${
-							retry ? 'searching again' : 'please search again!'
-						}`,
-						replace_original: true,
-					};
-					if (saveErr) {
-						message.text = saveErr;
-					}
-					sendMessageToSlackResponseURL(responseURL, message);
-					if (retry) {
-						searchAndRespond(query, responseURL, false);
-					}
-				});
-			});
-		}
-	);
+	message = {
+		text: `New login succeeded, ${retry ? 'searching again' : 'please search again!'}`,
+		replace_original: true,
+	};
+	sendMessageToSlackResponseURL(responseURL, message);
+	if (retry) {
+		searchAndRespond(query, responseURL, false);
+	}
 }
 
 function search(query, cb) {

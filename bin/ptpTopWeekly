@@ -2,12 +2,12 @@
 
 require('isomorphic-fetch');
 require('dotenv').config();
-const request = require('request');
 const puppeteer = require('puppeteer');
 const { WebClient } = require('@slack/client');
 const mongoose = require('mongoose');
 const TopMovies = require('../src/mongoose-models/Top-Movies');
 const PtpCookie = require('../src/mongoose-models/Ptp-Cookie');
+const getPtpLoginCookies = require('../src/utils/get-ptp-login-cookie');
 
 const token = process.env.SLACK_API_TOKEN || '';
 const web = new WebClient(token);
@@ -30,44 +30,12 @@ const isWeekly = myArgs.length && myArgs[0] === 'week';
 
 async function getPersistedLoginCookies() {
 	const { cookie } = await PtpCookie.findOne();
-	const cookies = cookie.split(';');
-
-	// Add a ; to the end of each cookie so the processing works
-	return cookies.map((c) => `${c};`);
+	return cookie;
 }
 
-// TODO: move this into shared util
 async function getLoginCookies() {
-	return new Promise((resolve) => {
-		request.post(
-			'https://passthepopcorn.me/ajax.php?action=login',
-			{
-				form: {
-					username: process.env.PTP_USERNAME,
-					password: process.env.PTP_PASSWORD,
-					passkey: process.env.PTP_PASSKEY,
-					// WhatsYourSecret:
-					// 	'Hacker! Do you really have nothing better do than this?',
-					keeplogged: 1,
-				},
-			},
-			(error, response) => {
-				if (response.statusCode === 403) {
-					console.log('Looks I got captcha-ed, giving up!');
-					process.exit(1);
-				}
-
-				const cookies = response.headers['set-cookie'];
-				const persistedCookie = cookies.map((cookie) => cookie.split(';')[0]).join(';');
-				const cookieToPersist = new PtpCookie({ cookie: persistedCookie });
-				PtpCookie.deleteMany(undefined).then(() => {
-					cookieToPersist.save().then(() => {
-						resolve(cookies);
-					});
-				});
-			}
-		);
-	});
+	const cookie = await getPtpLoginCookies();
+	return cookie;
 }
 
 async function main(usePersistedCookies = true) {
@@ -81,10 +49,15 @@ async function main(usePersistedCookies = true) {
 		? await getPersistedLoginCookies()
 		: await getLoginCookies();
 
-	const cookies = rawCookies.map((cookie) => {
-		const [name, value] = cookie.split(';')[0].split('=');
-		return { name, value, url: 'https://passthepopcorn.me' };
-	});
+	// TODO: clean up this double map thing
+	const cookies = rawCookies
+		.split(';')
+		// Add a ; to the end of each cookie so the processing works
+		.map((c) => `${c};`)
+		.map((cookie) => {
+			const [name, value] = cookie.split(';')[0].split('=');
+			return { name, value, url: 'https://passthepopcorn.me' };
+		});
 
 	await Promise.all(
 		cookies.map((cookie) => {
