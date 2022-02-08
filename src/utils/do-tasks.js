@@ -26,7 +26,7 @@ async function doTasks(tasks, cadence) {
 		const [task, ...args] = inputTask.split(' ');
 		log(task);
 		const { status, stderr, stdout } = childProcess.spawnSync(
-			path.resolve(__dirname, `../bin/${task}`),
+			path.resolve(__dirname, `../../bin/${task}`),
 			args
 		);
 
