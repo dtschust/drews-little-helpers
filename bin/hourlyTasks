@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const doTasks = require('../src/do-tasks');
+const doTasks = require('../src/utils/do-tasks');
 
 const tasks = [
 	'checkUpdatesForMomo',
