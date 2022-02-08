@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const { Dropbox } = require('dropbox');
 const { WebClient } = require('@slack/client');
 const TopMovies = require('./mongoose-models/Top-Movies');
+const Cookie = require('./mongoose-models/Ptp-Cookie');
 
 const token = process.env.SLACK_API_TOKEN || '';
 const web = new WebClient(token);
@@ -15,10 +16,6 @@ mongoose.Promise = global.Promise;
 mongoose.connect(process.env.MONGO_DB_URI, {
 	useNewUrlParser: true,
 	useUnifiedTopology: true,
-});
-
-const Cookie = mongoose.model('Cookie', {
-	cookie: String,
 });
 
 let authKey;
