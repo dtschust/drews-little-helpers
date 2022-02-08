@@ -2,12 +2,9 @@ const Promise = require('bluebird');
 const express = require('express');
 const bodyParser = require('body-parser');
 const addFwProxyRoute = require('./src/fw-proxy-route');
-const addFemFreqPodcastRoute = require('./src/fem-freq-podcast-route');
-const addRecDiffsPodcastRoute = require('./src/recdiffs-podcast-route');
 const addPtpSlackRoute = require('./src/ptp-slack-route');
 const addIFlicksRoute = require('./src/iflicks-route');
 const addPlausWanRoute = require('./src/plaus-wan-route');
-const addUnattendedConsequencesRoute = require('./src/unattended-consequences-route');
 
 global.Promise = Promise;
 
@@ -25,12 +22,9 @@ app.use((req, res, next) => {
 });
 
 addFwProxyRoute(app);
-addFemFreqPodcastRoute(app);
-addRecDiffsPodcastRoute(app);
 addPtpSlackRoute(app);
 addIFlicksRoute(app);
 addPlausWanRoute(app);
-addUnattendedConsequencesRoute(app);
 
 app.listen(app.get('port'), () => {
 	console.log('Node app is running on port', app.get('port'));
