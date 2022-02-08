@@ -5,7 +5,7 @@ require('isomorphic-fetch');
 require('dotenv').config();
 const { WebClient } = require('@slack/client');
 const mongoose = require('mongoose');
-const FeedHiatus = require('../src/Feed-Hiatus');
+const FeedHiatus = require('../src/mongoose-models/Feed-Hiatus');
 
 const token = process.env.SLACK_API_TOKEN || '';
 const feedWranglerToken = process.env.FEED_WRANGLER_ACCESS_TOKEN;

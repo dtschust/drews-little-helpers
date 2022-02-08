@@ -4,7 +4,7 @@ const request = require('request');
 const mongoose = require('mongoose');
 const { Dropbox } = require('dropbox');
 const { WebClient } = require('@slack/client');
-const TopMovies = require('./Top-Movies');
+const TopMovies = require('./mongoose-models/Top-Movies');
 
 const token = process.env.SLACK_API_TOKEN || '';
 const web = new WebClient(token);

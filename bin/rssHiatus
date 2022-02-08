@@ -7,7 +7,7 @@ const _ = require('lodash');
 const mongoose = require('mongoose');
 const inquirer = require('inquirer');
 const { WebClient } = require('@slack/client');
-const FeedHiatus = require('../src/Feed-Hiatus');
+const FeedHiatus = require('../src/mongoose-models/Feed-Hiatus');
 
 const feedWranglerToken = process.env.FEED_WRANGLER_ACCESS_TOKEN;
 const token = process.env.SLACK_API_TOKEN || '';
