@@ -265,7 +265,6 @@ function addPtpSlackRoute(app) {
 			sendTopTenMoviesOfTheWeek(responseURL);
 		} else {
 			const retry = true;
-			console.log('DREWFIXME', query);
 			searchAndRespond(query, responseURL, retry);
 		}
 	});
