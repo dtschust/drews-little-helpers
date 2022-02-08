@@ -165,9 +165,10 @@ function getLoginCookies(query, responseURL, retry) {
 }
 
 function search(query, cb) {
+	const sanitizedQuery = query.replace(/'/g, '');
 	request(
 		{
-			url: `https://passthepopcorn.me/torrents.php?json=noredirect&order_by=relevance&searchstr=${query}`,
+			url: `https://passthepopcorn.me/torrents.php?json=noredirect&order_by=relevance&searchstr=${sanitizedQuery}`,
 			headers: {
 				cookie: COOKIE,
 			},
