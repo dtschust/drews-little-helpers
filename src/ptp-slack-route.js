@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const { Dropbox } = require('dropbox');
 const { WebClient } = require('@slack/client');
 const TopMovies = require('./mongoose-models/Top-Movies');
-const Cookie = require('./mongoose-models/Ptp-Cookie');
+const PtpCookie = require('./mongoose-models/Ptp-Cookie');
 
 const token = process.env.SLACK_API_TOKEN || '';
 const web = new WebClient(token);
@@ -96,7 +96,7 @@ function sortTorrents(a, b) {
 }
 
 let COOKIE;
-Cookie.findOne(undefined)
+PtpCookie.findOne(undefined)
 	.exec()
 	.then((newCookie) => {
 		if (newCookie) {
@@ -133,13 +133,13 @@ function getLoginCookies(query, responseURL, retry) {
 			}
 
 			const cookies = response.headers['set-cookie'];
-			const cookieString = cookies.map((cookie) => `${cookie.split(';')[0]};`).join('');
+			const cookieString = cookies.map((cookie) => cookie.split(';')[0]).join(';');
 			COOKIE = cookieString;
 
 			// remove all persisted cookies now that they are bad
-			Cookie.deleteMany(undefined, (err) => {
+			PtpCookie.deleteMany(undefined, (err) => {
 				console.log('Error removing cookie', err);
-				const cookieToPersist = new Cookie({ cookie: cookieString });
+				const cookieToPersist = new PtpCookie({ cookie: cookieString });
 				// store the new cookie!
 				cookieToPersist.save((saveErr) => {
 					message = {

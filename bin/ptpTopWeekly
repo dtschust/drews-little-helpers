@@ -7,6 +7,7 @@ const puppeteer = require('puppeteer');
 const { WebClient } = require('@slack/client');
 const mongoose = require('mongoose');
 const TopMovies = require('../src/mongoose-models/Top-Movies');
+const PtpCookie = require('../src/mongoose-models/Ptp-Cookie');
 
 const token = process.env.SLACK_API_TOKEN || '';
 const web = new WebClient(token);
@@ -27,6 +28,15 @@ function sendMessage(text) {
 const myArgs = process.argv.slice(2);
 const isWeekly = myArgs.length && myArgs[0] === 'week';
 
+async function getPersistedLoginCookies() {
+	const { cookie } = await PtpCookie.findOne();
+	const cookies = cookie.split(';');
+
+	// Add a ; to the end of each cookie so the processing works
+	return cookies.map((c) => `${c};`);
+}
+
+// TODO: move this into shared util
 async function getLoginCookies() {
 	return new Promise((resolve) => {
 		request.post(
@@ -38,7 +48,7 @@ async function getLoginCookies() {
 					passkey: process.env.PTP_PASSKEY,
 					// WhatsYourSecret:
 					// 	'Hacker! Do you really have nothing better do than this?',
-					keeplogged: 0,
+					keeplogged: 1,
 				},
 			},
 			(error, response) => {
@@ -48,20 +58,29 @@ async function getLoginCookies() {
 				}
 
 				const cookies = response.headers['set-cookie'];
-				resolve(cookies);
+				const persistedCookie = cookies.map((cookie) => cookie.split(';')[0]).join(';');
+				const cookieToPersist = new PtpCookie({ cookie: persistedCookie });
+				PtpCookie.deleteMany(undefined).then(() => {
+					cookieToPersist.save().then(() => {
+						resolve(cookies);
+					});
+				});
 			}
 		);
 	});
 }
 
-async function main() {
+async function main(usePersistedCookies = true) {
 	const browser = await puppeteer.launch({
 		headless: true,
 		args: ['--no-sandbox', '--disable-setuid-sandbox'],
 	});
 	const page = await browser.newPage();
 
-	const rawCookies = await getLoginCookies();
+	const rawCookies = usePersistedCookies
+		? await getPersistedLoginCookies()
+		: await getLoginCookies();
+
 	const cookies = rawCookies.map((cookie) => {
 		const [name, value] = cookie.split(';')[0].split('=');
 		return { name, value, url: 'https://passthepopcorn.me' };
@@ -80,6 +99,13 @@ async function main() {
 	});
 	await page.goto('https://passthepopcorn.me/top10.php');
 	const topMovies = await page.$('[data-coverviewindex="1"]');
+
+	if (!topMovies && usePersistedCookies) {
+		console.log('Persisted slack cookies were invalid. Falling back to signing in');
+		// Try again with logging in
+		return main(false);
+	}
+
 	await topMovies.evaluate((el) => {
 		// eslint-disable-next-line
 		el.style.width = `${600}px`;
@@ -134,6 +160,7 @@ async function main() {
 		await sendMessage(titlesInfo.map(({ href, title }) => `<${href}|${title}>`).join('\n'));
 	}
 	console.log('Success!');
+	return true;
 }
 
 main().then(process.exit);
