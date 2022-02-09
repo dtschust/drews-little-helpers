@@ -32,26 +32,21 @@ async function doTasks(tasks, cadence) {
 
 		if (status) {
 			someFailed = true;
-			log(`Error executing \`${task}\`! Error: ${status}
-\`\`\`
-${stderr}
-\`\`\`
-`);
-		} else {
-			if (stderr.length) {
-				someFailed = true;
-				log(`Error Output:
+			log(`Error executing \`${task}\`! Error: ${status}`);
+		}
+		if (stderr.length) {
+			someFailed = true;
+			log(`Error Output:
 \`\`\`
 ${stderr.toString().trim()}
 \`\`\`
 `);
-			}
-			if (stdout.length) {
-				log(`\`\`\`
+		}
+		if (stdout.length) {
+			log(`\`\`\`
 ${stdout.toString().trim()}
 \`\`\`
 `);
-			}
 		}
 		log(`${status || stderr.length ? '❌' : '✅'}`);
 		newLogGroup();

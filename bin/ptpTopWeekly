@@ -133,7 +133,7 @@ async function main(usePersistedCookies = true) {
 		await sendMessage(titlesInfo.map(({ href, title }) => `<${href}|${title}>`).join('\n'));
 	}
 	console.log('Success!');
-	return true;
+	return 0;
 }
 
 main().then(process.exit);
