@@ -54,7 +54,7 @@ function unsubscribeToFeed({ feed_id, title, site_url, weeks, end_time } = {}) {
 }
 
 async function getAllUnreads(offset = 0) {
-	const limit = 10;
+	const limit = 100;
 	return fetch(
 		`https://feedwrangler.net/api/v2/feed_items/list?read=false&offset=${offset}&limit=${limit}&access_token=${feedWranglerToken}`
 	)
