@@ -53,7 +53,36 @@ function unsubscribeToFeed({ feed_id, title, site_url, weeks, end_time } = {}) {
 		});
 }
 
+async function getAllUnreads(offset = 0) {
+	const limit = 10;
+	return fetch(
+		`https://feedwrangler.net/api/v2/feed_items/list?read=false&offset=${offset}&limit=${limit}&access_token=${feedWranglerToken}`
+	)
+		.then((response) => response.json())
+		.then(async ({ feed_items: feedItems }) => {
+			if (feedItems.length === limit) {
+				const newOffset = offset + limit;
+				const moreFeedItems = await getAllUnreads(newOffset);
+				return feedItems.concat(moreFeedItems);
+			}
+			return feedItems;
+		});
+}
+
+async function getAllUnreadsByFeed() {
+	const allUnreads = await getAllUnreads();
+	/* eslint-disable no-param-reassign */
+	return allUnreads.reduce((map, feedItem) => {
+		map[feedItem.feed_id] = map[feedItem.feed_id] || [];
+		map[feedItem.feed_id].push(feedItem);
+		return map;
+		/* eslint-enable no-param-reassign */
+	}, {});
+}
+
 async function main() {
+	console.log('Fetching feeds and unread counts...');
+	const allUnreadsByFeed = await getAllUnreadsByFeed();
 	const { feeds } = await fetch(
 		`https://feedwrangler.net/api/v2/subscriptions/list?access_token=${feedWranglerToken}`
 	).then((response) => response.json());
@@ -67,11 +96,18 @@ async function main() {
 				loop: false,
 				pageSize: 30,
 				choices: _.sortBy(
-					feeds.map(({ title, feed_id, site_url, feed_url }) => ({
-						name: `${title} (${site_url})`,
-						value: { title, feed_id, feed_url, site_url },
-					})),
-					'name'
+					feeds.map(({ title, feed_id, site_url, feed_url }) => {
+						const unreads = allUnreadsByFeed[feed_id] || [];
+						const unreadsCount = unreads.length;
+						return {
+							name: `${
+								unreadsCount ? `(${unreadsCount})` : ''
+							} ${title} (${site_url})`,
+							value: { title, feed_id, feed_url, site_url },
+							title,
+						};
+					}),
+					'title'
 				),
 			},
 			{
@@ -81,11 +117,56 @@ async function main() {
 				default: 1,
 			},
 		])
-		.then(({ feedsToHiatus, weeks }) => {
-			// TODO: Ensure that none of these feeds have unreads
+		.then(async ({ feedsToHiatus, weeks }) => {
 			if (!feedsToHiatus.length) {
 				return Promise.resolve();
 			}
+
+			// TODO: Ensure that none of these feeds have unreads
+			const feedsToHiatusWithUnreads = feedsToHiatus.filter((feed) => {
+				const unreads = allUnreadsByFeed[feed.feed_id] || [];
+				const unreadsCount = unreads.length;
+				return unreadsCount > 0;
+			});
+
+			if (feedsToHiatusWithUnreads.length) {
+				// TODO: Make these options a TS enum
+				const { dealWithUnreads } = await inquirer.prompt([
+					{
+						type: 'list',
+						name: 'dealWithUnreads',
+						message:
+							'You have selected some feeds to hiatus that have unreads currently. What would you like to do?',
+						choices: [
+							{
+								name: 'Hiatus them anyway, knowing that I may lose these unreads',
+								value: 'yes',
+							},
+							{
+								name: 'Do not hiatus these, just hiatus the other ones',
+								value: 'no',
+							},
+							{
+								name: 'Bookmark all the unreads to pinboard (make sure pinboard is not in the list, THEN hiatus the feeds',
+								value: 'pinboard',
+							},
+						],
+					},
+				]);
+				if (dealWithUnreads === 'no') {
+					// eslint-disable-next-line no-param-reassign
+					feedsToHiatus = feedsToHiatus.filter((feed) => {
+						const unreads = allUnreadsByFeed[feed.feed_id] || [];
+						const unreadsCount = unreads.length;
+						return unreadsCount === 0;
+					});
+				} else if (dealWithUnreads === 'pinboard') {
+					// TODO: implement
+					console.log('Pinboard path not implemented, sorry!');
+					process.exit(1);
+				}
+			}
+
 			console.log(feedsToHiatus);
 			const end_time = Date.now() + weeks * 604800000;
 			// TODO: Hit an API endpoint that executes all the code below. That way I can
