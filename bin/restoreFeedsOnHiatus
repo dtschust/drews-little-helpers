@@ -73,7 +73,11 @@ async function warnAboutPendingRestores() {
 								text: `Snooze ${weeksToSnooze} weeks`,
 							},
 							value: `Snooze ${weeksToSnooze} weeks`,
-							url: `${process.env.SERVER_URL}/snooze-hiatus?feed_id=${feed_id}&end_time=${newEndTime}`,
+							url: `${
+								process.env.SERVER_URL
+							}/snooze-hiatus?feed_id=${feed_id}&end_time=${newEndTime}&title=${encodeURIComponent(
+								title
+							)}`,
 						};
 					}),
 				},
