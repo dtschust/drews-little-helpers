@@ -38,9 +38,55 @@ function subscribeToFeed({ feed_url, title, site_url } = {}) {
 		});
 }
 
+async function warnAboutPendingRestores() {
+	const feedsToRestoreSoon = await FeedHiatus.find({
+		end_time: { $lte: now + 86400000, $gte: now },
+	});
+	if (!feedsToRestoreSoon.length) {
+		return true;
+	}
+
+	let blocks = [
+		{
+			type: 'section',
+			text: {
+				type: 'mrkdwn',
+				text: 'The following feeds are going to be restored from hiatus in the next 24 hours:',
+			},
+		},
+	];
+	blocks = blocks.concat(
+		feedsToRestoreSoon.map(({ site_url, title, feed_id, end_time }) => {
+			return {
+				type: 'section',
+				text: {
+					type: 'mrkdwn',
+					text: `<${site_url}|${title}>`,
+				},
+				accessory: {
+					type: 'overflow',
+					options: [1, 2, 4, 8].map((weeksToSnooze) => {
+						const newEndTime = end_time + weeksToSnooze * 604800000;
+						return {
+							text: {
+								type: 'plain_text',
+								text: `Snooze ${weeksToSnooze} weeks`,
+							},
+							value: `Snooze ${weeksToSnooze} weeks`,
+							url: `${process.env.SERVER_URL}/snooze-hiatus?feed_id=${feed_id}&end_time=${newEndTime}`,
+						};
+					}),
+				},
+			};
+		})
+	);
+	return sendBlockMessage(blocks);
+}
+
 async function main() {
 	// This will find and restore all hiatus feeds
 	// const feedsToRestore = await FeedHiatus.find();
+	await warnAboutPendingRestores();
 
 	const feedsToRestore = await FeedHiatus.find({ end_time: { $lte: now } });
 
@@ -58,6 +104,13 @@ async function main() {
 }
 
 main().then(process.exit);
+
+function sendBlockMessage(blocks) {
+	return web.chat.postMessage({
+		channel: process.env.PTP_SLACK_CHANNEL_ID,
+		blocks,
+	});
+}
 
 function sendMessage(text) {
 	return web.chat.postMessage({
