@@ -3,10 +3,9 @@
 require('isomorphic-fetch');
 require('dotenv').config();
 
-const { WebClient } = require('@slack/client');
+const { getDrewsHelpfulRobot } = require('../src/utils/slack');
 
-const token = process.env.SLACK_API_TOKEN || '';
-const web = new WebClient(token);
+const { web } = getDrewsHelpfulRobot();
 
 async function main() {
 	const day = 86400000;
@@ -16,7 +15,7 @@ async function main() {
 	// delete 100 old messages every hour I shouldn't have a problem
 
 	// Use the search API so that I also get threaded messages, conversations.history doesn't do that
-	const response = await web.apiCall('search.messages', {
+	const response = await web.search.messages({
 		query: `in:<#${process.env.CRON_LOGS_CHANNEL_ID}>`,
 		count: 100,
 	});

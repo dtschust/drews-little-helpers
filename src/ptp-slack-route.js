@@ -3,13 +3,12 @@ require('isomorphic-fetch');
 const request = require('request');
 const mongoose = require('mongoose');
 const { Dropbox } = require('dropbox');
-const { WebClient } = require('@slack/client');
 const TopMovies = require('./mongoose-models/Top-Movies');
 const PtpCookie = require('./mongoose-models/Ptp-Cookie');
 const getPtpLoginCookies = require('./utils/get-ptp-login-cookie');
+const { getDrewsHelpfulRobot } = require('./utils/slack');
 
-const token = process.env.SLACK_API_TOKEN || '';
-const web = new WebClient(token);
+const { sendMessageToFollowShows } = getDrewsHelpfulRobot();
 
 const dbx = new Dropbox({ accessToken: process.env.DROPBOX_TOKEN });
 
@@ -301,7 +300,7 @@ function addPtpSlackRoute(app) {
 										actionJSONPayload.response_url,
 										successMessage
 									);
-									sendMessage(`Started download of *${movieTitle}*`);
+									sendMessageToFollowShows(`Started download of *${movieTitle}*`);
 									clearTimeout(thirtySecondCheck);
 								} else {
 									const successMessage = {
@@ -347,17 +346,3 @@ function addPtpSlackRoute(app) {
 }
 
 module.exports = addPtpSlackRoute;
-
-function sendMessage(text) {
-	return web.chat
-		.postMessage({
-			channel: process.env.PTP_SLACK_CHANNEL_ID,
-			text,
-		})
-		.then(() => {
-			console.log('Message sent: ', text);
-		})
-		.catch((err) => {
-			console.log('Error:', err);
-		});
-}

@@ -3,18 +3,11 @@
 require('isomorphic-fetch');
 require('dotenv').config();
 const puppeteer = require('puppeteer');
-const { WebClient } = require('@slack/client');
 
 const feedWranglerToken = process.env.FEED_WRANGLER_ACCESS_TOKEN;
-const token = process.env.SLACK_API_TOKEN || '';
-const web = new WebClient(token);
+const { getDrewsHelpfulRobot } = require('../src/utils/slack');
 
-function sendMessage(text) {
-	return web.chat.postMessage({
-		channel: process.env.PTP_SLACK_CHANNEL_ID,
-		text,
-	});
-}
+const { sendMessageToFollowShows } = getDrewsHelpfulRobot();
 
 async function main() {
 	const browser = await puppeteer.launch({
@@ -62,12 +55,12 @@ async function main() {
 						console.error(
 							`Error subscribing to ${feed}, error: ${error}, result: ${result}`
 						);
-						return sendMessage(
+						return sendMessageToFollowShows(
 							`Error subscribing to ${feed}, error: ${error}, result: ${result}`
 						);
 					}
 					console.log(`Successfully subscribed to ${feed}`);
-					return sendMessage(`Successfully subscribed to ${feed}`);
+					return sendMessageToFollowShows(`Successfully subscribed to ${feed}`);
 				})
 		)
 	);

@@ -6,10 +6,10 @@ const _ = require('lodash');
 const { parseString } = require('xml2js');
 const mongoose = require('mongoose');
 
-const { WebClient } = require('@slack/client');
+const { getOtherRobot } = require('../src/utils/slack');
 
-const token = process.env.MOMO_SLACK_API_TOKEN || '';
-const web = new WebClient(token);
+const { bindSendMessageToChannel } = getOtherRobot(process.env.MOMO_SLACK_API_TOKEN);
+const sendMessage = bindSendMessageToChannel(process.env.MOMO_SLACK_CHANNEL_ID);
 
 // TODO: Store all of the versions as individual records, so that
 // I don't get bit by the app store going back and forth between old and new versions
@@ -238,19 +238,5 @@ function checkFunbridge() {
 		.catch((err) => {
 			console.error(err);
 			return '';
-		});
-}
-
-function sendMessage(text) {
-	return web.chat
-		.postMessage({
-			channel: process.env.MOMO_SLACK_CHANNEL_ID,
-			text,
-		})
-		.then(() => {
-			console.log('Message sent: ', text);
-		})
-		.catch((err) => {
-			console.log('Error:', err);
 		});
 }

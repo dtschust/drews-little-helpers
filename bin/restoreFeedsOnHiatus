@@ -3,13 +3,13 @@
 
 require('isomorphic-fetch');
 require('dotenv').config();
-const { WebClient } = require('@slack/client');
 const mongoose = require('mongoose');
 const FeedHiatus = require('../src/mongoose-models/Feed-Hiatus');
 
-const token = process.env.SLACK_API_TOKEN || '';
 const feedWranglerToken = process.env.FEED_WRANGLER_ACCESS_TOKEN;
-const web = new WebClient(token);
+const { getDrewsHelpfulRobot } = require('../src/utils/slack');
+
+const { sendMessageToFollowShows, sendBlockMessageToFollowShows } = getDrewsHelpfulRobot();
 
 mongoose.Promise = global.Promise;
 mongoose.connect(process.env.MONGO_DB_URI, {
@@ -29,12 +29,14 @@ function subscribeToFeed({ feed_url, title, site_url } = {}) {
 		.then(async ({ error, result }) => {
 			if (error || result !== 'success') {
 				console.error(`Error subscribing to ${title}, error: ${error}, result: ${result}`);
-				return sendMessage(
+				return sendMessageToFollowShows(
 					`Error subscribing to ${title}, error: ${error}, result: ${result}`
 				);
 			}
 			console.log(`Successfully resubscribed to ${title} (${site_url})`);
-			return sendMessage(`Back from hiatus! Resubscribed to ${title} (${site_url})`);
+			return sendMessageToFollowShows(
+				`Back from hiatus! Resubscribed to ${title} (${site_url})`
+			);
 		});
 }
 
@@ -85,7 +87,7 @@ async function warnAboutPendingRestores() {
 			};
 		})
 	);
-	return sendBlockMessage(blocks);
+	return sendBlockMessageToFollowShows(blocks);
 }
 
 async function main() {
@@ -109,17 +111,3 @@ async function main() {
 }
 
 main().then(process.exit);
-
-function sendBlockMessage(blocks) {
-	return web.chat.postMessage({
-		channel: process.env.PTP_SLACK_CHANNEL_ID,
-		blocks,
-	});
-}
-
-function sendMessage(text) {
-	return web.chat.postMessage({
-		channel: process.env.PTP_SLACK_CHANNEL_ID,
-		text,
-	});
-}

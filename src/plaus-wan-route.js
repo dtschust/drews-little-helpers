@@ -1,11 +1,11 @@
 require('dotenv').config();
 require('isomorphic-fetch');
 
-const { WebClient } = require('@slack/client');
 const { approvals, flair, nits, comments, getRandomFrom } = require('./plaus-wan/responses');
 
-const token = process.env.PLAUS_SLACK_BOT_USER_OAUTH_ACCESS_TOKEN || '';
-const web = new WebClient(token);
+const { getOtherRobot } = require('./utils/slack');
+
+const { web } = getOtherRobot(process.env.PLAUS_SLACK_BOT_USER_OAUTH_ACCESS_TOKEN);
 
 let anujDelay = 1000;
 let anujCount = 0;

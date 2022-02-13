@@ -1,12 +1,12 @@
 require('dotenv').config();
 require('isomorphic-fetch');
 require('dotenv').config();
-const { WebClient } = require('@slack/client');
 const mongoose = require('mongoose');
 const FeedHiatus = require('./mongoose-models/Feed-Hiatus');
 
-const token = process.env.SLACK_API_TOKEN || '';
-const web = new WebClient(token);
+const { getDrewsHelpfulRobot } = require('./utils/slack');
+
+const { sendMessageToFollowShows } = getDrewsHelpfulRobot();
 
 mongoose.Promise = global.Promise;
 mongoose.connect(process.env.MONGO_DB_URI, {
@@ -21,7 +21,7 @@ async function snoozeHiatus(feedId, endTime, title) {
 		},
 		{ end_time: endTime }
 	);
-	return sendMessage(
+	return sendMessageToFollowShows(
 		`Extended Hiatus! Snoozed ${title} for a bit longer. Will be back on ${new Date(
 			endTime
 		).toLocaleDateString('en-US')}`
@@ -44,12 +44,4 @@ function addSnoozeHiatusRoute(app) {
 		});
 	});
 }
-
-function sendMessage(text) {
-	return web.chat.postMessage({
-		channel: process.env.PTP_SLACK_CHANNEL_ID,
-		text,
-	});
-}
-
 module.exports = addSnoozeHiatusRoute;

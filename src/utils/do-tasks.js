@@ -1,10 +1,10 @@
 require('dotenv').config();
 const childProcess = require('child_process');
 const path = require('path');
-const { WebClient } = require('@slack/client');
 
-const token = process.env.SLACK_API_TOKEN || '';
-const web = new WebClient(token);
+const { getDrewsHelpfulRobot } = require('./slack');
+
+const { web } = getDrewsHelpfulRobot();
 
 let someFailed = false;
 

@@ -6,14 +6,14 @@ const fs = require('fs');
 
 const _ = require('lodash');
 
-const { WebClient } = require('@slack/client');
+const { getOtherRobot } = require('./utils/slack');
+
+const { web } = getOtherRobot(process.env.SLACK_EMOJI_TOKEN);
 
 let spotifyToken = process.env.SPOTIFY_TOKEN || '';
 const spotifyClientId = process.env.SPOTIFY_CLIENT_ID;
 const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 const spotifyRefreshToken = process.env.SPOTIFY_REFRESH_TOKEN;
-const token = process.env.SLACK_EMOJI_TOKEN || '';
-const web = new WebClient(token);
 
 let lastPlayingSongId = null;
 
