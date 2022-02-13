@@ -8,7 +8,6 @@ const { getDrewsHelpfulRobot } = require('./utils/slack');
 
 const { sendMessageToFollowShows } = getDrewsHelpfulRobot();
 
-mongoose.Promise = global.Promise;
 mongoose.connect(process.env.MONGO_DB_URI, {
 	useNewUrlParser: true,
 	useUnifiedTopology: true,

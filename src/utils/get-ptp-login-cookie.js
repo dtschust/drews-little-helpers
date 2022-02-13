@@ -4,7 +4,6 @@ const FormData = require('form-data');
 const mongoose = require('mongoose');
 const PtpCookie = require('../mongoose-models/Ptp-Cookie');
 
-mongoose.Promise = global.Promise;
 mongoose.connect(process.env.MONGO_DB_URI, {
 	useNewUrlParser: true,
 	useUnifiedTopology: true,

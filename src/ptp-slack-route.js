@@ -11,7 +11,6 @@ const { sendMessageToFollowShows } = getDrewsHelpfulRobot();
 
 const dbx = new Dropbox({ accessToken: process.env.DROPBOX_TOKEN });
 
-mongoose.Promise = global.Promise;
 mongoose.connect(process.env.MONGO_DB_URI, {
 	useNewUrlParser: true,
 	useUnifiedTopology: true,

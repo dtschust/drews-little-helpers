@@ -14,7 +14,6 @@ const FeedHiatus = require('../src/mongoose-models/Feed-Hiatus');
 
 const feedWranglerToken = process.env.FEED_WRANGLER_ACCESS_TOKEN;
 
-mongoose.Promise = global.Promise;
 mongoose.connect(process.env.MONGO_DB_URI, {
 	useNewUrlParser: true,
 	useUnifiedTopology: true,
