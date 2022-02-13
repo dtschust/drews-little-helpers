@@ -109,6 +109,21 @@ async function main(usePersistedCookies = true) {
 		titlesInfo[i].posterUrl = url;
 	});
 
+	const movieYearsElements = await page.$$(
+		'[data-coverviewindex="1"] .cover-movie-list__movie__year'
+	);
+	const movieYears = await Promise.all(
+		movieYearsElements.map((t) => {
+			return page.evaluate((el) => {
+				// eslint-disable-next-line no-useless-escape
+				return el.innerText.replace(/[\[\]]/g, '');
+			}, t);
+		})
+	);
+	movieYears.forEach((year, i) => {
+		titlesInfo[i].year = year;
+	});
+
 	const topMoviesModel = new TopMovies({
 		movies: titlesInfo,
 	});
@@ -130,7 +145,9 @@ async function main(usePersistedCookies = true) {
 			channels: process.env.PTP_SLACK_CHANNEL_ID,
 			file: screenshot,
 		});
-		await sendMessage(titlesInfo.map(({ href, title }) => `<${href}|${title}>`).join('\n'));
+		await sendMessage(
+			titlesInfo.map(({ href, title, year }) => `<${href}|${title} (${year})>`).join('\n')
+		);
 	}
 	console.log('Success!');
 	return 0;
