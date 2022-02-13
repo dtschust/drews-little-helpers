@@ -21,18 +21,23 @@ async function snoozeHiatus(feedId, endTime, title) {
 		},
 		{ end_time: endTime }
 	);
-	// TODO: Send slack message as well
+	return sendMessage(
+		`Extended Hiatus! Snoozed ${title} for a bit longer. Will be back on ${new Date(
+			endTime
+		).toLocaleDateString('en-US')}`
+	);
 }
 function addSnoozeHiatusRoute(app) {
 	// TODO Make this URL a const
-	app.post('/snooze-hiatus', (req, res) => {
+	app.get('/snooze-hiatus', (req, res) => {
 		// eslint-disable-next-line camelcase
-		const { feed_id, end_time, title } = req.params;
-		snoozeHiatus(feed_id, end_time, decodeURIComponent(title)).then(() => {
+		const { feed_id, end_time, title } = req.query;
+		const endTime = parseInt(end_time, 10);
+		snoozeHiatus(feed_id, endTime, decodeURIComponent(title)).then(() => {
 			res.status(200)
-				.text(
+				.send(
 					`Successfully snoozed ${title} feed until ${new Date(
-						end_time
+						endTime
 					).toLocaleDateString('en-US')}`
 				)
 				.end();
