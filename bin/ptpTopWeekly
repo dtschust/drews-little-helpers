@@ -22,8 +22,12 @@ const myArgs = process.argv.slice(2);
 const isWeekly = myArgs.length && myArgs[0] === 'week';
 
 async function getPersistedLoginCookies() {
-	const { cookie } = await PtpCookie.findOne();
-	return cookie;
+	try {
+		const { cookie } = await PtpCookie.findOne();
+		return cookie;
+	} catch (e) {
+		return null;
+	}
 }
 
 async function getLoginCookies() {
@@ -41,6 +45,12 @@ async function main(usePersistedCookies = true) {
 	const rawCookies = usePersistedCookies
 		? await getPersistedLoginCookies()
 		: await getLoginCookies();
+
+	if (!rawCookies && usePersistedCookies) {
+		console.log('Persisted slack cookies not found. Falling back to signing in');
+		// Try again with logging in
+		return main(false);
+	}
 
 	// TODO: clean up this double map thing
 	const cookies = rawCookies
