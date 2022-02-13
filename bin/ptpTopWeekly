@@ -10,7 +10,7 @@ require('../src/utils/mongoose-connect');
 
 const { getDrewsHelpfulRobot } = require('../src/utils/slack');
 
-const { sendMessageToFollowShows, web } = getDrewsHelpfulRobot();
+const { sendMessageToFollowShowsAsMovies, webMovies } = getDrewsHelpfulRobot();
 
 const myArgs = process.argv.slice(2);
 const isWeekly = myArgs.length && myArgs[0] === 'week';
@@ -137,12 +137,14 @@ async function main(usePersistedCookies = true) {
 	await browser.close();
 
 	if (isWeekly) {
-		await sendMessageToFollowShows('*Top 10 Most Active Movies Uploaded in the Past Week*');
-		await web.files.upload({
+		await sendMessageToFollowShowsAsMovies(
+			'*Top 10 Most Active Movies Uploaded in the Past Week*'
+		);
+		await webMovies.files.upload({
 			channels: process.env.PTP_SLACK_CHANNEL_ID,
 			file: screenshot,
 		});
-		await sendMessageToFollowShows(
+		await sendMessageToFollowShowsAsMovies(
 			titlesInfo.map(({ href, title, year }) => `<${href}|${title} (${year})>`).join('\n')
 		);
 	}

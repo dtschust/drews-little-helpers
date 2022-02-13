@@ -4,7 +4,7 @@ const path = require('path');
 
 const { getDrewsHelpfulRobot } = require('./slack');
 
-const { web } = getDrewsHelpfulRobot();
+const { sendMessageToCronLogs, sendBlockMessageToCronLogs } = getDrewsHelpfulRobot();
 
 let someFailed = false;
 
@@ -51,15 +51,11 @@ ${stdout.toString().trim()}
 		log(`${status || stderr.length ? '❌' : '✅'}`);
 		newLogGroup();
 	});
-
-	return web.chat
-		.postMessage({
-			channel: process.env.CRON_LOGS_CHANNEL_ID,
-			text: someFailed
-				? `❌: At least one ${cadence} Task failed! @drew 🧵`
-				: `✅ ${cadence} Tasks completed successfully!`,
-			link_names: true,
-		})
+	return sendMessageToCronLogs(
+		someFailed
+			? `❌: At least one ${cadence} Task failed! @drew 🧵`
+			: `✅ ${cadence} Tasks completed successfully!`
+	)
 		.then(({ ts }) => {
 			const blocks = [];
 			logs.forEach((logGroup) => {
@@ -83,13 +79,7 @@ ${stdout.toString().trim()}
 			// Remove the trailing divider
 			blocks.pop();
 
-			return web.chat
-				.postMessage({
-					channel: process.env.CRON_LOGS_CHANNEL_ID,
-					blocks,
-					thread_ts: ts,
-					// link_names: true,
-				})
+			return sendBlockMessageToCronLogs(blocks, { thread_ts: ts })
 				.then(() => {
 					console.log('Logs sent to Slack');
 					process.exit(0);
