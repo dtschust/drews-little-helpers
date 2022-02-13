@@ -26,6 +26,7 @@ function getDrewsHelpfulRobot() {
 		return webRobot.chat.postMessage({
 			channel: process.env.PTP_SLACK_CHANNEL_ID,
 			blocks,
+			text: 'TODO',
 			link_names: true,
 			fallback: 'TODO',
 			...args,
@@ -46,6 +47,7 @@ function getDrewsHelpfulRobot() {
 		return webRobot.chat.postMessage({
 			channel: process.env.CRON_LOGS_CHANNEL_ID,
 			blocks,
+			text: 'TODO',
 			link_names: true,
 			fallback: 'TODO',
 			...args,
@@ -66,6 +68,7 @@ function getDrewsHelpfulRobot() {
 		return webMovies.chat.postMessage({
 			channel: process.env.PTP_SLACK_CHANNEL_ID,
 			blocks,
+			text: 'TODO',
 			link_names: true,
 			fallback: 'TODO',
 			...args,
