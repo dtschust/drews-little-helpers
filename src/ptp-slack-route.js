@@ -1,6 +1,5 @@
 require('dotenv').config();
 require('isomorphic-fetch');
-const request = require('request');
 const mongoose = require('mongoose');
 const { Dropbox } = require('dropbox');
 const TopMovies = require('./mongoose-models/Top-Movies');
@@ -53,18 +52,12 @@ async function sendTopTenMoviesOfTheWeek(responseURL) {
 }
 
 function sendMessageToSlackResponseURL(responseURL, JSONmessage) {
-	const postOptions = {
-		uri: responseURL,
+	return fetch(responseURL, {
 		method: 'POST',
 		headers: {
-			'Content-type': 'application/json',
+			'Content-Type': 'application/json',
 		},
-		json: JSONmessage,
-	};
-	request(postOptions, (error /* response, body */) => {
-		if (error) {
-			// TODO: handle errors as you see fit
-		}
+		body: JSON.stringify(JSONmessage),
 	});
 }
 
@@ -131,72 +124,69 @@ async function getLoginCookies(query, responseURL, retry) {
 	}
 }
 
-function search(query, cb) {
+function search(query) {
 	const sanitizedQuery = query.replace(/’/g, "'");
-	request(
+	return fetch(
+		`https://passthepopcorn.me/torrents.php?json=noredirect&order_by=relevance&searchstr=${sanitizedQuery}`,
 		{
-			url: `https://passthepopcorn.me/torrents.php?json=noredirect&order_by=relevance&searchstr=${sanitizedQuery}`,
 			headers: {
 				cookie: COOKIE,
 			},
-		},
-		cb
-	);
+		}
+	).then((resp) => resp.json());
 }
 
-function searchAndRespond(
+async function searchAndRespond(
 	query,
 	responseURL,
 	retry = true,
 	replaceOriginal = false,
 	groupId = undefined
 ) {
-	search(query, (error, response, body) => {
-		let apiResponse;
-		try {
-			apiResponse = JSON.parse(body);
-		} catch (e) {
-			console.error('exception parsing JSON body: ', e);
-			console.error('Body is ', body);
-			getLoginCookies(query, responseURL, retry);
-			return;
-		}
+	let apiResponse;
+	try {
+		apiResponse = await search(query);
+	} catch (e) {
+		console.error('exception parsing JSON body: ', e);
+		getLoginCookies(query, responseURL, retry);
+		return;
+	}
 
-		authKey = apiResponse.AuthKey;
-		passKey = apiResponse.PassKey;
+	authKey = apiResponse.AuthKey;
+	passKey = apiResponse.PassKey;
 
-		const movies = apiResponse.Movies.slice(0, 5);
-		movies.forEach((movie) => {
-			GroupIdMap[movie.GroupId] = movie;
-		});
-
-		if (groupId) {
-			// We already know the id of the movie we want, so we can skip the results
-			selectMovie(query, groupId, responseURL);
-		} else {
-			const attachments = movies.map((movie) => ({
-				title: `${movie.Title} (${movie.Year})`,
-				image_url: movie.Cover,
-				callback_id: movie.GroupId,
-				actions: [
-					{
-						name: `selectMovie ${movie.Title}`,
-						text: `Select ${movie.Title}`,
-						type: 'button',
-						value: movie.GroupId,
-					},
-				],
-			}));
-
-			const message = {
-				text: `Results for ${query} :`,
-				replace_original: replaceOriginal,
-				attachments,
-			};
-			sendMessageToSlackResponseURL(responseURL, message);
-		}
+	const movies = apiResponse.Movies.slice(0, 5);
+	movies.forEach((movie) => {
+		GroupIdMap[movie.GroupId] = movie;
 	});
+
+	if (groupId) {
+		// We already know the id of the movie we want, so we can skip the results
+		selectMovie(query, groupId, responseURL);
+	} else {
+		const attachments = movies.map((movie) => ({
+			title: `${movie.Title} (${movie.Year})`,
+			image_url: movie.Cover,
+			callback_id: movie.GroupId,
+			actions: [
+				{
+					name: `selectMovie ${movie.Title}`,
+					text: `Select ${movie.Title}`,
+					type: 'button',
+					value: movie.GroupId,
+				},
+			],
+		}));
+
+		const message = {
+			text: `Results for ${query} :`,
+			replace_original: replaceOriginal,
+			attachments,
+		};
+		sendMessageToSlackResponseURL(responseURL, message);
+	}
 }
+
 function selectMovie(movieTitle, groupId, responseURL) {
 	const torrents = GroupIdMap[groupId].Torrents.slice(0).sort(sortTorrents).slice(0, 12);
 	const attachments = torrents.map((t) => ({

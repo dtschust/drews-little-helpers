@@ -1,21 +1,13 @@
 require('dotenv').config();
 require('isomorphic-fetch');
-const request = require('request');
 
 function sendMessageToSlackResponseURL(responseURL, JSONmessage) {
-	const postOptions = {
-		uri: responseURL,
+	return fetch(responseURL, {
 		method: 'POST',
 		headers: {
-			'Content-type': 'application/json',
+			'Content-Type': 'application/json',
 		},
-		json: JSONmessage,
-	};
-	request(postOptions, (error /* response, body */) => {
-		if (error) {
-			console.log('error: ', error);
-			// TODO: handle errors as you see fit
-		}
+		body: JSON.stringify(JSONmessage),
 	});
 }
 
