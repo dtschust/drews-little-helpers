@@ -4,7 +4,9 @@ require('dotenv').config();
 require('isomorphic-fetch');
 const _ = require('lodash');
 const { parseString } = require('xml2js');
-const mongoose = require('mongoose');
+const { getMongoose } = require('../src/utils/mongoose-connect');
+
+const mongoose = getMongoose();
 
 const { getOtherRobot } = require('../src/utils/slack');
 
@@ -13,11 +15,6 @@ const sendMessage = bindSendMessageToChannel(process.env.MOMO_SLACK_CHANNEL_ID);
 
 // TODO: Store all of the versions as individual records, so that
 // I don't get bit by the app store going back and forth between old and new versions
-
-mongoose.connect(process.env.MONGO_DB_URI, {
-	useNewUrlParser: true,
-	useUnifiedTopology: true,
-});
 
 const VersionData = mongoose.model('VersionData', {
 	screensConnect: String,

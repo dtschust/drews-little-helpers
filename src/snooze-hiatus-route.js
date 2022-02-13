@@ -1,17 +1,13 @@
 require('dotenv').config();
 require('isomorphic-fetch');
 require('dotenv').config();
-const mongoose = require('mongoose');
+require('./utils/mongoose-connect');
+
 const FeedHiatus = require('./mongoose-models/Feed-Hiatus');
 
 const { getDrewsHelpfulRobot } = require('./utils/slack');
 
 const { sendMessageToFollowShows } = getDrewsHelpfulRobot();
-
-mongoose.connect(process.env.MONGO_DB_URI, {
-	useNewUrlParser: true,
-	useUnifiedTopology: true,
-});
 
 async function snoozeHiatus(feedId, endTime, title) {
 	await FeedHiatus.findOneAndUpdate(

@@ -1,7 +1,8 @@
 require('dotenv').config();
 require('isomorphic-fetch');
-const mongoose = require('mongoose');
 const { Dropbox } = require('dropbox');
+require('./utils/mongoose-connect');
+
 const TopMovies = require('./mongoose-models/Top-Movies');
 const PtpCookie = require('./mongoose-models/Ptp-Cookie');
 const getPtpLoginCookies = require('./utils/get-ptp-login-cookie');
@@ -10,11 +11,6 @@ const { getDrewsHelpfulRobot } = require('./utils/slack');
 const { sendMessageToFollowShows } = getDrewsHelpfulRobot();
 
 const dbx = new Dropbox({ accessToken: process.env.DROPBOX_TOKEN });
-
-mongoose.connect(process.env.MONGO_DB_URI, {
-	useNewUrlParser: true,
-	useUnifiedTopology: true,
-});
 
 let authKey;
 let passKey;

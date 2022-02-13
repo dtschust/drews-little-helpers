@@ -4,7 +4,8 @@
 require('isomorphic-fetch');
 require('dotenv').config();
 const _ = require('lodash');
-const mongoose = require('mongoose');
+require('../src/utils/mongoose-connect');
+
 const inquirer = require('inquirer');
 const { getDrewsHelpfulRobot } = require('../src/utils/slack');
 
@@ -13,11 +14,6 @@ const { sendMessageToFollowShows } = getDrewsHelpfulRobot();
 const FeedHiatus = require('../src/mongoose-models/Feed-Hiatus');
 
 const feedWranglerToken = process.env.FEED_WRANGLER_ACCESS_TOKEN;
-
-mongoose.connect(process.env.MONGO_DB_URI, {
-	useNewUrlParser: true,
-	useUnifiedTopology: true,
-});
 
 function unsubscribeToFeed({ feed_id, title, site_url, weeks, end_time } = {}) {
 	return fetch(

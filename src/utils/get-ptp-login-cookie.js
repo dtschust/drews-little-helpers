@@ -1,13 +1,9 @@
 require('dotenv').config();
 require('isomorphic-fetch');
 const FormData = require('form-data');
-const mongoose = require('mongoose');
-const PtpCookie = require('../mongoose-models/Ptp-Cookie');
+require('./mongoose-connect');
 
-mongoose.connect(process.env.MONGO_DB_URI, {
-	useNewUrlParser: true,
-	useUnifiedTopology: true,
-});
+const PtpCookie = require('../mongoose-models/Ptp-Cookie');
 
 function getPtpLoginCookies() {
 	const formData = new FormData();

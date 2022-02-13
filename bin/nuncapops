@@ -5,7 +5,9 @@
 require('dotenv').config();
 require('isomorphic-fetch');
 const Twit = require('twit');
-const mongoose = require('mongoose');
+const { getMongoose } = require('../src/utils/mongoose-connect');
+
+const mongoose = getMongoose();
 
 const now = Date.now();
 const hour = new Date().getHours();
@@ -26,10 +28,6 @@ const T = new Twit({
 	strictSSL: true, // optional - requires SSL certificates to be valid.
 });
 
-mongoose.connect(process.env.MONGO_DB_URI, {
-	useNewUrlParser: true,
-	useUnifiedTopology: true,
-});
 const SavedPinboardPops = mongoose.model('SavedPinboardPops', {
 	savedUrls: Object,
 });

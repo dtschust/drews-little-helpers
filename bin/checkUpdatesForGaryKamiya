@@ -3,15 +3,13 @@
 require('isomorphic-fetch');
 require('dotenv').config();
 const puppeteer = require('puppeteer');
-const mongoose = require('mongoose');
+const { getMongoose } = require('../src/utils/mongoose-connect');
+
+const mongoose = getMongoose();
+
 const { getDrewsHelpfulRobot } = require('../src/utils/slack');
 
 const { sendMessageToFollowShows } = getDrewsHelpfulRobot();
-
-mongoose.connect(process.env.MONGO_DB_URI, {
-	useNewUrlParser: true,
-	useUnifiedTopology: true,
-});
 
 const GaryPageContent = mongoose.model('GaryPageContent', {
 	pageContent: String,

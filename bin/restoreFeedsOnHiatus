@@ -3,18 +3,13 @@
 
 require('isomorphic-fetch');
 require('dotenv').config();
-const mongoose = require('mongoose');
 const FeedHiatus = require('../src/mongoose-models/Feed-Hiatus');
+require('../src/utils/mongoose-connect');
 
 const feedWranglerToken = process.env.FEED_WRANGLER_ACCESS_TOKEN;
 const { getDrewsHelpfulRobot } = require('../src/utils/slack');
 
 const { sendMessageToFollowShows, sendBlockMessageToFollowShows } = getDrewsHelpfulRobot();
-
-mongoose.connect(process.env.MONGO_DB_URI, {
-	useNewUrlParser: true,
-	useUnifiedTopology: true,
-});
 
 const now = Date.now();
 
