@@ -65,6 +65,7 @@ async function warnAboutPendingRestores() {
 				},
 				accessory: {
 					type: 'overflow',
+					// TODO: An unsubscribe option, with a confirmation for unsubscribing
 					options: [1, 2, 4, 8].map((weeksToSnooze) => {
 						const newEndTime = end_time + weeksToSnooze * 604800000;
 						return {
