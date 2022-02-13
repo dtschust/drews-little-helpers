@@ -10,7 +10,7 @@ require('../src/utils/mongoose-connect');
 
 const { getDrewsHelpfulRobot } = require('../src/utils/slack');
 
-const { sendMessageToFollowShowsAsMovies, webMovies } = getDrewsHelpfulRobot();
+const { sendMessageToFollowShowsAsMovies } = getDrewsHelpfulRobot();
 
 const myArgs = process.argv.slice(2);
 const isWeekly = myArgs.length && myArgs[0] === 'week';
@@ -62,11 +62,6 @@ async function main(usePersistedCookies = true) {
 		})
 	);
 
-	await page.setViewport({
-		width: 640,
-		height: 480,
-		deviceScaleFactor: 2,
-	});
 	await page.goto('https://passthepopcorn.me/top10.php');
 	const topMovies = await page.$('[data-coverviewindex="1"]');
 
@@ -76,10 +71,6 @@ async function main(usePersistedCookies = true) {
 		return main(false);
 	}
 
-	await topMovies.evaluate((el) => {
-		// eslint-disable-next-line
-		el.style.width = `${600}px`;
-	});
 	const titles = await page.$$('[data-coverviewindex="1"] .cover-movie-list__movie__title');
 	const titlesInfo = await Promise.all(
 		titles.map((t) => {
@@ -127,11 +118,6 @@ async function main(usePersistedCookies = true) {
 	await TopMovies.deleteMany();
 	await topMoviesModel.save();
 
-	let screenshot;
-	if (isWeekly) {
-		screenshot = await topMovies.screenshot();
-	}
-
 	await page.close(); // Close the website
 
 	await browser.close();
@@ -140,13 +126,27 @@ async function main(usePersistedCookies = true) {
 		await sendMessageToFollowShowsAsMovies(
 			'*Top 10 Most Active Movies Uploaded in the Past Week*'
 		);
-		await webMovies.files.upload({
-			channels: process.env.PTP_SLACK_CHANNEL_ID,
-			file: screenshot,
-		});
-		await sendMessageToFollowShowsAsMovies(
-			titlesInfo.map(({ href, title, year }) => `<${href}|${title} (${year})>`).join('\n')
-		);
+		// eslint-disable-next-line no-restricted-syntax
+		for (const titleInfo of titlesInfo) {
+			const { title, id, posterUrl, year } = titleInfo;
+			const attachment = {
+				title,
+				callback_id: title,
+				image_url: posterUrl,
+				actions: [
+					{
+						name: `searchMovie ${title}`,
+						text: `Select ${title} (${year})`,
+						type: 'button',
+						value: id,
+					},
+				],
+			};
+			// eslint-disable-next-line no-await-in-loop
+			await sendMessageToFollowShowsAsMovies(undefined, {
+				attachments: [attachment],
+			});
+		}
 	}
 	console.log('Success!');
 	return 0;

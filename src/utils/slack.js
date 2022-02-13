@@ -17,6 +17,7 @@ function getDrewsHelpfulRobot() {
 			channel: process.env.PTP_SLACK_CHANNEL_ID,
 			text,
 			link_names: true,
+			fallback: 'TODO',
 			...args,
 		});
 	}
@@ -26,6 +27,7 @@ function getDrewsHelpfulRobot() {
 			channel: process.env.PTP_SLACK_CHANNEL_ID,
 			blocks,
 			link_names: true,
+			fallback: 'TODO',
 			...args,
 		});
 	}
@@ -35,6 +37,7 @@ function getDrewsHelpfulRobot() {
 			channel: process.env.CRON_LOGS_CHANNEL_ID,
 			text,
 			link_names: true,
+			fallback: 'TODO',
 			...args,
 		});
 	}
@@ -44,6 +47,7 @@ function getDrewsHelpfulRobot() {
 			channel: process.env.CRON_LOGS_CHANNEL_ID,
 			blocks,
 			link_names: true,
+			fallback: 'TODO',
 			...args,
 		});
 	}
@@ -53,6 +57,7 @@ function getDrewsHelpfulRobot() {
 			channel: process.env.PTP_SLACK_CHANNEL_ID,
 			text,
 			link_names: true,
+			fallback: 'TODO',
 			...args,
 		});
 	}
@@ -62,6 +67,7 @@ function getDrewsHelpfulRobot() {
 			channel: process.env.PTP_SLACK_CHANNEL_ID,
 			blocks,
 			link_names: true,
+			fallback: 'TODO',
 			...args,
 		});
 	}
