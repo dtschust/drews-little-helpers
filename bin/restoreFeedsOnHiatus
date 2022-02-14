@@ -66,6 +66,7 @@ async function warnAboutPendingRestores() {
 				};
 			}),
 			// TODO: Unsubscribe button
+			// TODO: Dismiss button
 		};
 		// eslint-disable-next-line no-await-in-loop
 		await sendMessageToFollowShows(`*${title}*`, {
@@ -77,10 +78,10 @@ async function warnAboutPendingRestores() {
 }
 
 async function main() {
-	// This will find and restore all hiatus feeds
-	// const feedsToRestore = await FeedHiatus.find();
 	await warnAboutPendingRestores();
 
+	// This will find and restore all hiatus feeds
+	// const feedsToRestore = await FeedHiatus.find();
 	const feedsToRestore = await FeedHiatus.find({ end_time: { $lte: now } });
 
 	if (!feedsToRestore.length) {

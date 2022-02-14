@@ -24,11 +24,9 @@ async function snoozeHiatus(feedId, endTime) {
 
 function addDrewsHelpfulRobotRoute(app) {
 	app.post('/helper-action-endpoint', (req, res) => {
-		console.log('GOT ONE!!!');
 		res.status(200).end();
 
 		const actionJSONPayload = JSON.parse(req.body.payload);
-		console.log(JSON.stringify(actionJSONPayload));
 
 		if (actionJSONPayload.token !== process.env.ROBOT_VERIFICATION_TOKEN) {
 			res.status(403).end('Access forbidden');
@@ -48,7 +46,7 @@ function addDrewsHelpfulRobotRoute(app) {
 			const formattedTitle = decodeURIComponent(title);
 			snoozeHiatus(feed_id, end_time).then(() => {
 				const message = {
-					text: `Extended Hiatus! Snoozed ${formattedTitle} for a bit longer. Will be back on ${new Date(
+					text: `Extended Hiatus! Snoozed *${formattedTitle}* for a bit longer. Will be back on ${new Date(
 						end_time
 					).toLocaleDateString('en-US')}`,
 					replace_original: true,
