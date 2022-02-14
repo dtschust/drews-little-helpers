@@ -28,6 +28,7 @@ function addDrewsHelpfulRobotRoute(app) {
 		res.status(200).end();
 
 		const actionJSONPayload = JSON.parse(req.body.payload);
+		console.log(JSON.stringify(actionJSONPayload));
 
 		if (actionJSONPayload.token !== process.env.ROBOT_VERIFICATION_TOKEN) {
 			res.status(403).end('Access forbidden');
