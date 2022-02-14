@@ -5,7 +5,6 @@ const addPtpSlackRoute = require('./src/ptp-slack-route');
 const addDrewsHelpfulRobotRoute = require('./src/drews-helpful-robot-route');
 const addIFlicksRoute = require('./src/iflicks-route');
 const addPlausWanRoute = require('./src/plaus-wan-route');
-const addSnoozeHiatusRoute = require('./src/snooze-hiatus-route');
 
 const app = express();
 
@@ -24,7 +23,6 @@ addFwProxyRoute(app);
 addPtpSlackRoute(app);
 addIFlicksRoute(app);
 addPlausWanRoute(app);
-addSnoozeHiatusRoute(app);
 addDrewsHelpfulRobotRoute(app);
 
 app.listen(app.get('port'), () => {
