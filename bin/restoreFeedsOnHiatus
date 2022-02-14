@@ -51,6 +51,7 @@ async function warnAboutPendingRestores() {
 
 		const attachment = {
 			title: `<${site_url}|${title}>`,
+			fallback: 'TODO',
 			callback_Id: `${feed_id}_${end_time}`,
 			actions: [1, 2, 4, 8].map((weeksToSnooze) => {
 				const newEndTime = end_time + weeksToSnooze * 604800000;
@@ -58,7 +59,11 @@ async function warnAboutPendingRestores() {
 					name: `snoozeFeed`,
 					text: `Snooze ${weeksToSnooze} weeks`,
 					type: 'button',
-					value: { feed_id, end_time: newEndTime, title: encodeURIComponent(title) },
+					value: JSON.stringify({
+						feed_id,
+						end_time: newEndTime,
+						title: encodeURIComponent(title),
+					}),
 				};
 			}),
 			// TODO: Unsubscribe button

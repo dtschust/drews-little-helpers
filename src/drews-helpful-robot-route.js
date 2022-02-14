@@ -3,10 +3,6 @@ require('isomorphic-fetch');
 require('./utils/mongoose-connect');
 const FeedHiatus = require('./mongoose-models/Feed-Hiatus');
 
-const { getDrewsHelpfulRobot } = require('./utils/slack');
-
-const { sendMessageToFollowShows } = getDrewsHelpfulRobot();
-
 function sendMessageToSlackResponseURL(responseURL, JSONmessage) {
 	return fetch(responseURL, {
 		method: 'POST',
@@ -28,6 +24,7 @@ async function snoozeHiatus(feedId, endTime) {
 
 function addDrewsHelpfulRobotRoute(app) {
 	app.post('/helper-action-endpoint', (req, res) => {
+		console.log('GOT ONE!!!');
 		res.status(200).end();
 
 		const actionJSONPayload = JSON.parse(req.body.payload);
@@ -42,10 +39,11 @@ function addDrewsHelpfulRobotRoute(app) {
 			return;
 		}
 		const { name, value } = actionJSONPayload.actions[0];
+		const jsonValue = JSON.parse(value);
 
 		if (name === 'snoozeFeed') {
 			// eslint-disable-next-line camelcase
-			const { feed_id, end_time, title } = value;
+			const { feed_id, end_time, title } = jsonValue;
 			const formattedTitle = decodeURIComponent(title);
 			snoozeHiatus(feed_id, end_time).then(() => {
 				const message = {
