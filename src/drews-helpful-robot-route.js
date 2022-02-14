@@ -1,6 +1,7 @@
 require('dotenv').config();
 require('isomorphic-fetch');
 require('./utils/mongoose-connect');
+const _ = require('lodash');
 const FeedHiatus = require('./mongoose-models/Feed-Hiatus');
 const { getDrewsHelpfulRobot } = require('./utils/slack');
 
@@ -44,26 +45,38 @@ function addDrewsHelpfulRobotRoute(app) {
 							text: '*Welcome!* \nView your feeds currently on hiatus below',
 						},
 					},
-				]
-					.concat(
-						hiatusedFeeds.map(({ title, site_url: siteUrl, end_time: endTime }) => {
-							// TODO: Action buttons
-							return {
-								type: 'section',
-								text: {
+					{
+						type: 'divider',
+					},
+				];
+				_.sortBy(hiatusedFeeds, 'end_time').forEach(
+					({ title, site_url: siteUrl, end_time: endTime }) => {
+						// TODO: Action buttons
+						blocks.push({
+							type: 'section',
+							text: {
+								type: 'mrkdwn',
+								text: `*${title}* on hiatus until *${new Date(
+									endTime
+								).toLocaleDateString('en-US')}*`,
+							},
+						});
+						blocks.push({
+							type: 'context',
+							elements: [
+								{
 									type: 'mrkdwn',
-									text: `${title} (\`${siteUrl}\`)on hiatus until ${new Date(
-										endTime
-									).toLocaleDateString('en-US')}`,
+									text: `\`${siteUrl}\``,
 								},
-							};
-						})
-					)
-					.concat([
-						{
-							type: 'divider',
-						},
-					]);
+							],
+						});
+						blocks.push([
+							{
+								type: 'divider',
+							},
+						]);
+					}
+				);
 
 				const view = {
 					type: 'home',
@@ -74,7 +87,6 @@ function addDrewsHelpfulRobotRoute(app) {
 					blocks,
 				};
 
-				console.log(JSON.stringify(view));
 				webRobot.views.publish({
 					user_id: user,
 					view: JSON.stringify(view),
