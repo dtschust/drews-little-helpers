@@ -42,15 +42,7 @@ function addDrewsHelpfulRobotRoute(app) {
 						type: 'section',
 						text: {
 							type: 'mrkdwn',
-							text: '*Welcome!* \nThis is a home for Stickers app. You can add small notes here!',
-						},
-						accessory: {
-							type: 'button',
-							action_id: 'add_note',
-							text: {
-								type: 'plain_text',
-								text: 'Add a Stickie',
-							},
+							text: '*Welcome!* \nI will have this working soon I promise!',
 						},
 					},
 					// Horizontal divider line
@@ -63,7 +55,7 @@ function addDrewsHelpfulRobotRoute(app) {
 					type: 'home',
 					title: {
 						type: 'plain_text',
-						text: 'Keep notes!',
+						text: 'I am not sure where this text is visible!',
 					},
 					blocks,
 				};
