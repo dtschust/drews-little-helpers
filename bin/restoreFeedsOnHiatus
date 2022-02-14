@@ -9,7 +9,7 @@ require('../src/utils/mongoose-connect');
 const feedWranglerToken = process.env.FEED_WRANGLER_ACCESS_TOKEN;
 const { getDrewsHelpfulRobot } = require('../src/utils/slack');
 
-const { sendMessageToFollowShows, sendBlockMessageToFollowShows } = getDrewsHelpfulRobot();
+const { sendMessageToFollowShows } = getDrewsHelpfulRobot();
 
 const now = Date.now();
 
