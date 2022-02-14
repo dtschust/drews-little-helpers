@@ -41,47 +41,35 @@ async function warnAboutPendingRestores() {
 	if (!feedsToRestoreSoon.length) {
 		return true;
 	}
-
-	let blocks = [
-		{
-			type: 'section',
-			text: {
-				type: 'mrkdwn',
-				text: 'The following feeds are going to be restored from hiatus in the next 24 hours:',
-			},
-		},
-	];
-	blocks = blocks.concat(
-		feedsToRestoreSoon.map(({ site_url, title, feed_id, end_time }) => {
-			return {
-				type: 'section',
-				text: {
-					type: 'mrkdwn',
-					text: `<${site_url}|${title}>`,
-				},
-				accessory: {
-					type: 'overflow',
-					// TODO: An unsubscribe option, with a confirmation for unsubscribing
-					options: [1, 2, 4, 8].map((weeksToSnooze) => {
-						const newEndTime = end_time + weeksToSnooze * 604800000;
-						return {
-							text: {
-								type: 'plain_text',
-								text: `Snooze ${weeksToSnooze} weeks`,
-							},
-							value: `Snooze ${weeksToSnooze} weeks`,
-							url: `${
-								process.env.SERVER_URL
-							}/snooze-hiatus?feed_id=${feed_id}&end_time=${newEndTime}&title=${encodeURIComponent(
-								title
-							)}`,
-						};
-					}),
-				},
-			};
-		})
+	await sendMessageToFollowShows(
+		'The following feeds are going to be restored from hiatus in the next 24 hours:'
 	);
-	return sendBlockMessageToFollowShows(blocks);
+
+	// eslint-disable-next-line no-restricted-syntax
+	for (const feedToRestoreSoon of feedsToRestoreSoon) {
+		const { site_url, title, feed_id, end_time } = feedToRestoreSoon;
+
+		const attachment = {
+			title: `<${site_url}|${title}>`,
+			callback_Id: `${feed_id}_${end_time}`,
+			actions: [1, 2, 4, 8].map((weeksToSnooze) => {
+				const newEndTime = end_time + weeksToSnooze * 604800000;
+				return {
+					name: `snoozeFeed`,
+					text: `Snooze ${weeksToSnooze} weeks`,
+					type: 'button',
+					value: { feed_id, end_time: newEndTime, title: encodeURIComponent(title) },
+				};
+			}),
+			// TODO: Unsubscribe button
+		};
+		// eslint-disable-next-line no-await-in-loop
+		await sendMessageToFollowShows(undefined, {
+			attachments: [attachment],
+		});
+	}
+
+	return true;
 }
 
 async function main() {
