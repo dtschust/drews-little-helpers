@@ -100,7 +100,6 @@ function addDrewsHelpfulRobotRoute(app) {
 
 		if (name.indexOf('snoozeFeed') === 0) {
 			const jsonValue = JSON.parse(selectedOptions[0].value);
-			// eslint-disable-next-line camelcase
 			const { feed_id, end_time, title } = jsonValue;
 			const formattedTitle = decodeURIComponent(title);
 			snoozeHiatus(feed_id, end_time).then(() => {
@@ -121,10 +120,8 @@ function addDrewsHelpfulRobotRoute(app) {
 			});
 		} else if (name.indexOf('unsubscribeFeed') === 0) {
 			const jsonValue = JSON.parse(value);
-			// eslint-disable-next-line camelcase
 			const { feed_id, title } = jsonValue;
 			const formattedTitle = decodeURIComponent(title);
-			// eslint-disable-next-line camelcase
 			FeedHiatus.findOneAndDelete({ feed_id }).then(() => {
 				const message = {
 					text: `Permanently unsubscribed from *${formattedTitle}*. Bye!`,

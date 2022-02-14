@@ -108,15 +108,12 @@ function buildResponse() {
 	return response;
 }
 
-// eslint-disable-next-line camelcase
 function sendMessage({ text, channel, thread_ts, reply_broadcast } = {}) {
 	return web.chat
 		.postMessage({
 			channel,
 			text,
-			// eslint-disable-next-line camelcase
 			thread_ts,
-			// eslint-disable-next-line camelcase
 			reply_broadcast,
 		})
 		.then(() => {

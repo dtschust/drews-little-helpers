@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-/* eslint-disable camelcase */
-
 require('dotenv').config();
 require('isomorphic-fetch');
 const Twit = require('twit');

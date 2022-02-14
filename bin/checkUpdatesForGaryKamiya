@@ -24,10 +24,10 @@ GaryPageContent.findOne(undefined)
 				pageContent: newData.get('pageContent'),
 			};
 		}
-		checkForUpdates().then(process.exit); // eslint-disable-line no-use-before-define
+		checkForUpdates().then(process.exit);
 	})
 	.catch(() => {
-		checkForUpdates().then(process.exit); // eslint-disable-line no-use-before-define
+		checkForUpdates().then(process.exit);
 	});
 
 async function checkForUpdates() {

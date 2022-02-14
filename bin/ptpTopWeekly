@@ -126,7 +126,6 @@ async function main(usePersistedCookies = true) {
 		await sendMessageToFollowShowsAsMovies(
 			'*Top 10 Most Active Movies Uploaded in the Past Week*'
 		);
-		// eslint-disable-next-line no-restricted-syntax
 		for (const titleInfo of titlesInfo) {
 			const { title, id, posterUrl, year } = titleInfo;
 			const attachment = {
@@ -142,7 +141,6 @@ async function main(usePersistedCookies = true) {
 					},
 				],
 			};
-			// eslint-disable-next-line no-await-in-loop
 			await sendMessageToFollowShowsAsMovies(undefined, {
 				attachments: [attachment],
 			});

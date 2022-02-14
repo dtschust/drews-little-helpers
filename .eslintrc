@@ -3,7 +3,11 @@
 	"extends": ["airbnb", "plugin:prettier/recommended"],
 	"rules": {
 		"no-console": "off",
-		"no-use-before-define": "off"
+		"no-use-before-define": "off",
+		"consistent-return": "off",
+		"no-restricted-syntax": "off",
+		"no-await-in-loop": "off",
+		"camelcase" : "off"
 	},
 	"globals": {
 		"fetch": true

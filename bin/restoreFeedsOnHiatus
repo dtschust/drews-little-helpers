@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-/* eslint-disable camelcase */
-
 require('isomorphic-fetch');
 require('dotenv').config();
 const FeedHiatus = require('../src/mongoose-models/Feed-Hiatus');
@@ -45,7 +43,6 @@ async function warnAboutPendingRestores() {
 		'The following feeds are going to be restored from hiatus in the next 24 hours:'
 	);
 
-	// eslint-disable-next-line no-restricted-syntax
 	for (const feedToRestoreSoon of feedsToRestoreSoon) {
 		const { title, feed_id, end_time, site_url } = feedToRestoreSoon;
 
@@ -94,7 +91,6 @@ async function warnAboutPendingRestores() {
 				},
 			],
 		};
-		// eslint-disable-next-line no-await-in-loop
 		await sendMessageToFollowShows(`*${title}* \`(${site_url})\``, {
 			attachments: [attachment],
 		});

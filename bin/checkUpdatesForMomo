@@ -40,10 +40,10 @@ VersionData.findOne(undefined)
 				onePassword: newVersionData.get('onePassword'),
 			};
 		}
-		checkVersions(); // eslint-disable-line no-use-before-define
+		checkVersions();
 	})
 	.catch(() => {
-		checkVersions(); // eslint-disable-line no-use-before-define
+		checkVersions();
 	});
 
 function checkVersions() {
@@ -112,7 +112,6 @@ New FunBridge Version: ${funbridge}
 					// store the new version info!
 					newVersionDataModel.save(() => {
 						const changes = _.filter(
-							// eslint-disable-next-line consistent-return
 							_.map(newVersionData, (value, key) => {
 								if (!VERSION_DATA || VERSION_DATA[key] !== value) {
 									return `*${_.startCase(key)}* update available: from *${
