@@ -26,7 +26,7 @@ async function snoozeHiatus(feedId, endTime) {
 }
 
 function addDrewsHelpfulRobotRoute(app) {
-	app.post('/helper-action-endpoint', (req, res) => {
+	app.post('/helper-action-endpoint', async (req, res) => {
 		if (req.body.type === 'url_verification') {
 			res.send(req.body.challenge).status(200).end();
 			return;
@@ -36,20 +36,35 @@ function addDrewsHelpfulRobotRoute(app) {
 			const { event } = req.body;
 			const { user, type } = event;
 			if (type === 'app_home_opened') {
+				const hiatusedFeeds = await FeedHiatus.find(undefined);
 				const blocks = [
 					{
-						// Section with text and a button
 						type: 'section',
 						text: {
 							type: 'mrkdwn',
-							text: '*Welcome!* \nI will have this working soon I promise!',
+							text: '*Welcome!* \nView your feeds currently on hiatus below',
 						},
 					},
-					// Horizontal divider line
-					{
-						type: 'divider',
-					},
-				];
+				]
+					.concat(
+						hiatusedFeeds.map(({ title, site_url: siteUrl, end_time: endTime }) => {
+							// TODO: Action buttons
+							return {
+								type: 'section',
+								text: {
+									type: 'mrkdwn',
+									text: `${title} (\`${siteUrl}\`)on hiatus until ${new Date(
+										endTime
+									).toLocaleDateString('en-US')}`,
+								},
+							};
+						})
+					)
+					.concat([
+						{
+							type: 'divider',
+						},
+					]);
 
 				const view = {
 					type: 'home',
