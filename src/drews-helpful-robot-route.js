@@ -41,7 +41,7 @@ function addDrewsHelpfulRobotRoute(app) {
 		const { name, value } = actionJSONPayload.actions[0];
 		const jsonValue = JSON.parse(value);
 
-		if (name === 'snoozeFeed') {
+		if (name.indexOf('snoozeFeed') === 0) {
 			// eslint-disable-next-line camelcase
 			const { feed_id, end_time, title } = jsonValue;
 			const formattedTitle = decodeURIComponent(title);

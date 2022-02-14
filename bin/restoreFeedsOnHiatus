@@ -50,13 +50,12 @@ async function warnAboutPendingRestores() {
 		const { site_url, title, feed_id, end_time } = feedToRestoreSoon;
 
 		const attachment = {
-			title: `<${site_url}|${title}>`,
 			fallback: 'TODO',
 			callback_Id: `${feed_id}_${end_time}`,
 			actions: [1, 2, 4, 8].map((weeksToSnooze) => {
 				const newEndTime = end_time + weeksToSnooze * 604800000;
 				return {
-					name: `snoozeFeed`,
+					name: `snoozeFeed ${feed_id} ${weeksToSnooze}`,
 					text: `Snooze ${weeksToSnooze} weeks`,
 					type: 'button',
 					value: JSON.stringify({
@@ -69,7 +68,7 @@ async function warnAboutPendingRestores() {
 			// TODO: Unsubscribe button
 		};
 		// eslint-disable-next-line no-await-in-loop
-		await sendMessageToFollowShows(undefined, {
+		await sendMessageToFollowShows(`<${site_url}|${title}>`, {
 			attachments: [attachment],
 		});
 	}
