@@ -58,7 +58,7 @@ function addDrewsHelpfulRobotRoute(app) {
 			});
 		} else if (name.indexOf('dismiss') === 0) {
 			const channel = actionJSONPayload.channel.id;
-			const { message_ts: ts } = actionJSONPayload.message_ts;
+			const { message_ts: ts } = actionJSONPayload;
 			webRobot.chat.delete({
 				channel,
 				ts,
