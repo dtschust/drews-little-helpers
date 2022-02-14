@@ -2,6 +2,9 @@ require('dotenv').config();
 require('isomorphic-fetch');
 require('./utils/mongoose-connect');
 const FeedHiatus = require('./mongoose-models/Feed-Hiatus');
+const { getDrewsHelpfulRobot } = require('./utils/slack');
+
+const { webRobot } = getDrewsHelpfulRobot();
 
 function sendMessageToSlackResponseURL(responseURL, JSONmessage) {
 	return fetch(responseURL, {
@@ -49,6 +52,25 @@ function addDrewsHelpfulRobotRoute(app) {
 					text: `Extended Hiatus! Snoozed *${formattedTitle}* for a bit longer. Will be back on ${new Date(
 						end_time
 					).toLocaleDateString('en-US')}`,
+					replace_original: true,
+				};
+				sendMessageToSlackResponseURL(actionJSONPayload.response_url, message);
+			});
+		} else if (name.indexOf('dismiss') === 0) {
+			const channel = actionJSONPayload.channel.id;
+			const { message_ts: ts } = actionJSONPayload.message_ts;
+			webRobot.chat.delete({
+				channel,
+				ts,
+			});
+		} else if (name.indexOf('unsubscribeFeed') === 0) {
+			// eslint-disable-next-line camelcase
+			const { feed_id, title } = jsonValue;
+			const formattedTitle = decodeURIComponent(title);
+			// eslint-disable-next-line camelcase
+			FeedHiatus.findOneAndDelete({ feed_id }).then(() => {
+				const message = {
+					text: `Permanently unsubscribed from *${formattedTitle}*. Bye!`,
 					replace_original: true,
 				};
 				sendMessageToSlackResponseURL(actionJSONPayload.response_url, message);
