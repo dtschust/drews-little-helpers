@@ -69,7 +69,7 @@ function addDrewsHelpfulRobotRoute(app) {
 					type: 'home',
 					title: {
 						type: 'plain_text',
-						text: 'I am not sure where this text is visible!',
+						text: 'what is this',
 					},
 					blocks,
 				};
