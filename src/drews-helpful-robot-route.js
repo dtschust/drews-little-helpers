@@ -27,6 +27,10 @@ async function snoozeHiatus(feedId, endTime) {
 
 function addDrewsHelpfulRobotRoute(app) {
 	app.post('/helper-action-endpoint', (req, res) => {
+		if (req.body.type === 'url_verification') {
+			res.send(req.body.challenge).status(200).end();
+			return;
+		}
 		res.status(200).end();
 
 		const actionJSONPayload = JSON.parse(req.body.payload);
