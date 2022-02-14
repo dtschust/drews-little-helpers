@@ -75,14 +75,10 @@ function addDrewsHelpfulRobotRoute(app) {
 					blocks,
 				};
 
-				webRobot.views
-					.publish({
-						user_id: user,
-						view: JSON.stringify(view),
-					})
-					.then(() => {
-						res.status(200).end();
-					});
+				webRobot.views.publish({
+					user_id: user,
+					view: JSON.stringify(view),
+				});
 			}
 			res.status(200).end();
 			return;
