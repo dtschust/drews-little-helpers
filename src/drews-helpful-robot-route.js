@@ -43,7 +43,7 @@ function addDrewsHelpfulRobotRoute(app) {
 		const { name, value, selected_options: selectedOptions } = actionJSONPayload.actions[0];
 
 		if (name.indexOf('snoozeFeed') === 0) {
-			const jsonValue = JSON.parse(selectedOptions.value);
+			const jsonValue = JSON.parse(selectedOptions[0].value);
 			// eslint-disable-next-line camelcase
 			const { feed_id, end_time, title } = jsonValue;
 			const formattedTitle = decodeURIComponent(title);
