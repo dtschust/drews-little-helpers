@@ -52,39 +52,41 @@ async function warnAboutPendingRestores() {
 		const attachment = {
 			fallback: 'TODO',
 			callback_id: `${feed_id}_${end_time}`,
-			actions: [1, 4, 8]
-				.map((weeksToSnooze) => {
-					const newEndTime = end_time + weeksToSnooze * 604800000;
-					return {
-						name: `snoozeFeed ${feed_id} ${weeksToSnooze}`,
-						text: `Snooze ${weeksToSnooze} weeks`,
-						type: 'button',
-						value: JSON.stringify({
-							feed_id,
-							end_time: newEndTime,
-							title: encodeURIComponent(title),
-						}),
-					};
-				})
-				.concat([
-					{
-						name: `unsubscribeFeed ${feed_id}`,
-						text: `Unsubscribe Permanently`,
-						type: 'button',
-						style: 'danger',
-						value: JSON.stringify({
-							feed_id,
-							title: encodeURIComponent(title),
-						}),
-					},
-					{
-						name: `dismiss ${feed_id}`,
-						text: `OK`,
-						type: 'button',
-						style: 'primary',
-						value: feed_id,
-					},
-				]),
+			actions: [
+				{
+					name: 'snoozeFeed',
+					text: 'Snooze feed for...',
+					type: 'select',
+					options: [1, 2, 4, 8].map((weeksToSnooze) => {
+						const newEndTime = end_time + weeksToSnooze * 604800000;
+						return {
+							text: `Snooze ${weeksToSnooze} week${weeksToSnooze === 1 ? '' : 's'}`,
+							value: JSON.stringify({
+								feed_id,
+								end_time: newEndTime,
+								title: encodeURIComponent(title),
+							}),
+						};
+					}),
+				},
+				{
+					name: `unsubscribeFeed ${feed_id}`,
+					text: `Unsubscribe Permanently`,
+					type: 'button',
+					style: 'danger',
+					value: JSON.stringify({
+						feed_id,
+						title: encodeURIComponent(title),
+					}),
+				},
+				{
+					name: `dismiss ${feed_id}`,
+					text: `OK`,
+					type: 'button',
+					style: 'primary',
+					value: feed_id,
+				},
+			],
 		};
 		// eslint-disable-next-line no-await-in-loop
 		await sendMessageToFollowShows(`*${title}* \`(${site_url})\``, {

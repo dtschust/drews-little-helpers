@@ -40,10 +40,10 @@ function addDrewsHelpfulRobotRoute(app) {
 			// This is not a legacy slash comand, so it's probably a workflow
 			return;
 		}
-		const { name, value } = actionJSONPayload.actions[0];
-		const jsonValue = JSON.parse(value);
+		const { name, value, selected_options: selectedOptions } = actionJSONPayload.actions[0];
 
 		if (name.indexOf('snoozeFeed') === 0) {
+			const jsonValue = JSON.parse(selectedOptions.value);
 			// eslint-disable-next-line camelcase
 			const { feed_id, end_time, title } = jsonValue;
 			const formattedTitle = decodeURIComponent(title);
@@ -64,6 +64,7 @@ function addDrewsHelpfulRobotRoute(app) {
 				ts,
 			});
 		} else if (name.indexOf('unsubscribeFeed') === 0) {
+			const jsonValue = JSON.parse(value);
 			// eslint-disable-next-line camelcase
 			const { feed_id, title } = jsonValue;
 			const formattedTitle = decodeURIComponent(title);
