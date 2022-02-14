@@ -70,11 +70,9 @@ function addDrewsHelpfulRobotRoute(app) {
 								},
 							],
 						});
-						blocks.push([
-							{
-								type: 'divider',
-							},
-						]);
+						blocks.push({
+							type: 'divider',
+						});
 					}
 				);
 
