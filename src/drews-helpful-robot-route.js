@@ -17,6 +17,62 @@ function sendMessageToSlackResponseURL(responseURL, JSONmessage) {
 	});
 }
 
+async function publishViewForUser(user) {
+	const hiatusedFeeds = await FeedHiatus.find(undefined);
+	const blocks = [
+		{
+			type: 'section',
+			text: {
+				type: 'mrkdwn',
+				text: '*Welcome!* \nView your feeds currently on hiatus below',
+			},
+		},
+		{
+			type: 'divider',
+		},
+	];
+	_.sortBy(hiatusedFeeds, 'end_time').forEach(
+		({ title, site_url: siteUrl, end_time: endTime }) => {
+			// TODO: Action buttons
+			blocks.push({
+				type: 'section',
+				text: {
+					type: 'mrkdwn',
+					text: `*${title}* on hiatus until *${new Date(endTime).toLocaleDateString(
+						'en-US'
+					)}*`,
+				},
+			});
+			blocks.push({
+				type: 'context',
+				elements: [
+					{
+						type: 'mrkdwn',
+						text: `\`${siteUrl}\``,
+					},
+				],
+			});
+			blocks.push({
+				type: 'divider',
+			});
+		}
+	);
+
+	const view = {
+		type: 'home',
+		title: {
+			type: 'plain_text',
+			text: 'what is this',
+		},
+		blocks,
+	};
+
+	return webRobot.views.publish({
+		user_id: user,
+		view: JSON.stringify(view),
+	});
+}
+
 async function snoozeHiatus(feedId, endTime) {
 	return FeedHiatus.findOneAndUpdate(
 		{
@@ -27,7 +83,7 @@ async function snoozeHiatus(feedId, endTime) {
 }
 
 function addDrewsHelpfulRobotRoute(app) {
-	app.post('/helper-action-endpoint', async (req, res) => {
+	app.post('/helper-action-endpoint', (req, res) => {
 		if (req.body.type === 'url_verification') {
 			res.send(req.body.challenge).status(200).end();
 			return;
@@ -36,59 +92,7 @@ function addDrewsHelpfulRobotRoute(app) {
 			const { event } = req.body;
 			const { user, type } = event;
 			if (type === 'app_home_opened') {
-				const hiatusedFeeds = await FeedHiatus.find(undefined);
-				const blocks = [
-					{
-						type: 'section',
-						text: {
-							type: 'mrkdwn',
-							text: '*Welcome!* \nView your feeds currently on hiatus below',
-						},
-					},
-					{
-						type: 'divider',
-					},
-				];
-				_.sortBy(hiatusedFeeds, 'end_time').forEach(
-					({ title, site_url: siteUrl, end_time: endTime }) => {
-						// TODO: Action buttons
-						blocks.push({
-							type: 'section',
-							text: {
-								type: 'mrkdwn',
-								text: `*${title}* on hiatus until *${new Date(
-									endTime
-								).toLocaleDateString('en-US')}*`,
-							},
-						});
-						blocks.push({
-							type: 'context',
-							elements: [
-								{
-									type: 'mrkdwn',
-									text: `\`${siteUrl}\``,
-								},
-							],
-						});
-						blocks.push({
-							type: 'divider',
-						});
-					}
-				);
-
-				const view = {
-					type: 'home',
-					title: {
-						type: 'plain_text',
-						text: 'what is this',
-					},
-					blocks,
-				};
-
-				webRobot.views.publish({
-					user_id: user,
-					view: JSON.stringify(view),
-				});
+				publishViewForUser(user);
 			}
 			res.status(200).end();
 			return;
