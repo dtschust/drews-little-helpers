@@ -32,7 +32,6 @@ function addDrewsHelpfulRobotRoute(app) {
 			return;
 		}
 		if (req.body.type === 'event_callback') {
-			console.log(JSON.stringify(req.body));
 			const { event } = req.body;
 			const { user, type } = event;
 			if (type === 'app_home_opened') {
@@ -75,6 +74,7 @@ function addDrewsHelpfulRobotRoute(app) {
 					blocks,
 				};
 
+				console.log(JSON.stringify(view));
 				webRobot.views.publish({
 					user_id: user,
 					view: JSON.stringify(view),
