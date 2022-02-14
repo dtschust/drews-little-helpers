@@ -31,6 +31,55 @@ function addDrewsHelpfulRobotRoute(app) {
 			res.send(req.body.challenge).status(200).end();
 			return;
 		}
+		if (req.body.type === 'event_callback') {
+			console.log(JSON.stringify(req.body));
+			const { event } = req.body;
+			const { user, type } = event;
+			if (type === 'app_home_opened') {
+				const blocks = [
+					{
+						// Section with text and a button
+						type: 'section',
+						text: {
+							type: 'mrkdwn',
+							text: '*Welcome!* \nThis is a home for Stickers app. You can add small notes here!',
+						},
+						accessory: {
+							type: 'button',
+							action_id: 'add_note',
+							text: {
+								type: 'plain_text',
+								text: 'Add a Stickie',
+							},
+						},
+					},
+					// Horizontal divider line
+					{
+						type: 'divider',
+					},
+				];
+
+				const view = {
+					type: 'home',
+					title: {
+						type: 'plain_text',
+						text: 'Keep notes!',
+					},
+					blocks,
+				};
+
+				webRobot.views
+					.publish({
+						user_id: user,
+						view: JSON.stringify(view),
+					})
+					.then(() => {
+						res.status(200).end();
+					});
+			}
+			res.status(200).end();
+			return;
+		}
 		res.status(200).end();
 
 		const actionJSONPayload = JSON.parse(req.body.payload);
