@@ -75,10 +75,18 @@ async function publishViewForUser(user) {
 			alt_text: title,
 		});
 		blocks.push({
-			type: 'button',
-			text: `${title} (${year})`,
-			action_id: `selectMovieAppHome ${title}`,
-			value: JSON.stringify({ title, id, posterUrl, year }),
+			type: 'actions',
+			elements: [
+				{
+					type: 'button',
+					text: {
+						type: 'plain_text',
+						text: `${title (${year})}`,
+					},
+					action_id: `selectMovieAppHome ${title}`,
+					value: JSON.stringify({ title, id, posterUrl, year }),
+				},
+			],
 		});
 		blocks.push({
 			type: 'divider',
@@ -286,6 +294,7 @@ async function openMovieSelectedModal(triggerId, { title, id, posterUrl, year })
 	});
 	const viewId = resp.view.id;
 	const torrents = await searchAndRespond(title, undefined, false, false, id);
+	// TODO: Use hash when I add buttons here
 	return webMovies.views.update({
 		view_id: viewId,
 		view: {
