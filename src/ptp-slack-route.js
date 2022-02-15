@@ -50,11 +50,10 @@ async function publishViewForUser(user) {
 	const { movies } = await TopMovies.findOne(undefined);
 	const blocks = [
 		{
-			type: 'header',
+			type: 'section',
 			text: {
-				type: 'plain_text',
-				text: 'Top 10 Movies of the Week',
-				emoji: true,
+				type: 'mrkdwn',
+				text: '*Top 10 Movies of the Week*',
 			},
 		},
 		{
@@ -100,7 +99,8 @@ async function publishViewForUser(user) {
 		view: JSON.stringify(view),
 	});
 }
-function sendMessageToSlackResponseURL(responseURL, JSONmessage) {
+async function sendMessageToSlackResponseURL(responseURL, JSONmessage) {
+	if (!responseURL) return;
 	return fetch(responseURL, {
 		method: 'POST',
 		headers: {
@@ -211,29 +211,28 @@ async function searchAndRespond(
 
 	if (groupId) {
 		// We already know the id of the movie we want, so we can skip the results
-		selectMovie(query, groupId, responseURL);
-	} else {
-		const attachments = movies.map((movie) => ({
-			title: `${movie.Title} (${movie.Year})`,
-			image_url: movie.Cover,
-			callback_id: movie.GroupId,
-			actions: [
-				{
-					name: `selectMovie ${movie.Title}`,
-					text: `Select ${movie.Title}`,
-					type: 'button',
-					value: movie.GroupId,
-				},
-			],
-		}));
-
-		const message = {
-			text: `Results for ${query} :`,
-			replace_original: replaceOriginal,
-			attachments,
-		};
-		sendMessageToSlackResponseURL(responseURL, message);
+		return selectMovie(query, groupId, responseURL);
 	}
+	const attachments = movies.map((movie) => ({
+		title: `${movie.Title} (${movie.Year})`,
+		image_url: movie.Cover,
+		callback_id: movie.GroupId,
+		actions: [
+			{
+				name: `selectMovie ${movie.Title}`,
+				text: `Select ${movie.Title}`,
+				type: 'button',
+				value: movie.GroupId,
+			},
+		],
+	}));
+
+	const message = {
+		text: `Results for ${query} :`,
+		replace_original: replaceOriginal,
+		attachments,
+	};
+	sendMessageToSlackResponseURL(responseURL, message);
 }
 
 function selectMovie(movieTitle, groupId, responseURL) {
@@ -260,6 +259,7 @@ ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${t.RemasterTitle ? `/ ${t.Remaster
 		attachments,
 	};
 	sendMessageToSlackResponseURL(responseURL, message);
+	return torrents;
 }
 
 async function openMovieSelectedModal(triggerId, { title, id, posterUrl, year }) {
@@ -278,13 +278,35 @@ async function openMovieSelectedModal(triggerId, { title, id, posterUrl, year })
 					block_id: 'section-identifier',
 					text: {
 						type: 'mrkdwn',
-						text: '*Welcome* to ~my~ Block Kit _modal_!',
+						text: 'loading',
 					},
 				},
 			],
 		},
 	});
-	// resp.view.id
+	const viewId = resp.view.id;
+	const torrents = await searchAndRespond(title, undefined, false, false, id);
+	return webMovies.views.update({
+		view_id: viewId,
+		view: {
+			type: 'modal',
+			callback_id: 'movieSelectedModal',
+			title: {
+				type: 'plain_text',
+				text: `Select a version of ${title}`,
+			},
+			blocks: [
+				{
+					type: 'section',
+					block_id: 'section-identifier',
+					text: {
+						type: 'mrkdwn',
+						text: JSON.stringify(torrents),
+					},
+				},
+			],
+		},
+	});
 }
 
 function addPtpSlackRoute(app) {
