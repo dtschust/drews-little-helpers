@@ -8,7 +8,7 @@ const PtpCookie = require('./mongoose-models/Ptp-Cookie');
 const getPtpLoginCookies = require('./utils/get-ptp-login-cookie');
 const { getDrewsHelpfulRobot } = require('./utils/slack');
 
-const { sendMessageToFollowShows } = getDrewsHelpfulRobot();
+const { sendMessageToFollowShows, webMovies } = getDrewsHelpfulRobot();
 
 const dbx = new Dropbox({ accessToken: process.env.DROPBOX_TOKEN });
 
@@ -46,6 +46,53 @@ async function sendTopTenMoviesOfTheWeek(responseURL) {
 	sendMessageToSlackResponseURL(responseURL, message);
 }
 
+async function publishViewForUser(user) {
+	const { movies } = await TopMovies.findOne(undefined);
+	const blocks = [
+		{
+			type: 'section',
+			text: {
+				type: 'mrkdwn',
+				text: 'Top 10 Movies of the Week',
+			},
+		},
+		{
+			type: 'divider',
+		},
+	];
+	movies.forEach(({ title, id, posterUrl, year }) => {
+		// TODO: Action buttons
+		blocks.push({
+			type: 'section',
+			text: {
+				type: 'mrkdwn',
+				text: `*${title}* (${year})`,
+			},
+		});
+		blocks.push({
+			type: 'image',
+			image_url: posterUrl,
+			alt_text: title,
+		});
+		blocks.push({
+			type: 'divider',
+		});
+	});
+
+	const view = {
+		type: 'home',
+		title: {
+			type: 'plain_text',
+			text: 'what is this',
+		},
+		blocks,
+	};
+
+	return webMovies.views.publish({
+		user_id: user,
+		view: JSON.stringify(view),
+	});
+}
 function sendMessageToSlackResponseURL(responseURL, JSONmessage) {
 	return fetch(responseURL, {
 		method: 'POST',
@@ -225,6 +272,19 @@ function addPtpSlackRoute(app) {
 	});
 
 	app.post('/action-endpoint', (req, res) => {
+		if (req.body.type === 'url_verification') {
+			res.send(req.body.challenge).status(200).end();
+			return;
+		}
+		if (req.body.type === 'event_callback') {
+			const { event } = req.body;
+			const { user, type } = event;
+			if (type === 'app_home_opened') {
+				publishViewForUser(user);
+			}
+			res.status(200).end();
+			return;
+		}
 		res.status(200).end();
 
 		const actionJSONPayload = JSON.parse(req.body.payload);
