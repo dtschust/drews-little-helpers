@@ -81,7 +81,7 @@ async function publishViewForUser(user) {
 					type: 'button',
 					text: {
 						type: 'plain_text',
-						text: `${title} (${year})}`,
+						text: `${title} (${year})`,
 					},
 					action_id: `selectMovieAppHome ${title}`,
 					value: JSON.stringify({ title, id, posterUrl, year }),
@@ -348,6 +348,7 @@ function addPtpSlackRoute(app) {
 			res.status(200).end();
 			return;
 		}
+		// TODO: This check is wrong and not hit
 		if (req.body.type === 'block_actions') {
 			if (req.body.view && req.body.view.type === 'home') {
 				console.log(JSON.stringify(req.body));
