@@ -348,7 +348,8 @@ function addPtpSlackRoute(app) {
 			res.status(200).end();
 			return;
 		}
-		// TODO: This check is wrong and not hit
+		console.log(JSON.stringify(req.body));
+		console.log('TYPE: ', req.body.type);
 		if (req.body.type === 'block_actions') {
 			if (req.body.view && req.body.view.type === 'home') {
 				console.log(JSON.stringify(req.body));
