@@ -81,7 +81,7 @@ async function publishViewForUser(user) {
 					type: 'button',
 					text: {
 						type: 'plain_text',
-						text: `${title (${year})}`,
+						text: `${title} (${year})}`,
 					},
 					action_id: `selectMovieAppHome ${title}`,
 					value: JSON.stringify({ title, id, posterUrl, year }),
