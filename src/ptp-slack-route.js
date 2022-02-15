@@ -76,6 +76,12 @@ async function publishViewForUser(user) {
 			alt_text: title,
 		});
 		blocks.push({
+			type: 'button',
+			text: `${title} (${year})`,
+			action_id: `selectMovieAppHome ${title}`,
+			value: JSON.stringify({ title, id, posterUrl, year }),
+		});
+		blocks.push({
 			type: 'divider',
 		});
 	});
@@ -256,6 +262,31 @@ ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${t.RemasterTitle ? `/ ${t.Remaster
 	sendMessageToSlackResponseURL(responseURL, message);
 }
 
+async function openMovieSelectedModal(triggerId, { title, id, posterUrl, year }) {
+	const resp = await webMovies.views.open({
+		trigger_id: triggerId,
+		view: {
+			type: 'modal',
+			callback_id: 'movieSelectedModal',
+			title: {
+				type: 'plain_text',
+				text: `Select a version of ${title}`,
+			},
+			blocks: [
+				{
+					type: 'section',
+					block_id: 'section-identifier',
+					text: {
+						type: 'mrkdwn',
+						text: '*Welcome* to ~my~ Block Kit _modal_!',
+					},
+				},
+			],
+		},
+	});
+	// resp.view.id
+}
+
 function addPtpSlackRoute(app) {
 	app.post('/slash-command', (req, res) => {
 		res.status(200).end();
@@ -282,6 +313,14 @@ function addPtpSlackRoute(app) {
 			const { user, type } = event;
 			if (type === 'app_home_opened') {
 				publishViewForUser(user);
+			}
+			res.status(200).end();
+			return;
+		}
+		if (req.body.type === 'block_actions') {
+			if (req.body.view && req.body.view.type === 'home') {
+				console.log(JSON.stringify(req.body));
+				openMovieSelectedModal(req.body.trigger_id, JSON.parse(req.body.actions[0].value));
 			}
 			res.status(200).end();
 			return;
