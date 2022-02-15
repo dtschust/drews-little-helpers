@@ -5,7 +5,7 @@ require('dotenv').config();
 
 const { getDrewsHelpfulRobot } = require('../src/utils/slack');
 
-const { web } = getDrewsHelpfulRobot();
+const { web, webRobot } = getDrewsHelpfulRobot();
 
 async function main() {
 	const day = 86400000;
@@ -16,7 +16,7 @@ async function main() {
 
 	// Use the search API so that I also get threaded messages, conversations.history doesn't do that
 	const response = await web.search.messages({
-		query: `in:<#${process.env.CRON_LOGS_CHANNEL_ID}>`,
+		query: `in:<#${process.env.CRON_LOGS_CHANNEL_ID}> from:<@${process.env.SLACK_ROBOT_USER_ID}>`,
 		count: 100,
 	});
 
@@ -29,7 +29,7 @@ async function main() {
 			const time = parseInt(ts.split('.')[0], 10) * 1000;
 			if (time < expirationDate) {
 				// console.log('Need to delete this message: ', new Date(time) /* message.text */);
-				return web
+				return webRobot
 					.apiCall('chat.delete', {
 						channel: process.env.CRON_LOGS_CHANNEL_ID,
 						ts,
