@@ -50,10 +50,11 @@ async function publishViewForUser(user) {
 	const { movies } = await TopMovies.findOne(undefined);
 	const blocks = [
 		{
-			type: 'section',
+			type: 'header',
 			text: {
-				type: 'mrkdwn',
+				type: 'plain_text',
 				text: 'Top 10 Movies of the Week',
+				emoji: true,
 			},
 		},
 		{
