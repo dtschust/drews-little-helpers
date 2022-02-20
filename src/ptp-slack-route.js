@@ -401,7 +401,19 @@ function addPtpSlackRoute(app) {
 				url: `https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey}`,
 				path: `/torrents/${Date.now()}.torrent`,
 			})
-				.then(({ async_job_id: asyncJobId }) => {
+				.then(({ async_job_id: asyncJobId, '.tag': tag }) => {
+					if (tag === 'complete') {
+						const successMessage = {
+							text: `Successfully placed ${movieTitle} in dropbox, have a great day!!`,
+							replace_original: true,
+						};
+						sendMessageToSlackResponseURL(
+							actionJSONPayload.response_url,
+							successMessage
+						);
+						sendMessageToFollowShows(`Started download of *${movieTitle}*`);
+						return;
+					}
 					let thirtySecondCheck;
 					let numTries = 0;
 					const checkJobStatus = () => {
@@ -422,7 +434,9 @@ function addPtpSlackRoute(app) {
 									clearTimeout(thirtySecondCheck);
 								} else {
 									const successMessage = {
-										text: `Saving ${movieTitle} in dropbox is taking a while, will try again in 30 seconds. This is attempt number ${numTries}`,
+										text: `Saving ${movieTitle} in dropbox is taking a while, will try again in 30 seconds. This is attempt number ${numTries}. tag=${
+											response['.tag']
+										} ${JSON.stringify(response)}`,
 										replace_original: true,
 									};
 									sendMessageToSlackResponseURL(
