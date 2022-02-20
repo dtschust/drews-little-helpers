@@ -329,16 +329,7 @@ Seeders: ${t.Seeders}, Snatched ${t.Snatched}, Size: ${t.Size / 1073741824} Gb`,
 				type: 'plain_text',
 				text: `Select Movie Version`,
 			},
-			blocks: [
-				{
-					type: 'section',
-					block_id: 'section-identifier',
-					text: {
-						type: 'mrkdwn',
-						text: JSON.stringify(torrents),
-					},
-				},
-			],
+			blocks,
 		},
 	});
 }
