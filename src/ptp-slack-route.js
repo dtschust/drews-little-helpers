@@ -348,19 +348,19 @@ function addPtpSlackRoute(app) {
 			res.status(200).end();
 			return;
 		}
-		console.log(JSON.stringify(req.body));
-		console.log('TYPE: ', req.body.type);
-		if (req.body.type === 'block_actions') {
+		const actionJSONPayload = JSON.parse(req.body.payload);
+		if (actionJSONPayload.type === 'block_actions') {
 			if (req.body.view && req.body.view.type === 'home') {
-				console.log(JSON.stringify(req.body));
-				openMovieSelectedModal(req.body.trigger_id, JSON.parse(req.body.actions[0].value));
+				console.log(JSON.stringify(actionJSONPayload));
+				openMovieSelectedModal(
+					actionJSONPayload.trigger_id,
+					JSON.parse(actionJSONPayload.actions[0].value)
+				);
 			}
 			res.status(200).end();
 			return;
 		}
 		res.status(200).end();
-
-		const actionJSONPayload = JSON.parse(req.body.payload);
 
 		if (actionJSONPayload.token !== process.env.PTP_SLACK_VERIFICATION_TOKEN) {
 			res.status(403).end('Access forbidden');
