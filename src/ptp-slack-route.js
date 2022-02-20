@@ -278,7 +278,7 @@ async function openMovieSelectedModal(triggerId, { title, id, posterUrl, year })
 			callback_id: 'movieSelectedModal',
 			title: {
 				type: 'plain_text',
-				text: `Select a version of ${title}`,
+				text: `Pick a Movie Version`,
 			},
 			blocks: [
 				{
@@ -302,7 +302,7 @@ async function openMovieSelectedModal(triggerId, { title, id, posterUrl, year })
 			callback_id: 'movieSelectedModal',
 			title: {
 				type: 'plain_text',
-				text: `Select a version of ${title}`,
+				text: `Pick a Movie Version`,
 			},
 			blocks: [
 				{
