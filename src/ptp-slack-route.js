@@ -270,6 +270,90 @@ ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${t.RemasterTitle ? `/ ${t.Remaster
 	return torrents;
 }
 
+async function downloadMovieModal(resp) {
+	const { title, torrentId } = JSON.parse(resp.actions[0].value);
+	const viewId = resp.view.id;
+	// TODO: Move this into its own util
+	function updateModalWithText(text) {
+		return webMovies.views.update({
+			view_id: viewId,
+			view: {
+				type: 'modal',
+				callback_id: 'movieSelectedModal',
+				title: {
+					type: 'plain_text',
+					text: `Downloading Movie`,
+				},
+				blocks: [
+					{
+						type: 'section',
+						block_id: 'section-identifier',
+						text: {
+							type: 'mrkdwn',
+							text,
+						},
+					},
+				],
+			},
+		});
+	}
+	// TODO: Use hash when I add buttons here
+
+	await updateModalWithText(
+		`Chill, i'll download ${title} for you. If I fail, here's the url and you can do it yourself: https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey}`
+	);
+	dbx.filesSaveUrl({
+		url: `https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey}`,
+		path: `/torrents/${Date.now()}.torrent`,
+	})
+		.then(({ async_job_id: asyncJobId, '.tag': tag }) => {
+			if (tag === 'complete') {
+				updateModalWithText(`Successfully placed ${title} in dropbox, have a great day!!!`);
+				sendMessageToFollowShows(`Started download of *${title}*`);
+				return;
+			}
+			let thirtySecondCheck;
+			let numTries = 0;
+			const checkJobStatus = () => {
+				dbx.filesSaveUrlCheckJobStatus({
+					async_job_id: asyncJobId,
+				})
+					.then((response) => {
+						if (response['.tag'] === 'complete') {
+							updateModalWithText(
+								`Successfully placed ${title} in dropbox, have a great day!`
+							);
+							sendMessageToFollowShows(`Started download of *${title}*`);
+							clearTimeout(thirtySecondCheck);
+						} else {
+							updateModalWithText(
+								`Saving ${title} in dropbox is taking a while, will try again in 30 seconds. This is attempt number ${numTries}. tag=${
+									response['.tag']
+								} ${JSON.stringify(response)}`
+							);
+							numTries += 1;
+							if (numTries > 5) {
+								clearTimeout(thirtySecondCheck);
+								throw new Error('unable to save to dropbox, it appears');
+							}
+							thirtySecondCheck = setTimeout(checkJobStatus, 30000);
+						}
+					})
+					.catch(() => {
+						updateModalWithText(
+							`I'm unable to check the status of job_id ${asyncJobId}, sorry!`
+						);
+					});
+			};
+			setTimeout(checkJobStatus, 5000);
+		})
+		.catch((error) => {
+			updateModalWithText(
+				`Oops, something went wrong. Sorry, here's your URL to do it manually: https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey} . ${error}`
+			);
+		});
+}
+
 async function openMovieSelectedModal(triggerId, { title, id, posterUrl, year }) {
 	const resp = await webMovies.views.open({
 		trigger_id: triggerId,
@@ -365,7 +449,6 @@ function addPtpSlackRoute(app) {
 			return;
 		}
 		const actionJSONPayload = JSON.parse(req.body.payload);
-		console.log(JSON.stringify(actionJSONPayload));
 		if (actionJSONPayload.type === 'block_actions') {
 			if (actionJSONPayload.view && actionJSONPayload.view.type === 'home') {
 				if (actionJSONPayload.actions[0].action_id.indexOf('selectMovieAppHome') === 0) {
@@ -373,12 +456,10 @@ function addPtpSlackRoute(app) {
 						actionJSONPayload.trigger_id,
 						JSON.parse(actionJSONPayload.actions[0].value)
 					);
-				} else if (
-					actionJSONPayload.actions[0].action_id.indexOf('downloadMovieAppHome') === 0
-				) {
-					// TODO: Download the movie
-					console.log('TODO: Download the movie');
-					console.log(JSON.stringify(JSON.parse(actionJSONPayload.actions[0].value)));
+				}
+			} else if (actionJSONPayload.view && actionJSONPayload.view.type === 'modal') {
+				if (actionJSONPayload.actions[0].action_id.indexOf('downloadMovieAppHome') === 0) {
+					downloadMovieModal(actionJSONPayload);
 				}
 			}
 			res.status(200).end();
