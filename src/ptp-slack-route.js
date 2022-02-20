@@ -278,7 +278,7 @@ async function openMovieSelectedModal(triggerId, { title, id, posterUrl, year })
 			callback_id: 'movieSelectedModal',
 			title: {
 				type: 'plain_text',
-				text: `Pick a Movie Version`,
+				text: `Select Movie Version`,
 			},
 			blocks: [
 				{
@@ -295,6 +295,31 @@ async function openMovieSelectedModal(triggerId, { title, id, posterUrl, year })
 	const viewId = resp.view.id;
 	const torrents = await searchAndRespond(title, undefined, false, false, id);
 	// TODO: Use hash when I add buttons here
+
+	const blocks = [];
+	torrents.forEach((t) => {
+		blocks.push({
+			type: 'section',
+			text: {
+				type: 'mrkdwn',
+				text: `\
+*${t.GoldenPopcorn ? ':popcorn: ' : ''}${t.Checked ? ':white_check_mark: ' : ''}\
+${t.Quality} / ${t.Codec} / ${t.Container} / ${t.Source} /\
+${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${t.RemasterTitle ? `/ ${t.RemasterTitle}` : ''}*
+Seeders: ${t.Seeders}, Snatched ${t.Snatched}, Size: ${t.Size / 1073741824} Gb`,
+			},
+			accessory: {
+				type: 'button',
+				text: {
+					type: 'plain_text',
+					text: `Download ${title}`,
+				},
+				action_id: `downloadMovieAppHome ${title}`,
+				value: JSON.stringify({ title, torrentId: t.Id, id, posterUrl, year }),
+			},
+		});
+	});
+
 	return webMovies.views.update({
 		view_id: viewId,
 		view: {
@@ -302,7 +327,7 @@ async function openMovieSelectedModal(triggerId, { title, id, posterUrl, year })
 			callback_id: 'movieSelectedModal',
 			title: {
 				type: 'plain_text',
-				text: `Pick a Movie Version`,
+				text: `Select Movie Version`,
 			},
 			blocks: [
 				{
@@ -352,10 +377,18 @@ function addPtpSlackRoute(app) {
 		console.log(JSON.stringify(actionJSONPayload));
 		if (actionJSONPayload.type === 'block_actions') {
 			if (actionJSONPayload.view && actionJSONPayload.view.type === 'home') {
-				openMovieSelectedModal(
-					actionJSONPayload.trigger_id,
-					JSON.parse(actionJSONPayload.actions[0].value)
-				);
+				if (actionJSONPayload.actions[0].action_id.indexOf('selectMovieAppHome') === 0) {
+					openMovieSelectedModal(
+						actionJSONPayload.trigger_id,
+						JSON.parse(actionJSONPayload.actions[0].value)
+					);
+				} else if (
+					actionJSONPayload.actions[0].action_id.indexOf('downloadMovieAppHome') === 0
+				) {
+					// TODO: Download the movie
+					console.log('TODO: Download the movie');
+					console.log(JSON.stringify(JSON.parse(actionJSONPayload.actions[0].value)));
+				}
 			}
 			res.status(200).end();
 			return;
