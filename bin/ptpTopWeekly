@@ -130,6 +130,7 @@ async function main(usePersistedCookies = true) {
 			const { title, id, posterUrl, year } = titleInfo;
 			const attachment = {
 				title,
+				fallback: 'TODO',
 				callback_id: title,
 				image_url: posterUrl,
 				actions: [
@@ -141,7 +142,7 @@ async function main(usePersistedCookies = true) {
 					},
 				],
 			};
-			await sendMessageToFollowShowsAsMovies(undefined, {
+			await sendMessageToFollowShowsAsMovies(' ', {
 				attachments: [attachment],
 			});
 		}

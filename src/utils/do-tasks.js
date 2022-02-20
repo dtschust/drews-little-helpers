@@ -7,20 +7,19 @@ const { getDrewsHelpfulRobot } = require('./slack');
 const { sendMessageToCronLogs, sendBlockMessageToCronLogs } = getDrewsHelpfulRobot();
 
 let someFailed = false;
-
-const logs = [[]];
-
-function log(message) {
-	const currentLogGroup = logs[logs.length - 1];
-	console.log(message);
-	currentLogGroup.push(message);
-}
-
-function newLogGroup() {
-	logs.push([]);
-}
-
 async function doTasks(tasks, cadence) {
+	const logs = [[]];
+
+	function log(message) {
+		const currentLogGroup = logs[logs.length - 1];
+		console.log(message);
+		currentLogGroup.push(message);
+	}
+
+	function newLogGroup() {
+		logs.push([]);
+	}
+
 	if (!tasks.length) return true;
 	tasks.forEach((inputTask) => {
 		const [task, ...args] = inputTask.split(' ');
@@ -52,10 +51,9 @@ ${stdout.toString().trim()}
 		newLogGroup();
 	});
 	return sendMessageToCronLogs(
-		// TODO: Remove these getDay() logs
 		someFailed
-			? `❌: At least one ${cadence} Task failed! @drew 🧵 ${new Date().getDay()}`
-			: `✅ ${cadence} Tasks completed successfully! ${new Date().getDay()}`
+			? `❌: At least one ${cadence} Task failed! @drew 🧵`
+			: `✅ ${cadence} Tasks completed successfully!`
 	)
 		.then(({ ts }) => {
 			const blocks = [];
@@ -83,16 +81,16 @@ ${stdout.toString().trim()}
 			return sendBlockMessageToCronLogs(blocks, { thread_ts: ts })
 				.then(() => {
 					console.log('Logs sent to Slack');
-					process.exit(0);
 				})
 				.catch((err) => {
 					console.log('Failed to send logs to Slack:', err);
-					process.exit(1);
+					console.log(JSON.stringify(blocks));
+					return 1;
 				});
 		})
 		.catch((err) => {
 			console.log('Failed to send logs to Slack:', err);
-			process.exit(1);
+			return 1;
 		});
 }
 
