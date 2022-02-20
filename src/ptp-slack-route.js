@@ -351,7 +351,7 @@ function addPtpSlackRoute(app) {
 		const actionJSONPayload = JSON.parse(req.body.payload);
 		console.log(JSON.stringify(actionJSONPayload));
 		if (actionJSONPayload.type === 'block_actions') {
-			if (req.body.view && req.body.view.type === 'home') {
+			if (actionJSONPayload.view && actionJSONPayload.view.type === 'home') {
 				openMovieSelectedModal(
 					actionJSONPayload.trigger_id,
 					JSON.parse(actionJSONPayload.actions[0].value)
