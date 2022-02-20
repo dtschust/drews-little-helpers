@@ -36,7 +36,21 @@ async function checkForUpdates() {
 		args: ['--no-sandbox', '--disable-setuid-sandbox'],
 	});
 	const page = await browser.newPage();
-	await page.goto('https://www.garykamiya.com/');
+	let attempts = 0;
+	const goToPage = async () => {
+		try {
+			attempts += 1;
+			await page.goto('https://www.garykamiya.com/');
+		} catch (e) {
+			if (attempts > 3) {
+				throw new Error(`Gave up connecting after 4 or so tries ${e}`);
+			}
+			// try again
+			return goToPage();
+		}
+	};
+
+	await goToPage();
 
 	const contentDiv = await page.$('#content');
 	const contentText = await page.evaluate((el) => el.innerText, contentDiv);

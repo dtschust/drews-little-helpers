@@ -15,7 +15,22 @@ async function main() {
 		args: ['--no-sandbox', '--disable-setuid-sandbox'],
 	});
 	const page = await browser.newPage();
-	await page.goto('https://letterboxd.com/dtschust/following/');
+
+	let attempts = 0;
+	const goToPage = async () => {
+		try {
+			attempts += 1;
+			await page.goto('https://letterboxd.com/dtschust/following/');
+		} catch (e) {
+			if (attempts > 3) {
+				throw new Error(`Gave up connecting after 4 or so tries ${e}`);
+			}
+			// try again
+			return goToPage();
+		}
+	};
+
+	await goToPage();
 
 	const { feeds } = await fetch(
 		`https://feedwrangler.net/api/v2/subscriptions/list?access_token=${feedWranglerToken}`
