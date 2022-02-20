@@ -52,9 +52,10 @@ ${stdout.toString().trim()}
 		newLogGroup();
 	});
 	return sendMessageToCronLogs(
+		// TODO: Remove these getDay() logs
 		someFailed
-			? `❌: At least one ${cadence} Task failed! @drew 🧵`
-			: `✅ ${cadence} Tasks completed successfully!`
+			? `❌: At least one ${cadence} Task failed! @drew 🧵 ${new Date().getDay()}`
+			: `✅ ${cadence} Tasks completed successfully! ${new Date().getDay()}`
 	)
 		.then(({ ts }) => {
 			const blocks = [];
