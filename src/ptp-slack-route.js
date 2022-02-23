@@ -305,29 +305,37 @@ async function openMovieSearchModal(triggerId, query = '') {
 	});
 }
 
-async function openMovieSelectedModal(triggerId, { title, id, posterUrl, year }) {
-	const resp = await webMovies.views.open({
-		trigger_id: triggerId,
-		view: {
-			type: 'modal',
-			callback_id: 'movieSelectedModal',
-			title: {
-				type: 'plain_text',
-				text: `Select Movie Version`,
-			},
-			blocks: [
-				{
-					type: 'section',
-					block_id: 'section-identifier',
-					text: {
-						type: 'mrkdwn',
-						text: 'loading',
-					},
+async function openMovieSelectedModal(
+	{ triggerId, viewId: inViewId },
+	{ title, id, posterUrl, year }
+) {
+	let viewId;
+	if (!inViewId) {
+		const resp = await webMovies.views.open({
+			trigger_id: triggerId,
+			view: {
+				type: 'modal',
+				callback_id: 'movieSelectedModal',
+				title: {
+					type: 'plain_text',
+					text: `Select Movie Version`,
 				},
-			],
-		},
-	});
-	const viewId = resp.view.id;
+				blocks: [
+					{
+						type: 'section',
+						block_id: 'section-identifier',
+						text: {
+							type: 'mrkdwn',
+							text: 'loading',
+						},
+					},
+				],
+			},
+		});
+		viewId = resp.view.id;
+	} else {
+		viewId = inViewId;
+	}
 
 	async function provideFeedback({ text } = {}) {
 		return webMovies.views.update({
@@ -438,14 +446,19 @@ function addPtpSlackRoute(app) {
 			if (payload.view && payload.view.type === 'home') {
 				if (payload.actions[0].action_id.indexOf('selectMovieAppHome') === 0) {
 					openMovieSelectedModal(
-						payload.trigger_id,
+						{ triggerId: payload.trigger_id },
 						JSON.parse(payload.actions[0].value)
 					);
 				} else if (payload.actions[0].action_id.indexOf('searchMovieAppHome') === 0) {
 					openMovieSearchModal(payload.trigger_id, payload.actions[0].value);
 				}
 			} else if (payload.view && payload.view.type === 'modal') {
-				if (payload.actions[0].action_id.indexOf('downloadMovieAppHome') === 0) {
+				if (payload.actions[0].action_id.indexOf('selectMovieAppHome') === 0) {
+					openMovieSelectedModal(
+						{ viewId: payload.view.id },
+						JSON.parse(payload.actions[0].value)
+					);
+				} else if (payload.actions[0].action_id.indexOf('downloadMovieAppHome') === 0) {
 					downloadMovieModal(payload);
 				}
 			}
