@@ -10,7 +10,7 @@ const getPtpLoginCookies = require('./utils/get-ptp-login-cookie');
 const { getDrewsHelpfulRobot } = require('./utils/slack');
 const { sortTorrents, sendMessageToSlackResponseURL, saveUrlToDropbox } = require('./utils/ptp');
 
-const { Surfaces, Blocks, Elements /* Bits, Utilities */ } = slackBlockBuilder;
+const { Surfaces, Blocks, Elements, BlockCollection /* Bits, Utilities */ } = slackBlockBuilder;
 
 const { webMovies } = getDrewsHelpfulRobot();
 
@@ -133,7 +133,7 @@ function search(query) {
 
 async function searchAndRespond({
 	query,
-	provideFeedback,
+	provideFeedback = () => true,
 	retry = true,
 	groupId = undefined,
 } = {}) {
@@ -184,7 +184,8 @@ async function searchAndRespond({
 		text: `Results for ${query} :`,
 		attachments,
 	};
-	return provideFeedback(message);
+	provideFeedback(message);
+	return movies;
 }
 
 async function selectMovie(movieTitle, groupId, provideFeedback) {
@@ -269,29 +270,39 @@ async function openMovieSearchModal(triggerId, query = '') {
 
 	const viewId = resp.view.id;
 
-	// TODO: implement
-	console.log(viewId);
+	const movies = await searchAndRespond({
+		query,
+		retry: true,
+	});
 
-	// async function provideFeedback(message = {}) {
-	// 	return webMovies.views.update({
-	// 		view_id: viewId,
-	// 		view: {
-	// 			type: 'modal',
-	// 			callback_id: 'movieSelectedModal',
-	// 			title: {
-	// 				type: 'plain_text',
-	// 				text: `Select Movie Version`,
-	// 			},
-	// 			blocks: [message],
-	// 		},
-	// 	});
-	// }
-
-	// const torrents = await searchAndRespond({
-	// 	query: value,
-	// 	provideFeedback,
-	// 	retry: true,
-	// });
+	const blocks = [];
+	movies.forEach(({ Title: title, GroupId: id, Cover: posterUrl, Year: year }) => {
+		blocks.push(Blocks.Section().text(`*${title}* (${year})`));
+		blocks.push(Blocks.Image({ imageUrl: posterUrl, altText: title }));
+		blocks.push(
+			Blocks.Actions().elements(
+				Elements.Button({
+					text: `${title} (${year})`,
+					// TODO This actionId is likely wrong but might just work???
+					actionId: `selectMovieAppHome ${title}`,
+					value: JSON.stringify({ title, id, posterUrl, year }),
+				})
+			)
+		);
+		blocks.push(Blocks.Divider());
+	});
+	return webMovies.views.update({
+		view_id: viewId,
+		view: {
+			type: 'modal',
+			callback_id: 'movieSelectedModal',
+			title: {
+				type: 'plain_text',
+				text: `Select Movie`,
+			},
+			blocks: BlockCollection(blocks),
+		},
+	});
 }
 
 async function openMovieSelectedModal(triggerId, { title, id, posterUrl, year }) {
