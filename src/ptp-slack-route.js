@@ -1,16 +1,14 @@
 require('dotenv').config();
 require('isomorphic-fetch');
-const { Dropbox } = require('dropbox');
 require('./utils/mongoose-connect');
 
 const TopMovies = require('./mongoose-models/Top-Movies');
 const PtpCookie = require('./mongoose-models/Ptp-Cookie');
 const getPtpLoginCookies = require('./utils/get-ptp-login-cookie');
 const { getDrewsHelpfulRobot } = require('./utils/slack');
+const { sortTorrents, sendMessageToSlackResponseURL, saveUrlToDropbox } = require('./utils/ptp');
 
-const { sendMessageToFollowShows, webMovies } = getDrewsHelpfulRobot();
-
-const dbx = new Dropbox({ accessToken: process.env.DROPBOX_TOKEN });
+const { webMovies } = getDrewsHelpfulRobot();
 
 let authKey;
 let passKey;
@@ -61,7 +59,6 @@ async function publishViewForUser(user) {
 		},
 	];
 	movies.forEach(({ title, id, posterUrl, year }) => {
-		// TODO: Action buttons
 		blocks.push({
 			type: 'section',
 			text: {
@@ -107,43 +104,6 @@ async function publishViewForUser(user) {
 		view: JSON.stringify(view),
 	});
 }
-async function sendMessageToSlackResponseURL(responseURL, JSONmessage) {
-	if (!responseURL) return;
-	return fetch(responseURL, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-		},
-		body: JSON.stringify(JSONmessage),
-	});
-}
-
-function sortTorrents(a, b) {
-	if (a.Quality === 'Ultra High Definition' && !b.quality !== 'Ultra High Definition') {
-		return -1;
-	}
-
-	if (b.Quality === 'Ultra High Definition' && !a.quality !== 'Ultra High Definition') {
-		return 1;
-	}
-
-	if (a.GoldenPopcorn && !b.GoldenPopcorn) {
-		return -1;
-	}
-	if (b.GoldenPopcorn && !a.GoldenPopcorn) {
-		return 1;
-	}
-
-	if (a.Quality === 'High Definition' && !b.quality !== 'High Definition') {
-		return -1;
-	}
-
-	if (b.Quality === 'High Definition' && !a.quality !== 'High Definition') {
-		return 1;
-	}
-
-	return 0;
-}
 
 let COOKIE;
 PtpCookie.findOne(undefined)
@@ -154,7 +114,7 @@ PtpCookie.findOne(undefined)
 		}
 	});
 
-async function getLoginCookies(query, provideFeedback, retry) {
+async function getLoginCookies(provideFeedback, retry) {
 	let message = {
 		text: 'Oops, need to log in again, please hold!',
 	};
@@ -202,7 +162,7 @@ async function searchAndRespond({
 		apiResponse = await search(query);
 	} catch (e) {
 		console.error('exception parsing JSON body: ', e);
-		const success = await getLoginCookies(query, provideFeedback, retry);
+		const success = await getLoginCookies(provideFeedback, retry);
 		if (retry && success) {
 			return searchAndRespond({
 				query,
@@ -242,7 +202,6 @@ async function searchAndRespond({
 
 	const message = {
 		text: `Results for ${query} :`,
-		// replace_original: replaceOriginal,
 		attachments,
 	};
 	return provideFeedback(message);
@@ -278,8 +237,7 @@ ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${t.RemasterTitle ? `/ ${t.Remaster
 async function downloadMovieModal(resp) {
 	const { title, torrentId } = JSON.parse(resp.actions[0].value);
 	const viewId = resp.view.id;
-	// TODO: Move this into its own util
-	function updateModalWithText(text) {
+	function provideFeedback({ text } = {}) {
 		return webMovies.views.update({
 			view_id: viewId,
 			view: {
@@ -303,60 +261,7 @@ async function downloadMovieModal(resp) {
 		});
 	}
 	// TODO: Use hash when I add buttons here
-
-	await updateModalWithText(
-		`Chill, i'll download ${title} for you. If I fail, here's the url and you can do it yourself: https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey}`
-	);
-	dbx.filesSaveUrl({
-		url: `https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey}`,
-		path: `/torrents/${Date.now()}.torrent`,
-	})
-		.then(({ async_job_id: asyncJobId, '.tag': tag }) => {
-			if (tag === 'complete') {
-				updateModalWithText(`Successfully placed ${title} in dropbox, have a great day!!!`);
-				sendMessageToFollowShows(`Started download of *${title}*`);
-				return;
-			}
-			let thirtySecondCheck;
-			let numTries = 0;
-			const checkJobStatus = () => {
-				dbx.filesSaveUrlCheckJobStatus({
-					async_job_id: asyncJobId,
-				})
-					.then((response) => {
-						if (response['.tag'] === 'complete') {
-							updateModalWithText(
-								`Successfully placed ${title} in dropbox, have a great day!`
-							);
-							sendMessageToFollowShows(`Started download of *${title}*`);
-							clearTimeout(thirtySecondCheck);
-						} else {
-							updateModalWithText(
-								`Saving ${title} in dropbox is taking a while, will try again in 30 seconds. This is attempt number ${numTries}. tag=${
-									response['.tag']
-								} ${JSON.stringify(response)}`
-							);
-							numTries += 1;
-							if (numTries > 5) {
-								clearTimeout(thirtySecondCheck);
-								throw new Error('unable to save to dropbox, it appears');
-							}
-							thirtySecondCheck = setTimeout(checkJobStatus, 30000);
-						}
-					})
-					.catch(() => {
-						updateModalWithText(
-							`I'm unable to check the status of job_id ${asyncJobId}, sorry!`
-						);
-					});
-			};
-			setTimeout(checkJobStatus, 5000);
-		})
-		.catch((error) => {
-			updateModalWithText(
-				`Oops, something went wrong. Sorry, here's your URL to do it manually: https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey} . ${error}`
-			);
-		});
+	return saveUrlToDropbox({ torrentId, movieTitle: title, provideFeedback, authKey, passKey });
 }
 
 async function openMovieSelectedModal(triggerId, { title, id, posterUrl, year }) {
@@ -531,74 +436,7 @@ function addPtpSlackRoute(app) {
 			const torrentId = payload.actions[0].value;
 			const movieTitle = payload.actions[0].name.split('downloadMovie ')[1];
 
-			const message = {
-				text: `Chill, i'll download ${movieTitle} for you. If I fail, here's the url and you can do it yourself: https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey}`,
-				replace_original: true,
-			};
-			provideFeedback(message);
-
-			dbx.filesSaveUrl({
-				url: `https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey}`,
-				path: `/torrents/${Date.now()}.torrent`,
-			})
-				.then(({ async_job_id: asyncJobId, '.tag': tag }) => {
-					if (tag === 'complete') {
-						const successMessage = {
-							text: `Successfully placed ${movieTitle} in dropbox, have a great day!!`,
-							replace_original: true,
-						};
-						provideFeedback(successMessage);
-						sendMessageToFollowShows(`Started download of *${movieTitle}*`);
-						return;
-					}
-					let thirtySecondCheck;
-					let numTries = 0;
-					const checkJobStatus = () => {
-						dbx.filesSaveUrlCheckJobStatus({
-							async_job_id: asyncJobId,
-						})
-							.then((response) => {
-								if (response['.tag'] === 'complete') {
-									const successMessage = {
-										text: `Successfully placed ${movieTitle} in dropbox, have a great day!`,
-										replace_original: true,
-									};
-									provideFeedback(successMessage);
-									sendMessageToFollowShows(`Started download of *${movieTitle}*`);
-									clearTimeout(thirtySecondCheck);
-								} else {
-									const successMessage = {
-										text: `Saving ${movieTitle} in dropbox is taking a while, will try again in 30 seconds. This is attempt number ${numTries}. tag=${
-											response['.tag']
-										} ${JSON.stringify(response)}`,
-										replace_original: true,
-									};
-									provideFeedback(successMessage);
-									numTries += 1;
-									if (numTries > 5) {
-										clearTimeout(thirtySecondCheck);
-										throw new Error('unable to save to dropbox, it appears');
-									}
-									thirtySecondCheck = setTimeout(checkJobStatus, 30000);
-								}
-							})
-							.catch(() => {
-								const failMessage = {
-									text: `I'm unable to check the status of job_id ${asyncJobId}, sorry!`,
-									replace_original: false,
-								};
-								provideFeedback(failMessage);
-							});
-					};
-					setTimeout(checkJobStatus, 5000);
-				})
-				.catch((error) => {
-					const errorMessage = {
-						text: `Oops, something went wrong. Sorry, here's your URL to do it manually: https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey} . ${error}`,
-						replace_original: false,
-					};
-					provideFeedback(errorMessage);
-				});
+			saveUrlToDropbox({ torrentId, movieTitle, provideFeedback, authKey, passKey });
 		} else {
 			// Unknown action!
 		}
