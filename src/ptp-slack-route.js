@@ -52,10 +52,10 @@ async function publishViewForUser(user) {
 	const { movies } = await TopMovies.findOne(undefined);
 	const blocks = [
 		Blocks.Input()
+			.dispatchAction(true)
 			.element(
 				Elements.TextInput({
 					actionId: 'searchMovieAppHome',
-					initialValue: 'Search for a movie',
 				})
 			)
 			.label('Search for a movie'),
