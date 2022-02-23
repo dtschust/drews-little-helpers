@@ -244,7 +244,7 @@ async function downloadMovieModal(resp) {
 	return saveUrlToDropbox({ torrentId, movieTitle: title, provideFeedback, authKey, passKey });
 }
 
-async function openMovieSearchModal(triggerId, { value } = {}) {
+async function openMovieSearchModal(triggerId, query = '') {
 	const resp = await webMovies.views.open({
 		trigger_id: triggerId,
 		view: {
@@ -260,7 +260,7 @@ async function openMovieSearchModal(triggerId, { value } = {}) {
 					block_id: 'section-identifier',
 					text: {
 						type: 'mrkdwn',
-						text: 'loading',
+						text: `Searching for *${query}*...`,
 					},
 				},
 			],
@@ -270,7 +270,7 @@ async function openMovieSearchModal(triggerId, { value } = {}) {
 	const viewId = resp.view.id;
 
 	// TODO: implement
-	console.log(viewId, value);
+	console.log(viewId);
 
 	// async function provideFeedback(message = {}) {
 	// 	return webMovies.views.update({
@@ -431,9 +431,7 @@ function addPtpSlackRoute(app) {
 						JSON.parse(payload.actions[0].value)
 					);
 				} else if (payload.actions[0].action_id.indexOf('searchMovieAppHome') === 0) {
-					console.log(JSON.stringify(payload));
-					openMovieSearchModal(payload.trigger_id, JSON.parse(payload.actions[0].value));
-					// TODO: open search results modal
+					openMovieSearchModal(payload.trigger_id, payload.actions[0].value);
 				}
 			} else if (payload.view && payload.view.type === 'modal') {
 				if (payload.actions[0].action_id.indexOf('downloadMovieAppHome') === 0) {
