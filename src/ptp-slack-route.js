@@ -154,7 +154,7 @@ PtpCookie.findOne(undefined)
 		}
 	});
 
-async function getLoginCookies(query, responseURL, retry) {
+async function getLoginCookies(query, responseURL, retry, groupId) {
 	let message = {
 		text: 'Oops, need to log in again, please hold!',
 	};
@@ -177,7 +177,7 @@ async function getLoginCookies(query, responseURL, retry) {
 	};
 	sendMessageToSlackResponseURL(responseURL, message);
 	if (retry) {
-		searchAndRespond(query, responseURL, false);
+		return searchAndRespond(query, responseURL, false, false, groupId);
 	}
 }
 
@@ -205,8 +205,7 @@ async function searchAndRespond(
 		apiResponse = await search(query);
 	} catch (e) {
 		console.error('exception parsing JSON body: ', e);
-		getLoginCookies(query, responseURL, retry);
-		return;
+		return getLoginCookies(query, responseURL, retry, groupId);
 	}
 
 	authKey = apiResponse.AuthKey;
@@ -377,7 +376,7 @@ async function openMovieSelectedModal(triggerId, { title, id, posterUrl, year })
 		},
 	});
 	const viewId = resp.view.id;
-	const torrents = await searchAndRespond(title, undefined, false, false, id);
+	const torrents = await searchAndRespond(title, undefined, true, false, id);
 	// TODO: Use hash when I add buttons here
 
 	const blocks = [];
