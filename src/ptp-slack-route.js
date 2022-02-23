@@ -51,12 +51,14 @@ async function sendTopTenMoviesOfTheWeek(provideFeedback) {
 async function publishViewForUser(user) {
 	const { movies } = await TopMovies.findOne(undefined);
 	const blocks = [
-		Blocks.Input().element(
-			Elements.TextInput({
-				actionId: 'searchMovieAppHome',
-				initialValue: 'Search for a movie',
-			}).label('Search for a movie')
-		),
+		Blocks.Input()
+			.element(
+				Elements.TextInput({
+					actionId: 'searchMovieAppHome',
+					initialValue: 'Search for a movie',
+				})
+			)
+			.label('Search for a movie'),
 		Blocks.Section().text('*Top 10 Movies of the Week*'),
 		Blocks.Divider(),
 	];
@@ -242,6 +244,56 @@ async function downloadMovieModal(resp) {
 	return saveUrlToDropbox({ torrentId, movieTitle: title, provideFeedback, authKey, passKey });
 }
 
+async function openMovieSearchModal(triggerId, { value } = {}) {
+	const resp = await webMovies.views.open({
+		trigger_id: triggerId,
+		view: {
+			type: 'modal',
+			callback_id: 'movieSelectedModal',
+			title: {
+				type: 'plain_text',
+				text: `Select Movie`,
+			},
+			blocks: [
+				{
+					type: 'section',
+					block_id: 'section-identifier',
+					text: {
+						type: 'mrkdwn',
+						text: 'loading',
+					},
+				},
+			],
+		},
+	});
+
+	const viewId = resp.view.id;
+
+	// TODO: implement
+	console.log(viewId, value);
+
+	// async function provideFeedback(message = {}) {
+	// 	return webMovies.views.update({
+	// 		view_id: viewId,
+	// 		view: {
+	// 			type: 'modal',
+	// 			callback_id: 'movieSelectedModal',
+	// 			title: {
+	// 				type: 'plain_text',
+	// 				text: `Select Movie Version`,
+	// 			},
+	// 			blocks: [message],
+	// 		},
+	// 	});
+	// }
+
+	// const torrents = await searchAndRespond({
+	// 	query: value,
+	// 	provideFeedback,
+	// 	retry: true,
+	// });
+}
+
 async function openMovieSelectedModal(triggerId, { title, id, posterUrl, year }) {
 	const resp = await webMovies.views.open({
 		trigger_id: triggerId,
@@ -380,6 +432,7 @@ function addPtpSlackRoute(app) {
 					);
 				} else if (payload.actions[0].action_id.indexOf('searchMovieAppHome') === 0) {
 					console.log(JSON.stringify(payload));
+					openMovieSearchModal(payload.trigger_id, JSON.parse(payload.actions[0].value));
 					// TODO: open search results modal
 				}
 			} else if (payload.view && payload.view.type === 'modal') {
