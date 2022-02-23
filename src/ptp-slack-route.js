@@ -70,7 +70,7 @@ async function publishViewForUser(user) {
 
 	return webMovies.views.publish({
 		user_id: user,
-		view: JSON.stringify(view),
+		view,
 	});
 }
 
