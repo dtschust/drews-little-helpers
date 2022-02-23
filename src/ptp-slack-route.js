@@ -2,11 +2,15 @@ require('dotenv').config();
 require('isomorphic-fetch');
 require('./utils/mongoose-connect');
 
+const slackBlockBuilder = require('slack-block-builder');
+
 const TopMovies = require('./mongoose-models/Top-Movies');
 const PtpCookie = require('./mongoose-models/Ptp-Cookie');
 const getPtpLoginCookies = require('./utils/get-ptp-login-cookie');
 const { getDrewsHelpfulRobot } = require('./utils/slack');
 const { sortTorrents, sendMessageToSlackResponseURL, saveUrlToDropbox } = require('./utils/ptp');
+
+const { Surfaces, Blocks, Elements /* Bits, Utilities */ } = slackBlockBuilder;
 
 const { webMovies } = getDrewsHelpfulRobot();
 
@@ -46,58 +50,23 @@ async function sendTopTenMoviesOfTheWeek(provideFeedback) {
 
 async function publishViewForUser(user) {
 	const { movies } = await TopMovies.findOne(undefined);
-	const blocks = [
-		{
-			type: 'section',
-			text: {
-				type: 'mrkdwn',
-				text: '*Top 10 Movies of the Week*',
-			},
-		},
-		{
-			type: 'divider',
-		},
-	];
+	const blocks = [Blocks.Section().text('*Top 10 Movies of the Week*'), Blocks.Divider()];
 	movies.forEach(({ title, id, posterUrl, year }) => {
-		blocks.push({
-			type: 'section',
-			text: {
-				type: 'mrkdwn',
-				text: `*${title}* (${year})`,
-			},
-		});
-		blocks.push({
-			type: 'image',
-			image_url: posterUrl,
-			alt_text: title,
-		});
-		blocks.push({
-			type: 'actions',
-			elements: [
-				{
-					type: 'button',
-					text: {
-						type: 'plain_text',
-						text: `${title} (${year})`,
-					},
-					action_id: `selectMovieAppHome ${title}`,
+		blocks.push(Blocks.Section().text(`*${title}* (${year})`));
+		blocks.push(Blocks.Image({ imageUrl: posterUrl, altText: title }));
+		blocks.push(
+			Blocks.Actions().elements(
+				Elements.Button({
+					text: `${title} (${year})`,
+					actionId: `selectMovieAppHome ${title}`,
 					value: JSON.stringify({ title, id, posterUrl, year }),
-				},
-			],
-		});
-		blocks.push({
-			type: 'divider',
-		});
+				})
+			)
+		);
+		blocks.push(Blocks.Divider());
 	});
 
-	const view = {
-		type: 'home',
-		title: {
-			type: 'plain_text',
-			text: 'what is this',
-		},
-		blocks,
-	};
+	const view = Surfaces.HomeTab().blocks(blocks).buildToJSON();
 
 	return webMovies.views.publish({
 		user_id: user,
