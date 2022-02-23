@@ -447,18 +447,18 @@ function addPtpSlackRoute(app) {
 			res.status(200).end();
 			return;
 		}
-		const actionJSONPayload = JSON.parse(req.body.payload);
-		if (actionJSONPayload.type === 'block_actions') {
-			if (actionJSONPayload.view && actionJSONPayload.view.type === 'home') {
-				if (actionJSONPayload.actions[0].action_id.indexOf('selectMovieAppHome') === 0) {
+		const payload = JSON.parse(req.body.payload);
+		if (payload.type === 'block_actions') {
+			if (payload.view && payload.view.type === 'home') {
+				if (payload.actions[0].action_id.indexOf('selectMovieAppHome') === 0) {
 					openMovieSelectedModal(
-						actionJSONPayload.trigger_id,
-						JSON.parse(actionJSONPayload.actions[0].value)
+						payload.trigger_id,
+						JSON.parse(payload.actions[0].value)
 					);
 				}
-			} else if (actionJSONPayload.view && actionJSONPayload.view.type === 'modal') {
-				if (actionJSONPayload.actions[0].action_id.indexOf('downloadMovieAppHome') === 0) {
-					downloadMovieModal(actionJSONPayload);
+			} else if (payload.view && payload.view.type === 'modal') {
+				if (payload.actions[0].action_id.indexOf('downloadMovieAppHome') === 0) {
+					downloadMovieModal(payload);
 				}
 			}
 			res.status(200).end();
@@ -466,40 +466,34 @@ function addPtpSlackRoute(app) {
 		}
 		res.status(200).end();
 
-		if (actionJSONPayload.token !== process.env.PTP_SLACK_VERIFICATION_TOKEN) {
+		if (payload.token !== process.env.PTP_SLACK_VERIFICATION_TOKEN) {
 			res.status(403).end('Access forbidden');
 			return;
 		}
 
-		if (!actionJSONPayload.actions) {
+		if (!payload.actions) {
 			// This is not a legacy slash comand, so it's probably a workflow
 			return;
 		}
-		const { name, value: groupId } = actionJSONPayload.actions[0];
+		const { name, value: groupId } = payload.actions[0];
 
 		if (name.indexOf('searchMovie') === 0) {
 			const query = name.split('searchMovie ')[1];
 			const retry = true;
 			const replaceOriginal = true;
-			searchAndRespond(
-				query,
-				actionJSONPayload.response_url,
-				retry,
-				replaceOriginal,
-				groupId
-			);
+			searchAndRespond(query, payload.response_url, retry, replaceOriginal, groupId);
 		} else if (name.indexOf('selectMovie') === 0) {
 			const movieTitle = name.split('selectMovie ')[1];
-			selectMovie(movieTitle, groupId, actionJSONPayload.response_url);
+			selectMovie(movieTitle, groupId, payload.response_url);
 		} else if (name.indexOf('downloadMovie') === 0) {
-			const torrentId = actionJSONPayload.actions[0].value;
-			const movieTitle = actionJSONPayload.actions[0].name.split('downloadMovie ')[1];
+			const torrentId = payload.actions[0].value;
+			const movieTitle = payload.actions[0].name.split('downloadMovie ')[1];
 
 			const message = {
 				text: `Chill, i'll download ${movieTitle} for you. If I fail, here's the url and you can do it yourself: https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey}`,
 				replace_original: true,
 			};
-			sendMessageToSlackResponseURL(actionJSONPayload.response_url, message);
+			sendMessageToSlackResponseURL(payload.response_url, message);
 
 			dbx.filesSaveUrl({
 				url: `https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey}`,
@@ -511,10 +505,7 @@ function addPtpSlackRoute(app) {
 							text: `Successfully placed ${movieTitle} in dropbox, have a great day!!`,
 							replace_original: true,
 						};
-						sendMessageToSlackResponseURL(
-							actionJSONPayload.response_url,
-							successMessage
-						);
+						sendMessageToSlackResponseURL(payload.response_url, successMessage);
 						sendMessageToFollowShows(`Started download of *${movieTitle}*`);
 						return;
 					}
@@ -531,7 +522,7 @@ function addPtpSlackRoute(app) {
 										replace_original: true,
 									};
 									sendMessageToSlackResponseURL(
-										actionJSONPayload.response_url,
+										payload.response_url,
 										successMessage
 									);
 									sendMessageToFollowShows(`Started download of *${movieTitle}*`);
@@ -544,7 +535,7 @@ function addPtpSlackRoute(app) {
 										replace_original: true,
 									};
 									sendMessageToSlackResponseURL(
-										actionJSONPayload.response_url,
+										payload.response_url,
 										successMessage
 									);
 									numTries += 1;
@@ -560,10 +551,7 @@ function addPtpSlackRoute(app) {
 									text: `I'm unable to check the status of job_id ${asyncJobId}, sorry!`,
 									replace_original: false,
 								};
-								sendMessageToSlackResponseURL(
-									actionJSONPayload.response_url,
-									failMessage
-								);
+								sendMessageToSlackResponseURL(payload.response_url, failMessage);
 							});
 					};
 					setTimeout(checkJobStatus, 5000);
@@ -573,7 +561,7 @@ function addPtpSlackRoute(app) {
 						text: `Oops, something went wrong. Sorry, here's your URL to do it manually: https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey} . ${error}`,
 						replace_original: false,
 					};
-					sendMessageToSlackResponseURL(actionJSONPayload.response_url, errorMessage);
+					sendMessageToSlackResponseURL(payload.response_url, errorMessage);
 				});
 		} else {
 			// Unknown action!
