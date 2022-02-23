@@ -36,13 +36,14 @@ function subscribeToFeed(feed = {}) {
 
 async function warnAboutPendingRestores() {
 	const feedsToRestoreSoon = await FeedHiatus.find({
-		end_time: { $lte: now + 86400000, $gte: now },
+		// between 24 hours from now and 25 hours from now
+		end_time: { $gte: now + 86400000, $lte: now + 9e7 },
 	});
 	if (!feedsToRestoreSoon.length) {
 		return true;
 	}
 	await sendMessageToFollowShows(
-		'The following feeds are going to be restored from hiatus in the next 24 hours:'
+		'The following feeds are going to be restored from hiatus in approximately 24 hours:'
 	);
 
 	for (const feedToRestoreSoon of feedsToRestoreSoon) {
