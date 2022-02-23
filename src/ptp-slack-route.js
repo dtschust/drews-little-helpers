@@ -50,7 +50,16 @@ async function sendTopTenMoviesOfTheWeek(provideFeedback) {
 
 async function publishViewForUser(user) {
 	const { movies } = await TopMovies.findOne(undefined);
-	const blocks = [Blocks.Section().text('*Top 10 Movies of the Week*'), Blocks.Divider()];
+	const blocks = [
+		Blocks.Input().element(
+			Elements.TextInput({
+				actionId: 'searchMovieAppHome',
+				initialValue: 'Search for a movie',
+			}).label('Search for a movie')
+		),
+		Blocks.Section().text('*Top 10 Movies of the Week*'),
+		Blocks.Divider(),
+	];
 	movies.forEach(({ title, id, posterUrl, year }) => {
 		blocks.push(Blocks.Section().text(`*${title}* (${year})`));
 		blocks.push(Blocks.Image({ imageUrl: posterUrl, altText: title }));
@@ -369,6 +378,9 @@ function addPtpSlackRoute(app) {
 						payload.trigger_id,
 						JSON.parse(payload.actions[0].value)
 					);
+				} else if (payload.actions[0].action_id.indexOf('searchMovieAppHome') === 0) {
+					console.log(JSON.stringify(payload));
+					// TODO: open search results modal
 				}
 			} else if (payload.view && payload.view.type === 'modal') {
 				if (payload.actions[0].action_id.indexOf('downloadMovieAppHome') === 0) {
