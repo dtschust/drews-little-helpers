@@ -75,7 +75,7 @@ async function snoozeHiatus(feedId, endTime) {
 
 async function openEditHiatusModal({ triggerId }, { title, feedId, endTime }) {
 	const blocks = [
-		Blocks.Section().text(`How would you like to change your hiatus of ${title}?`),
+		Blocks.Section().text(`How would you like to change your hiatus of *${title}*?`),
 		Blocks.Actions().elements(
 			Elements.StaticSelect({ actionId: 'snoozeFeed', placeholder: 'Snooze for...' }).options(
 				[1, 2, 4, 8].map((weeksToSnooze) => {
