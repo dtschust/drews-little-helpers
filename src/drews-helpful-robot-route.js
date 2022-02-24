@@ -29,7 +29,6 @@ async function publishViewForUser(user) {
 	];
 	_.sortBy(hiatusedFeeds, 'end_time').forEach(
 		({ title, site_url: siteUrl, end_time: endTime, feed_id: feedId }) => {
-			// TODO: Action buttons
 			blocks.push(
 				Blocks.Section()
 					.text(
@@ -85,7 +84,7 @@ async function openEditHiatusModal({ triggerId }, { title, feedId, endTime }) {
 						text: `Snooze ${weeksToSnooze} week${weeksToSnooze === 1 ? '' : 's'}`,
 						value: JSON.stringify({
 							feedId,
-							end_time: newEndTime,
+							endTime: newEndTime,
 							title: encodeURIComponent(title),
 						}),
 					});
@@ -171,10 +170,18 @@ function addDrewsHelpfulRobotRoute(app) {
 				}
 			} else if (payload.view && payload.view.type === 'modal') {
 				if (payload.actions[0].action_id.indexOf('snoozeFeed') === 0) {
-					// TODO
-					console.log('Snoozefeed: ', payload.actions[0].value);
-					console.log(JSON.stringify(payload));
-					return updateModal(payload.view.id, `Not implemented yet. Bye!`);
+					const jsonValue = JSON.parse(payload.actions[0].selected_option.value);
+					const { feedId, endTime, title } = jsonValue;
+					const formattedTitle = decodeURIComponent(title);
+					snoozeHiatus(feedId, endTime).then(() => {
+						publishViewForUser(payload.user.id);
+						return updateModal(
+							payload.view.id,
+							`Extended Hiatus! Snoozed *${formattedTitle}* for a bit longer. Will be back on ${new Date(
+								endTime
+							).toLocaleDateString('en-US')}`
+						);
+					});
 				}
 				if (payload.actions[0].action_id.indexOf('unsubscribeFeed') === 0) {
 					console.log('unsubscribeFeed: ', payload.actions[0].value);
@@ -182,6 +189,7 @@ function addDrewsHelpfulRobotRoute(app) {
 					const { feedId: feed_id, title } = jsonValue;
 					const formattedTitle = decodeURIComponent(title);
 					FeedHiatus.findOneAndDelete({ feed_id }).then(() => {
+						publishViewForUser(payload.user.id);
 						return updateModal(
 							payload.view.id,
 							`Permanently unsubscribed from *${formattedTitle}*. Bye!`
