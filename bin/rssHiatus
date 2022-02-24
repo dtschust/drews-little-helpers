@@ -107,6 +107,7 @@ async function main() {
 		])
 		.then(async ({ feedsToHiatus, weeks }) => {
 			if (!feedsToHiatus.length) {
+				console.log('No feeds to hiatus!');
 				return Promise.resolve();
 			}
 
