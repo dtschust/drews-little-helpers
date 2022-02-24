@@ -121,6 +121,29 @@ async function openEditHiatusModal({ triggerId }, { title, feedId, endTime }) {
 	});
 }
 
+function updateModal(viewId, text) {
+	return webRobot.views.update({
+		view_id: viewId,
+		view: {
+			type: 'modal',
+			callback_id: 'editHiatusModal',
+			title: {
+				type: 'plain_text',
+				text: `Edit Hiatus`,
+			},
+			blocks: [
+				{
+					type: 'section',
+					block_id: 'section-identifier',
+					text: {
+						type: 'mrkdwn',
+						text,
+					},
+				},
+			],
+		},
+	});
+}
 function addDrewsHelpfulRobotRoute(app) {
 	app.post('/helper-action-endpoint', (req, res) => {
 		if (req.body.type === 'url_verification') {
@@ -150,9 +173,20 @@ function addDrewsHelpfulRobotRoute(app) {
 				if (payload.actions[0].action_id.indexOf('snoozeFeed') === 0) {
 					// TODO
 					console.log('Snoozefeed: ', payload.actions[0].value);
-				} else if (payload.actions[0].action_id.indexOf('unsubscribeFeed') === 0) {
-					// TOD
+					console.log(JSON.stringify(payload));
+					return updateModal(payload.view.id, `Not implemented yet. Bye!`);
+				}
+				if (payload.actions[0].action_id.indexOf('unsubscribeFeed') === 0) {
 					console.log('unsubscribeFeed: ', payload.actions[0].value);
+					const jsonValue = JSON.parse(payload.actions[0].value);
+					const { feedId: feed_id, title } = jsonValue;
+					const formattedTitle = decodeURIComponent(title);
+					FeedHiatus.findOneAndDelete({ feed_id }).then(() => {
+						return updateModal(
+							payload.view.id,
+							`Permanently unsubscribed from *${formattedTitle}*. Bye!`
+						);
+					});
 				}
 			}
 			res.status(200).end();
