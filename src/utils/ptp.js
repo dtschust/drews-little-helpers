@@ -51,10 +51,11 @@ function saveUrlToDropbox({ torrentId, movieTitle, provideFeedback, authKey, pas
 	};
 	provideFeedback(message);
 
+	const now = Date.now();
 	return dbx
 		.filesSaveUrl({
 			url: `https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey}`,
-			path: `/torrents/${Date.now()}.torrent`,
+			path: `/torrents/${now}.torrent`,
 		})
 		.then(({ async_job_id: asyncJobId, '.tag': tag }) => {
 			if (tag === 'complete') {
@@ -72,7 +73,7 @@ function saveUrlToDropbox({ torrentId, movieTitle, provideFeedback, authKey, pas
 				dbx.filesSaveUrlCheckJobStatus({
 					async_job_id: asyncJobId,
 				})
-					.then((response) => {
+					.then(async (response) => {
 						if (response['.tag'] === 'complete') {
 							const successMessage = {
 								text: `Successfully placed ${movieTitle} in dropbox, have a great day!`,
@@ -80,6 +81,29 @@ function saveUrlToDropbox({ torrentId, movieTitle, provideFeedback, authKey, pas
 							};
 							provideFeedback(successMessage);
 							sendMessageToFollowShows(`Started download of *${movieTitle}*`);
+							clearTimeout(thirtySecondCheck);
+						} else if (response['.tag'] === 'failed') {
+							// This file was likely deleted on the other end after uploading successfully, check to see if that's the case then move along.
+							const filesMetadata = await dbx.filesGetMetadata({
+								path: `/torrents/${now}.torrent`,
+								include_deleted: true,
+							});
+							if (filesMetadata['.tag'] === 'deleted') {
+								const successMessage = {
+									text: `Successfully placed ${movieTitle} in dropbox and miniTorrents deleted it, have a great day!`,
+									replace_original: true,
+								};
+								provideFeedback(successMessage);
+								sendMessageToFollowShows(`Started download of *${movieTitle}*`);
+							} else {
+								const successMessage = {
+									text: `I don't know what to tell you bud. Dropbox says upload of ${movieTitle} failed, and I can't find it anywhere. Here's what I know: ${JSON.stringify(
+										response
+									)} ${JSON.stringify(filesMetadata)}`,
+									replace_original: true,
+								};
+								provideFeedback(successMessage);
+							}
 							clearTimeout(thirtySecondCheck);
 						} else {
 							const successMessage = {
