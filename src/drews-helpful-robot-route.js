@@ -2,8 +2,12 @@ require('dotenv').config();
 require('isomorphic-fetch');
 require('./utils/mongoose-connect');
 const _ = require('lodash');
+const slackBlockBuilder = require('slack-block-builder');
+
 const FeedHiatus = require('./mongoose-models/Feed-Hiatus');
 const { getDrewsHelpfulRobot } = require('./utils/slack');
+
+const { Blocks, BlockCollection } = slackBlockBuilder;
 
 const { webRobot } = getDrewsHelpfulRobot();
 
@@ -20,41 +24,19 @@ function sendMessageToSlackResponseURL(responseURL, JSONmessage) {
 async function publishViewForUser(user) {
 	const hiatusedFeeds = await FeedHiatus.find(undefined);
 	const blocks = [
-		{
-			type: 'section',
-			text: {
-				type: 'mrkdwn',
-				text: '*Welcome!* \nView your feeds currently on hiatus below',
-			},
-		},
-		{
-			type: 'divider',
-		},
+		Blocks.Section().text('*Welcome!!* \nView your feeds currently on hiatus below'),
+		Blocks.Divider(),
 	];
 	_.sortBy(hiatusedFeeds, 'end_time').forEach(
 		({ title, site_url: siteUrl, end_time: endTime }) => {
 			// TODO: Action buttons
-			blocks.push({
-				type: 'section',
-				text: {
-					type: 'mrkdwn',
-					text: `*${title}* on hiatus until *${new Date(endTime).toLocaleDateString(
-						'en-US'
-					)}*`,
-				},
-			});
-			blocks.push({
-				type: 'context',
-				elements: [
-					{
-						type: 'mrkdwn',
-						text: `\`${siteUrl}\``,
-					},
-				],
-			});
-			blocks.push({
-				type: 'divider',
-			});
+			blocks.push(
+				Blocks.Section().text(
+					`*${title}* on hiatus until *${new Date(endTime).toLocaleDateString('en-US')}*`
+				)
+			);
+			blocks.push(Blocks.Context().elements(`\`${siteUrl}\``));
+			blocks.push(Blocks.Divider());
 		}
 	);
 
@@ -64,7 +46,7 @@ async function publishViewForUser(user) {
 			type: 'plain_text',
 			text: 'what is this',
 		},
-		blocks,
+		blocks: BlockCollection(blocks),
 	};
 
 	return webRobot.views.publish({
