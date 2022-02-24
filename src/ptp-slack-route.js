@@ -283,7 +283,6 @@ async function openMovieSearchModal(triggerId, query = '') {
 			Blocks.Actions().elements(
 				Elements.Button({
 					text: `${title} (${year})`,
-					// TODO This actionId is likely wrong but might just work???
 					actionId: `selectMovieAppHome ${title}`,
 					value: JSON.stringify({ title, id, posterUrl, year }),
 				})
