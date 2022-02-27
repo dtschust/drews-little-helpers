@@ -63,7 +63,7 @@ async function publishViewForUser(user) {
 		Blocks.Divider(),
 	];
 	movies.forEach(({ title, id, posterUrl, year }) => {
-		blocks.push(Blocks.Section().text(`*${title}* (${year})`));
+		blocks.push(Blocks.Section().text(`*${title.slice(0, 50)}* (${year})`));
 		blocks.push(Blocks.Image({ imageUrl: posterUrl, altText: title }));
 		blocks.push(
 			Blocks.Actions().elements(
@@ -234,7 +234,7 @@ async function downloadMovieModal(resp) {
 						block_id: 'section-identifier',
 						text: {
 							type: 'mrkdwn',
-							text,
+							text: text.slice(0, 50),
 						},
 					},
 				],
@@ -261,7 +261,7 @@ async function openMovieSearchModal(triggerId, query = '') {
 					block_id: 'section-identifier',
 					text: {
 						type: 'mrkdwn',
-						text: `Searching for *${query}*...`,
+						text: `Searching for *${query.slice(0, 50)}*...`,
 					},
 				},
 			],
@@ -282,7 +282,7 @@ async function openMovieSearchModal(triggerId, query = '') {
 		blocks.push(
 			Blocks.Actions().elements(
 				Elements.Button({
-					text: `${title} (${year})`,
+					text: `${title.slice(0, 50)} (${year})`,
 					actionId: `selectMovieAppHome ${title}`,
 					value: JSON.stringify({ title, id, posterUrl, year }),
 				})
