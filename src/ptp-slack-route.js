@@ -199,15 +199,15 @@ ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${t.RemasterTitle ? `/ ${t.Remaster
 		callback_id: t.Id,
 		actions: [
 			{
-				name: `downloadMovie ${movieTitle}`,
-				text: `Download ${movieTitle}`,
+				name: `downloadMovie ${movieTitle.slice(0, 30)}`,
+				text: `Download ${movieTitle.slice(0, 30)}`,
 				type: 'button',
 				value: t.Id,
 			},
 		],
 	}));
 	const message = {
-		text: `Available versions to download ${movieTitle}:`,
+		text: `Available versions to download ${movieTitle.slice(0, 30)}:`,
 		replace_original: true,
 		attachments,
 	};
@@ -234,7 +234,7 @@ async function downloadMovieModal(resp) {
 						block_id: 'section-identifier',
 						text: {
 							type: 'mrkdwn',
-							text: text.slice(0, 50),
+							text: text.slice(0, 30),
 						},
 					},
 				],
@@ -261,7 +261,7 @@ async function openMovieSearchModal(triggerId, query = '') {
 					block_id: 'section-identifier',
 					text: {
 						type: 'mrkdwn',
-						text: `Searching for *${query.slice(0, 50)}*...`,
+						text: `Searching for *${query.slice(0, 30)}*...`,
 					},
 				},
 			],
@@ -282,7 +282,7 @@ async function openMovieSearchModal(triggerId, query = '') {
 		blocks.push(
 			Blocks.Actions().elements(
 				Elements.Button({
-					text: `${title.slice(0, 50)} (${year})`,
+					text: `${title.slice(0, 30)} (${year})`,
 					actionId: `selectMovieAppHome ${title}`,
 					value: JSON.stringify({ title, id, posterUrl, year }),
 				})
@@ -384,7 +384,7 @@ Seeders: ${t.Seeders}, Snatched ${t.Snatched}, Size: ${t.Size / 1073741824} Gb`,
 				type: 'button',
 				text: {
 					type: 'plain_text',
-					text: `Download ${title}`,
+					text: `Download ${title.slice(0, 30)}`,
 				},
 				action_id: `downloadMovieAppHome ${title}`,
 				value: JSON.stringify({ title, torrentId: t.Id, id, posterUrl, year }),
