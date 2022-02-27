@@ -63,12 +63,12 @@ async function publishViewForUser(user) {
 		Blocks.Divider(),
 	];
 	movies.forEach(({ title, id, posterUrl, year }) => {
-		blocks.push(Blocks.Section().text(`*${title.slice(0, 50)}* (${year})`));
+		blocks.push(Blocks.Section().text(`*${title.slice(0, 30)}* (${year})`));
 		blocks.push(Blocks.Image({ imageUrl: posterUrl, altText: title }));
 		blocks.push(
 			Blocks.Actions().elements(
 				Elements.Button({
-					text: `${title} (${year})`,
+					text: `${title.slice(0, 30)} (${year})`,
 					actionId: `selectMovieAppHome ${title}`,
 					value: JSON.stringify({ title, id, posterUrl, year }),
 				})
