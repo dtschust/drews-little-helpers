@@ -234,7 +234,7 @@ async function downloadMovieModal(resp) {
 						block_id: 'section-identifier',
 						text: {
 							type: 'mrkdwn',
-							text: text.slice(0, 30),
+							text: text.slice(0, 70),
 						},
 					},
 				],
