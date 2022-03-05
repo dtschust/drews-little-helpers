@@ -25,6 +25,17 @@ async function main() {
 
 	await Promise.all(
 		matches.map(async (message) => {
+			// Don't delete if the message has an ❌
+			if (message && message.text && message.text.includes(':x:')) {
+				return true;
+			}
+			// Don't delete if the message has an ❌
+			const blocks = (message && message.blocks) || [];
+			blocks.forEach((block) => {
+				if (block && block.text && block.text.includes(':x:')) {
+					return true;
+				}
+			});
 			const { ts } = message;
 			const time = parseInt(ts.split('.')[0], 10) * 1000;
 			if (time < expirationDate) {
