@@ -32,7 +32,8 @@ async function main() {
 			// Don't delete if the message has an ❌
 			const blocks = (message && message.blocks) || [];
 			blocks.forEach((block) => {
-				if (block && block.text && block.text.includes(':x:')) {
+				console.log(JSON.stringify(block));
+				if (block && block.text && block.text.text && block.text.text.indexOf(':x:') >= 0) {
 					return true;
 				}
 			});
