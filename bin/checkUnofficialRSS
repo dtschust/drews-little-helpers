@@ -1,0 +1,49 @@
+#!/usr/bin/env node
+
+require('isomorphic-fetch');
+require('dotenv').config();
+const { parseString } = require('xml2js');
+
+const feedUrl = process.env.UNOFFICIAL_RSS_FEED;
+
+async function main() {
+	const response = await fetch(feedUrl);
+	const { status } = response;
+	const text = await response.text();
+	if (status !== 200) {
+		console.error('Error fetching feed: status = ', status);
+		console.error('response = ', text);
+		process.exit(1);
+	}
+
+	const parsedResult = await new Promise((resolve, reject) => {
+		parseString(text, (err, result) => {
+			if (err) {
+				reject(err);
+			}
+			resolve(result);
+		});
+	});
+
+	const mostRecent = parsedResult?.rss?.channel?.[0]?.item?.[0];
+
+	const { pubDate, title } = mostRecent;
+	const mostRecentDate = new Date(pubDate);
+	const now = Date.now();
+
+	const daysSinceLastEp = (now - mostRecentDate) / (1000 * 60 * 60 * 24);
+
+	if (daysSinceLastEp > 10) {
+		console.error(
+			`I think the feed is broken, it has been more than 10 days since the last episode (${daysSinceLastEp})`
+		);
+		console.error(`Last episode info: ${JSON.stringify(mostRecent)}`);
+		process.exit(1);
+	}
+
+	console.log(
+		`Feed seems to be working properly. Last episode '${title}' was released on ${pubDate}`
+	);
+}
+
+main().then(process.exit);
