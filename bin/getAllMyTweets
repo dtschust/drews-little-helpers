@@ -1,0 +1,57 @@
+#!/usr/bin/env node
+
+require('dotenv').config();
+require('../src/utils/mongoose-connect');
+const Twit = require('twit');
+const OwnTweet = require('../src/mongoose-models/Own-Tweet');
+
+const yourScreenName = 'nuncamind';
+
+const T = new Twit({
+	consumer_key: process.env.TWITTER_CONSUMER_KEY,
+	consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
+	access_token: process.env.TWITTER_ACCESS_TOKEN,
+	access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
+	timeout_ms: 60 * 1000, // optional HTTP request timeout to apply to all requests.
+	strictSSL: true, // optional - requires SSL certificates to be valid.
+});
+
+(async function getAllMyTweets() {
+	const tweets = await fetchTweets();
+
+	const models = tweets.map((tweet) => {
+		return new OwnTweet({ ...tweet });
+	});
+
+	await OwnTweet.collection.insertMany(models);
+
+	process.exit(0);
+})();
+
+function fetchTweets(maxId = null, prevTweets = []) {
+	const config = {
+		screen_name: yourScreenName,
+		count: 200,
+		include_rts: true,
+		trim_user: true,
+		tweet_mode: 'extended',
+	};
+
+	if (maxId) {
+		config.max_id = maxId;
+	}
+	return T.get('statuses/user_timeline', config)
+		.then((result) => {
+			const newTweets = result.data;
+			console.log(`got ${newTweets.length} new tweets!`);
+			if (!newTweets || !newTweets.length) {
+				return prevTweets;
+			}
+			const newMaxId = newTweets[newTweets.length - 1].id;
+			return fetchTweets(newMaxId, prevTweets.concat(newTweets));
+		})
+		.catch(async (err) => {
+			console.log('ERROR: ', err);
+			return prevTweets;
+		});
+}
