@@ -3,17 +3,18 @@
 require('isomorphic-fetch');
 require('dotenv').config();
 const { parseString } = require('xml2js');
+const authUnofficialRSS = require('../src/utils/auth-unofficial-rss');
 
 const feedUrl = process.env.UNOFFICIAL_RSS_FEED;
 
-async function main() {
+async function checkFeed() {
 	const response = await fetch(feedUrl);
 	const { status } = response;
 	const text = await response.text();
 	if (status !== 200) {
 		console.error('Error fetching feed: status = ', status);
 		console.error('response = ', text);
-		process.exit(1);
+		return 1;
 	}
 
 	const parsedResult = await new Promise((resolve, reject) => {
@@ -38,7 +39,7 @@ async function main() {
 			`I think the feed is broken, it has been more than 10 days since the last episode (${daysSinceLastEp})`
 		);
 		console.error(`Last episode info: ${JSON.stringify(mostRecent)}`);
-		process.exit(1);
+		return 1;
 	}
 
 	console.log(
@@ -46,4 +47,22 @@ async function main() {
 	);
 }
 
+async function main() {
+	let result;
+	try {
+		result = await checkFeed();
+	} catch (e) {
+		result = 1;
+	}
+
+	if (result) {
+		console.log('Trying to auth again');
+		await authUnofficialRSS();
+		console.log('Checking feed again');
+		await checkFeed();
+		console.log(
+			'@drew unofficial RSS feed initially failed but I was able to automatically fix it. Just wanted you to know!'
+		);
+	}
+}
 main().then(process.exit);
