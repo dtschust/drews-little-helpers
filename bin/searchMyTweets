@@ -1,0 +1,16 @@
+#!/usr/bin/env node
+
+require('dotenv').config();
+require('../src/utils/mongoose-connect');
+const OwnTweet = require('../src/mongoose-models/Own-Tweet');
+
+// WIP
+
+let allTweets;
+
+async function loadAllTweets() {
+	allTweets = await OwnTweet.find();
+	console.log(allTweets.length);
+}
+
+loadAllTweets().then(process.exit);
