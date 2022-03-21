@@ -28,6 +28,11 @@ async function searchTweets(query) {
 
 function addSearchTweetsRoute(app) {
 	app.get('/searchTweets', (req, res) => {
+		const password = req?.query?.pw;
+		if (password !== process.env.MY_TWEETS_PASSWORD) {
+			res.status(403).end();
+			return;
+		}
 		const query = decodeURI(req?.query?.query);
 		searchTweets(query).then((results) => {
 			res.status(200).json({ results }).end();
