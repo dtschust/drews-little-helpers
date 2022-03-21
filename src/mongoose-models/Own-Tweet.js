@@ -22,6 +22,17 @@ const OwnTweet = mongoose.model('OwnTweet', {
 	retweeted: Boolean,
 	possibly_sensitive: Boolean,
 	lang: String,
+	coordinates: Object,
+	place: Object,
+	quoted_status_id: Number,
+	quoted_status_id_str: String,
+	quoted_status: Object,
+	retweeted_status: Object,
+	quote_count: Number,
+	reply_count: Number,
+	extended_entities: Object,
+	filter_level: String,
+	matching_rules: Array,
 });
 
 module.exports = OwnTweet;
