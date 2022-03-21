@@ -18,10 +18,13 @@ async function getAllTweets() {
 async function searchTweets(query) {
 	const regex = new RegExp(query, 'im');
 	const tweets = await getAllTweets();
-	const results = _.orderBy(
-		tweets.filter((tweet) => tweet?.full_text?.match(regex)),
-		'id',
-		'desc'
+	const results = _.uniqBy(
+		_.orderBy(
+			tweets.filter((tweet) => tweet?.full_text?.match(regex)),
+			'id',
+			'desc'
+		),
+		'id'
 	).slice(0, 50);
 	return results;
 }
