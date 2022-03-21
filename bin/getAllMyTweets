@@ -23,6 +23,7 @@ const T = new Twit({
 		return new OwnTweet({ ...tweet });
 	});
 
+	await OwnTweet.deleteMany();
 	await OwnTweet.collection.insertMany(models);
 
 	process.exit(0);
