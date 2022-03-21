@@ -25,6 +25,7 @@ const T = new Twit({
 
 	await OwnTweet.deleteMany();
 	await OwnTweet.collection.insertMany(models);
+	console.log(`Stored ${models.length} tweets`);
 
 	process.exit(0);
 })();
