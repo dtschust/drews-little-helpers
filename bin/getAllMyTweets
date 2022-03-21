@@ -47,7 +47,11 @@ function fetchTweets(maxId = null, prevTweets = []) {
 			if (!newTweets || !newTweets.length) {
 				return prevTweets;
 			}
+
 			const newMaxId = newTweets[newTweets.length - 1].id;
+			if (maxId === newMaxId) {
+				return prevTweets;
+			}
 			return fetchTweets(newMaxId, prevTweets.concat(newTweets));
 		})
 		.catch(async (err) => {
