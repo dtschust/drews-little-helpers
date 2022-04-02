@@ -2,6 +2,7 @@
 
 require('isomorphic-fetch');
 require('dotenv').config();
+const Diff = require('diff');
 const puppeteer = require('puppeteer');
 const { getMongoose } = require('../src/utils/mongoose-connect');
 
@@ -57,8 +58,21 @@ async function checkForUpdates() {
 
 	if (contentText !== OLD_PAGE_CONTENT.pageContent) {
 		console.log('New updates!');
+		let output = '';
+		const diff = Diff.diffWordsWithSpace(OLD_PAGE_CONTENT.pageContent, contentText);
+
+		diff.forEach((part) => {
+			if (part.added) {
+				output += `🟩${part.value}🟩`;
+			} else if (part.removed) {
+				output += `🟥${part.value}🟥`;
+			} else {
+				output += part.value;
+			}
+		});
+
 		await sendMessageToFollowShows(`New updates from Gary Kamiya at https://www.garykamiya.com!
-${contentText}`);
+${output}`);
 		await GaryPageContent.deleteMany(undefined).then(async () => {
 			const newGaryPageContent = new GaryPageContent({
 				pageContent: contentText,
