@@ -4,7 +4,6 @@ const doTasks = require('../src/utils/do-tasks');
 
 const tasks = [
 	'checkUpdatesForMomo',
-	'letterboxdToRSS',
 	'restoreFeedsOnHiatus',
 	'ptpTopWeekly hour',
 	'clearOldCronLogs',
