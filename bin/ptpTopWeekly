@@ -62,7 +62,7 @@ async function main(usePersistedCookies = true) {
 		})
 	);
 
-	await page.goto('https://passthepopcorn.me/top10.php');
+	await page.goto('https://passthepopcorn.me/top10.php', { timeout: 120000 });
 	const topMovies = await page.$('[data-coverviewindex="1"]');
 
 	if (!topMovies && usePersistedCookies) {
