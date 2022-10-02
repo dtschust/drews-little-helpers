@@ -83,6 +83,15 @@ async function main(usePersistedCookies = true) {
 			}, t);
 		})
 	);
+
+	if (!titles.length) {
+		console.log('Cannot find any titles on this page, something is wrong');
+		await page.close(); // Close the website
+
+		await browser.close();
+		return 1;
+	}
+
 	const moviePosterElements = await page.$$(
 		'[data-coverviewindex="1"] .cover-movie-list__movie__cover-link'
 	);
