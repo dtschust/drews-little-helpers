@@ -22,6 +22,16 @@ function getDrewsHelpfulRobot() {
 		});
 	}
 
+	function sendMessageToMomoScreenshots(text, args = {}) {
+		return webRobot.chat.postMessage({
+			channel: process.env.MOMO_SLACK_CHANNEL_ID,
+			text,
+			link_names: true,
+			fallback: 'TODO',
+			...args,
+		});
+	}
+
 	function sendBlockMessageToFollowShows(blocks, args = {}) {
 		return webRobot.chat.postMessage({
 			channel: process.env.PTP_SLACK_CHANNEL_ID,
@@ -80,6 +90,7 @@ function getDrewsHelpfulRobot() {
 		webRobot,
 		webMovies,
 		sendMessageToFollowShows,
+		sendMessageToMomoScreenshots,
 		sendBlockMessageToFollowShows,
 		sendMessageToFollowShowsAsMovies,
 		sendBlockMessageToFollowShowsAsMovies,

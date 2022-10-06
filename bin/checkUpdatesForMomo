@@ -8,14 +8,12 @@ const { getMongoose } = require('../src/utils/mongoose-connect');
 
 const mongoose = getMongoose();
 
-const { getOtherRobot } = require('../src/utils/slack');
+const { getDrewsHelpfulRobot } = require('../src/utils/slack');
 
-const { bindSendMessageToChannel } = getOtherRobot(process.env.MOMO_SLACK_API_TOKEN);
-const sendMessage = bindSendMessageToChannel(process.env.MOMO_SLACK_CHANNEL_ID);
+const { sendMessageToMomoScreenshots: sendMessage } = getDrewsHelpfulRobot();
 
 // TODO: Store all of the versions as individual records, so that
 // I don't get bit by the app store going back and forth between old and new versions
-
 const VersionData = mongoose.model('VersionData', {
 	screensConnect: String,
 	rescueTime: String,
