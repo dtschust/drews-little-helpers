@@ -5,7 +5,7 @@ require('dotenv').config();
 const puppeteer = require('puppeteer');
 const TopMovies = require('../src/mongoose-models/Top-Movies');
 const PtpCookie = require('../src/mongoose-models/Ptp-Cookie');
-const getPtpLoginCookies = require('../src/utils/get-ptp-login-cookie');
+// const getPtpLoginCookies = require('../src/utils/get-ptp-login-cookie');
 require('../src/utils/mongoose-connect');
 
 const { getDrewsHelpfulRobot } = require('../src/utils/slack');
@@ -25,8 +25,9 @@ async function getPersistedLoginCookies() {
 }
 
 async function getLoginCookies() {
-	const cookie = await getPtpLoginCookies();
-	return cookie;
+	return null;
+	// const cookie = await getPtpLoginCookies();
+	// return cookie;
 }
 
 async function main(usePersistedCookies = true) {
@@ -44,6 +45,13 @@ async function main(usePersistedCookies = true) {
 		console.log('Persisted slack cookies not found. Falling back to signing in');
 		// Try again with logging in
 		return main(false);
+	}
+
+	if (!rawCookies) {
+		console.log(
+			'Persisted cookies failed and I have temporarily stopped trying to log in via script. Just gonna fail instead'
+		);
+		return 1;
 	}
 
 	// TODO: clean up this double map thing
