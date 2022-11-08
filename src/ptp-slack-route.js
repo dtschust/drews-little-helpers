@@ -5,8 +5,6 @@ require('./utils/mongoose-connect');
 const slackBlockBuilder = require('slack-block-builder');
 
 const TopMovies = require('./mongoose-models/Top-Movies');
-const PtpCookie = require('./mongoose-models/Ptp-Cookie');
-const getPtpLoginCookies = require('./utils/get-ptp-login-cookie');
 const { getDrewsHelpfulRobot } = require('./utils/slack');
 const { sortTorrents, sendMessageToSlackResponseURL, saveUrlToDropbox } = require('./utils/ptp');
 
@@ -85,47 +83,14 @@ async function publishViewForUser(user) {
 	});
 }
 
-let COOKIE;
-PtpCookie.findOne(undefined)
-	.exec()
-	.then((newCookie) => {
-		if (newCookie) {
-			COOKIE = newCookie.get('cookie');
-		}
-	});
-
-async function getLoginCookies(provideFeedback, retry) {
-	let message = {
-		text: 'Oops, need to log in again, please hold!',
-	};
-	await provideFeedback(message);
-
-	try {
-		COOKIE = await getPtpLoginCookies();
-	} catch (e) {
-		message = {
-			text: "Looks like I got captcha-ed and can't login, please stop trying for a bit!",
-			replace_original: true,
-		};
-		await provideFeedback(message);
-		return false;
-	}
-
-	message = {
-		text: `New login succeeded, ${retry ? 'searching again' : 'please search again!'}`,
-		replace_original: true,
-	};
-	await provideFeedback(message);
-	return true;
-}
-
 function search(query) {
 	const sanitizedQuery = query.replace(/’/g, "'");
 	return fetch(
 		`https://passthepopcorn.me/torrents.php?json=noredirect&order_by=relevance&searchstr=${sanitizedQuery}`,
 		{
 			headers: {
-				cookie: COOKIE,
+				ApiUser: process.env.PTP_API_USER,
+				ApiKey: process.env.PTP_API_KEY,
 			},
 		}
 	).then((resp) => resp.json());
@@ -142,7 +107,7 @@ async function searchAndRespond({
 		apiResponse = await search(query);
 	} catch (e) {
 		console.error('exception parsing JSON body: ', e);
-		const success = await getLoginCookies(provideFeedback, retry);
+		const success = false;
 		if (retry && success) {
 			return searchAndRespond({
 				query,
