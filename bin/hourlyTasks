@@ -2,7 +2,7 @@
 
 const doTasks = require('../src/utils/do-tasks');
 
-const tasks = ['checkUpdatesForMomo', 'restoreFeedsOnHiatus', 'ptpTopWeekly hour'];
+const tasks = ['checkUpdatesForMomo', 'restoreFeedsOnHiatus'];
 
 async function main() {
 	await doTasks(tasks, 'Hourly');
