@@ -386,7 +386,7 @@ function addPtpSlackRoute(app) {
 					await TopMovies.deleteMany();
 					await topMoviesModel.save();
 				}
-				sendMessageToCronLogs(`Successfully loaded top movies! Movies in 🧵`).then(
+				sendMessageToCronLogs(`✅ Successfully loaded top movies! Movies in 🧵`).then(
 					({ ts }) => {
 						sendMessageToCronLogs(movies.map(({ title }) => `• ${title}`).join('\n'), {
 							thread_ts: ts,
