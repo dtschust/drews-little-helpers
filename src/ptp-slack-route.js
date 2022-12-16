@@ -386,10 +386,12 @@ function addPtpSlackRoute(app) {
 					await TopMovies.deleteMany();
 					await topMoviesModel.save();
 				}
-				sendMessageToCronLogs(
-					`Successfully loaded top movies! Movies are ${JSON.stringify(
-						movies.map(({ title }) => title)
-					)}`
+				sendMessageToCronLogs(`Successfully loaded top movies! Movies in 🧵`).then(
+					({ ts }) => {
+						sendMessageToCronLogs(movies.map(({ title }) => `• ${title}`).join('\n'), {
+							thread_ts: ts,
+						});
+					}
 				);
 				res.status(200).end();
 			} catch (e) {
