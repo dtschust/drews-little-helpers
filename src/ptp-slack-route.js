@@ -10,7 +10,7 @@ const { sortTorrents, sendMessageToSlackResponseURL, saveUrlToDropbox } = requir
 
 const { Surfaces, Blocks, Elements, BlockCollection /* Bits, Utilities */ } = slackBlockBuilder;
 
-const { webMovies } = getDrewsHelpfulRobot();
+const { sendMessageToCronLogs, webMovies } = getDrewsHelpfulRobot();
 
 let authKey;
 let passKey;
@@ -374,22 +374,23 @@ Seeders: ${t.Seeders}, Snatched ${t.Snatched}, Size: ${t.Size / 1073741824} Gb`,
 function addPtpSlackRoute(app) {
 	app.post('/update-top-movies', async (req, res) => {
 		const reqBody = req.body;
-		// TODO: Enable this check
-		if (false && reqBody.token !== process.env.PTP_SLACK_VERIFICATION_TOKEN) {
+		if (reqBody.token !== process.env.PTP_SLACK_VERIFICATION_TOKEN) {
 			res.status(403).end('Access forbidden');
 		} else {
 			try {
 				const { movies } = reqBody;
-				console.log(movies);
-				// TODO: Log success somehow!
 				if (movies && movies.length) {
 					const topMoviesModel = new TopMovies({
 						movies,
 					});
 					await TopMovies.deleteMany();
 					await topMoviesModel.save();
-					console.log('SAVED!');
 				}
+				sendMessageToCronLogs(
+					`Successfully loaded top movies! Movies are ${JSON.stringify(
+						movies.map(({ title }) => title)
+					)}`
+				);
 				res.status(200).end();
 			} catch (e) {
 				console.log(e);
