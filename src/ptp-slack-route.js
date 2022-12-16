@@ -47,6 +47,7 @@ async function sendTopTenMoviesOfTheWeek(provideFeedback) {
 }
 
 async function publishViewForUser(user) {
+	const { movies } = await TopMovies.findOne(undefined);
 	const blocks = [
 		Blocks.Input()
 			.dispatchAction(true)
@@ -56,8 +57,23 @@ async function publishViewForUser(user) {
 				})
 			)
 			.label('Search for a movie'),
+		Blocks.Section().text('*Top 10 Movies of the Week*'),
 		Blocks.Divider(),
 	];
+	movies.forEach(({ title, id, posterUrl, year }) => {
+		blocks.push(Blocks.Section().text(`*${title.slice(0, 30)}* (${year})`));
+		blocks.push(Blocks.Image({ imageUrl: posterUrl, altText: title }));
+		blocks.push(
+			Blocks.Actions().elements(
+				Elements.Button({
+					text: `${title.slice(0, 30)} (${year})`,
+					actionId: `selectMovieAppHome ${title}`,
+					value: JSON.stringify({ title, id, posterUrl, year }),
+				})
+			)
+		);
+		blocks.push(Blocks.Divider());
+	});
 
 	const view = Surfaces.HomeTab().blocks(blocks).buildToJSON();
 
