@@ -372,6 +372,32 @@ Seeders: ${t.Seeders}, Snatched ${t.Snatched}, Size: ${t.Size / 1073741824} Gb`,
 }
 
 function addPtpSlackRoute(app) {
+	app.post('/update-top-movies', async (req, res) => {
+		const reqBody = req.body;
+		// TODO: Enable this check
+		if (false && reqBody.token !== process.env.PTP_SLACK_VERIFICATION_TOKEN) {
+			res.status(403).end('Access forbidden');
+		} else {
+			try {
+				const { movies } = reqBody;
+				console.log(movies);
+				// TODO: Log success somehow!
+				if (movies && movies.length) {
+					const topMoviesModel = new TopMovies({
+						movies,
+					});
+					await TopMovies.deleteMany();
+					await topMoviesModel.save();
+					console.log('SAVED!');
+				}
+				res.status(200).end();
+			} catch (e) {
+				console.log(e);
+				res.status(200).end();
+				// don't care
+			}
+		}
+	});
 	app.post('/slash-command', (req, res) => {
 		res.status(200).end();
 		const reqBody = req.body;
