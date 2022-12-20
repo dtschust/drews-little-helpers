@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const addFwProxyRoute = require('./src/fw-proxy-route');
+const addFbProxyRoute = require('./src/fb-proxy-route');
 const addPtpSlackRoute = require('./src/ptp-slack-route');
 const addDrewsHelpfulRobotRoute = require('./src/drews-helpful-robot-route');
 const addIFlicksRoute = require('./src/iflicks-route');
@@ -22,6 +23,7 @@ app.use((req, res, next) => {
 });
 
 addFwProxyRoute(app);
+addFbProxyRoute(app);
 addPtpSlackRoute(app);
 addIFlicksRoute(app);
 addPlausWanRoute(app);
