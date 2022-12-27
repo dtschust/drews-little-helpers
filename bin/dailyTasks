@@ -2,7 +2,12 @@
 
 const doTasks = require('../src/utils/do-tasks');
 
-const tasks = ['checkUpdatesForGaryKamiya', 'checkUnofficialRSS', 'getAllMyTweets'];
+const tasks = [
+	'checkUpdatesForGaryKamiya',
+	'checkUnofficialRSS',
+	'getAllMyTweets',
+	'ptpTopWeeklySanityCheck',
+];
 
 const weeklyTasks = ['authUnofficialRSS'];
 
