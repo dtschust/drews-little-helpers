@@ -11,6 +11,7 @@ function addSuperlightRoute(app) {
 						return {
 							...item,
 							id: item.id.toString(),
+							summary: item.summary.replace(/\d{10}-/, ''),
 						};
 					}),
 				};
