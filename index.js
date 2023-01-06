@@ -8,6 +8,7 @@ const addIFlicksRoute = require('./src/iflicks-route');
 const addPlausWanRoute = require('./src/plaus-wan-route');
 const addSearchTweetsRoute = require('./src/search-tweets-route');
 const addLetterboxdFeedRoute = require('./src/letterboxd-feed-route');
+const addSuperlightRoute = require('./src/superlight-route');
 
 const app = express();
 
@@ -30,6 +31,7 @@ addPlausWanRoute(app);
 addSearchTweetsRoute(app);
 addDrewsHelpfulRobotRoute(app);
 addLetterboxdFeedRoute(app);
+addSuperlightRoute(app);
 
 app.listen(app.get('port'), () => {
 	console.log('Node app is running on port', app.get('port'));
