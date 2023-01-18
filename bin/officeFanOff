@@ -1,0 +1,18 @@
+#!/usr/bin/env node
+const { Client } = require('tplink-smarthome-api');
+
+const client = new Client();
+// const plug = client.getDevice({ host: '192.168.50.164' }).then((device) => {
+// 	device.getSysInfo().then(console.log);
+// 	device.setPowerState(false);
+// });
+
+// Look for devices, find the one I care about, and turn it on
+client.startDiscovery().on('device-new', async (device) => {
+	const sysInfo = await device.getSysInfo();
+	if (sysInfo.alias === 'Fan') {
+		await device.setPowerState(false);
+		client.stopDiscovery();
+		process.exit(0);
+	}
+});
