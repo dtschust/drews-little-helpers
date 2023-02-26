@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 
+mongoose.set('strictQuery', true);
+
 const FeedHiatus = mongoose.model('FeedHiatus', {
 	feed_id: Number,
 	title: String,

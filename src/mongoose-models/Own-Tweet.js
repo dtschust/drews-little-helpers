@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 
+mongoose.set('strictQuery', true);
+
 const OwnTweet = mongoose.model('OwnTweet', {
 	id: Number,
 	id_str: String,
