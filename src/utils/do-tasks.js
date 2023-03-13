@@ -67,7 +67,7 @@ ${stdout.toString().trim()}
 				});
 				blocks.push({
 					type: 'section',
-					text: { type: 'mrkdwn', text: logGroup.join('\n') },
+					text: { type: 'mrkdwn', text: `${logGroup.join('\n')} ` },
 				});
 				blocks.push({ type: 'divider' });
 			});
