@@ -17,7 +17,6 @@ const { sendMessageToMomoScreenshots: sendMessage } = getDrewsHelpfulRobot();
 const VersionData = mongoose.model('VersionData', {
 	screensConnect: String,
 	rescueTime: String,
-	backBlaze: String,
 	onePassword: String,
 });
 
@@ -34,7 +33,6 @@ VersionData.findOne(undefined)
 			VERSION_DATA = {
 				screensConnect: newVersionData.get('screensConnect'),
 				rescueTime: newVersionData.get('rescueTime'),
-				backBlaze: newVersionData.get('backBlaze'),
 				onePassword: newVersionData.get('onePassword'),
 			};
 		}
@@ -45,21 +43,14 @@ VersionData.findOne(undefined)
 	});
 
 function checkVersions() {
-	Promise.all([
-		checkFunbridge(),
-		checkScreensConnect(),
-		checkRescueTime(),
-		checkBackBlaze(),
-		checkOnePassword(),
-	])
-		.then(async ([funbridge, screensConnect, rescueTime, backBlaze, onePassword]) => {
+	Promise.all([checkFunbridge(), checkScreensConnect(), checkRescueTime(), checkOnePassword()])
+		.then(async ([funbridge, screensConnect, rescueTime, onePassword]) => {
 			const newVersionData = {
 				screensConnect,
 				rescueTime,
-				backBlaze,
 				onePassword,
 			};
-			_.forEach(['screensConnect', 'rescueTime', 'backBlaze', 'onePassword'], (key) => {
+			_.forEach(['screensConnect', 'rescueTime', 'onePassword'], (key) => {
 				// If the network request failed to get a version number, just ignore it for now
 				// and copy from the old version data
 				if (!newVersionData[key] || newVersionData[key].length === 0) {
@@ -130,7 +121,6 @@ ${changes}
 						VERSION_DATA = {
 							screensConnect: newVersionDataModel.get('screensConnect'),
 							rescueTime: newVersionDataModel.get('rescueTime'),
-							backBlaze: newVersionDataModel.get('backBlaze'),
 							onePassword: newVersionDataModel.get('onePassword'),
 						};
 					});
@@ -200,20 +190,6 @@ function checkRescueTime() {
 			const promise = new Promise((resolve) => {
 				parseString(xml, (err, result) => {
 					const version = getNewestVersionFromItems(_.get(result, 'rss.channel[0].item'));
-					resolve(version);
-				});
-			});
-			return promise;
-		});
-}
-
-function checkBackBlaze() {
-	return fetch('https://ca001.backblaze.com/api/clientversion.xml')
-		.then((response) => response.text())
-		.then((xml) => {
-			const promise = new Promise((resolve) => {
-				parseString(xml, (err, result) => {
-					const version = _.get(result, 'clientversion.update[0].$.mac_version');
 					resolve(version);
 				});
 			});
