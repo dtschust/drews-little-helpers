@@ -17,8 +17,6 @@ const feedUrls = [
 	`https://v2.unofficialrss.com/feed/1001514.xml?u=${key}`, // neighborhood listen
 	`https://v2.unofficialrss.com/feed/1001575.xml?u=${key}`, // i was there too
 	`https://v2.unofficialrss.com/feed/1001522.xml?u=${key}`, // big grande teacher's lounge
-	`https://v2.unofficialrss.com/feed/1001413.xml?u=${key}`, // hollywood handbook
-	`https://v2.unofficialrss.com/feed/167152.xml?u=${key}`, // hollywood handbook pro version
 ];
 
 async function downloadFeed(feedUrl) {
@@ -63,16 +61,16 @@ async function downloadFeed(feedUrl) {
 		const { status: epStatus } = ep;
 		if (epStatus !== 200) {
 			console.error('Error fetching feed: status = ', epStatus, url);
-			return false;
+		} else {
+			console.log(`Downloading "${episode.title}"`);
+			if (!fs.existsSync(path.resolve(directory, `${feedId}`))) {
+				await mkdir(path.resolve(directory, `${feedId}`)); // Optional if you already have downloads directory
+			}
+			const destination = path.resolve(directory, `${feedId}`, filename);
+			const fileStream = fs.createWriteStream(destination, { flags: 'wx' });
+			await finished(Readable.fromWeb(ep.body).pipe(fileStream));
+			console.log(`Completed "${episode.title}"`);
 		}
-		console.log(`Downloading "${episode.title}"`);
-		if (!fs.existsSync(path.resolve(directory, `${feedId}`))) {
-			await mkdir(path.resolve(directory, `${feedId}`)); // Optional if you already have downloads directory
-		}
-		const destination = path.resolve(directory, `${feedId}`, filename);
-		const fileStream = fs.createWriteStream(destination, { flags: 'wx' });
-		await finished(Readable.fromWeb(ep.body).pipe(fileStream));
-		console.log(`Completed "${episode.title}"`);
 	}
 	console.log(`Done Scraping "${title}"`);
 }
