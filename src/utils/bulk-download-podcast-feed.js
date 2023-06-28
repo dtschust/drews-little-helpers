@@ -18,6 +18,7 @@ const feedUrls = [
 	`https://v2.unofficialrss.com/feed/1001514.xml?u=${key}`, // neighborhood listen
 	`https://v2.unofficialrss.com/feed/1001575.xml?u=${key}`, // i was there too
 	`https://v2.unofficialrss.com/feed/1001522.xml?u=${key}`, // big grande teacher's lounge
+	`https://v2.unofficialrss.com/feed/1001823.xml?u=${key}`, // celebrity sighting
 ];
 
 async function downloadFeed(feedUrl) {
@@ -52,25 +53,29 @@ async function downloadFeed(feedUrl) {
 	console.log(`Downloaded feed ${feedId}: "${title}"`);
 
 	console.log(`Scraping "${title}"`);
-	const episodes = parsedResult?.rss?.channel?.[0]?.item;
-	for await (const episode of episodes) {
-		console.log(episode.title);
-		const url = episode?.enclosure?.[0]?.$?.url;
-		const filename = url.match(/\d*.mp3/)[0];
-		console.log(url, filename);
-		const ep = await fetch(url);
-		const { status: epStatus } = ep;
-		if (epStatus !== 200) {
-			console.error('Error fetching feed: status = ', epStatus, url);
-		} else {
-			console.log(`Downloading "${episode.title}"`);
-			if (!fs.existsSync(path.resolve(directory, `${feedId}`))) {
-				await mkdir(path.resolve(directory, `${feedId}`)); // Optional if you already have downloads directory
+	if (fs.existsSync(path.resolve(directory, `${feedId}`))) {
+		console.log(`Skipping "${title}" because the directory already exists`);
+	} else {
+		const episodes = parsedResult?.rss?.channel?.[0]?.item;
+		for await (const episode of episodes) {
+			console.log(episode.title);
+			const url = episode?.enclosure?.[0]?.$?.url;
+			const filename = url.match(/\d*.mp3/)[0];
+			console.log(url, filename);
+			const ep = await fetch(url);
+			const { status: epStatus } = ep;
+			if (epStatus !== 200) {
+				console.error('Error fetching feed: status = ', epStatus, url);
+			} else {
+				console.log(`Downloading "${episode.title}"`);
+				if (!fs.existsSync(path.resolve(directory, `${feedId}`))) {
+					await mkdir(path.resolve(directory, `${feedId}`)); // Optional if you already have downloads directory
+				}
+				const destination = path.resolve(directory, `${feedId}`, filename);
+				const fileStream = fs.createWriteStream(destination, { flags: 'wx' });
+				await finished(Readable.fromWeb(ep.body).pipe(fileStream));
+				console.log(`Completed "${episode.title}"`);
 			}
-			const destination = path.resolve(directory, `${feedId}`, filename);
-			const fileStream = fs.createWriteStream(destination, { flags: 'wx' });
-			await finished(Readable.fromWeb(ep.body).pipe(fileStream));
-			console.log(`Completed "${episode.title}"`);
 		}
 	}
 	console.log(`Done Scraping "${title}"`);
