@@ -1,4 +1,5 @@
 const fs = require('fs');
+const os = require('os');
 const { mkdir } = require('fs/promises');
 const path = require('path');
 const { Readable } = require('stream');
@@ -8,7 +9,7 @@ require('dotenv').config();
 const { parseString } = require('xml2js');
 
 const key = process.env.UNOFFICIAL_RSS_KEY;
-const directory = path.resolve(require('os').homedir(), 'Desktop/tmp');
+const directory = process.env.PODCAST_DOWNLOAD_DIR || path.resolve(os.homedir(), 'Desktop/tmp');
 
 const feedUrls = [
 	`https://v2.unofficialrss.com/feed/161410.xml?u=${key}`, // peecast blast
