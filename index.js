@@ -9,6 +9,7 @@ const addPlausWanRoute = require('./src/plaus-wan-route');
 const addSearchTweetsRoute = require('./src/search-tweets-route');
 const addLetterboxdFeedRoute = require('./src/letterboxd-feed-route');
 const addSuperlightRoute = require('./src/superlight-route');
+const addPodcastFeedRoute = require('./src/podcast-feed-route');
 
 const app = express();
 
@@ -23,8 +24,6 @@ app.use((req, res, next) => {
 	next();
 });
 
-app.use(express.static('static'));
-
 addFwProxyRoute(app);
 addFbProxyRoute(app);
 addPtpSlackRoute(app);
@@ -34,6 +33,7 @@ addSearchTweetsRoute(app);
 addDrewsHelpfulRobotRoute(app);
 addLetterboxdFeedRoute(app);
 addSuperlightRoute(app);
+addPodcastFeedRoute(app);
 
 app.listen(app.get('port'), () => {
 	console.log('Node app is running on port', app.get('port'));
