@@ -3,3 +3,4 @@
 node_modules
 album.jpg
 *.swp
+.DS_Store

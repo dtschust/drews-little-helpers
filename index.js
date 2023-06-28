@@ -23,6 +23,8 @@ app.use((req, res, next) => {
 	next();
 });
 
+app.use(express.static('static'));
+
 addFwProxyRoute(app);
 addFbProxyRoute(app);
 addPtpSlackRoute(app);
