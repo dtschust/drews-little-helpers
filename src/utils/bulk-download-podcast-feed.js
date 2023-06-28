@@ -48,14 +48,14 @@ async function downloadFeed(feedUrl) {
 		await mkdir(path.resolve(directory, `feeds`)); // Optional if you already have downloads directory
 	}
 	const feedDestination = path.resolve(directory, `feeds`, `${feedId}.xml`);
-	const feedFileStream = fs.createWriteStream(feedDestination, { flags: 'wx' });
-	await finished(Readable.fromWeb(rawResponse.body).pipe(feedFileStream));
-	console.log(`Downloaded feed ${feedId}: "${title}"`);
-
-	console.log(`Scraping "${title}"`);
-	if (fs.existsSync(path.resolve(directory, `${feedId}`))) {
+	if (fs.existsSync(feedDestination)) {
 		console.log(`Skipping "${title}" because the directory already exists`);
 	} else {
+		const feedFileStream = fs.createWriteStream(feedDestination, { flags: 'wx' });
+		await finished(Readable.fromWeb(rawResponse.body).pipe(feedFileStream));
+		console.log(`Downloaded feed ${feedId}: "${title}"`);
+
+		console.log(`Scraping "${title}"`);
 		const episodes = parsedResult?.rss?.channel?.[0]?.item;
 		for await (const episode of episodes) {
 			console.log(episode.title);
