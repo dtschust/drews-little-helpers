@@ -8,6 +8,7 @@ require('dotenv').config();
 const { parseString } = require('xml2js');
 
 const key = process.env.UNOFFICIAL_RSS_KEY;
+const directory = path.resolve(require('os').homedir(), 'Desktop/tmp');
 
 const feedUrls = [
 	`https://v2.unofficialrss.com/feed/474009.xml?u=${key}`, // gino
@@ -17,6 +18,9 @@ const feedUrls = [
 ];
 
 async function downloadFeed(feedUrl) {
+	const feedId = feedUrl.match(/(\d+).xml/)[1];
+	console.log(`Downloading "${feedId}"`);
+	const rawResponse = await fetch(feedUrl);
 	const response = await fetch(feedUrl);
 	const { status } = response;
 	const text = await response.text();
@@ -25,7 +29,6 @@ async function downloadFeed(feedUrl) {
 		console.error('response = ', text);
 		return 1;
 	}
-
 	const parsedResult = await new Promise((resolve, reject) => {
 		parseString(text, (err, result) => {
 			if (err) {
@@ -34,7 +37,17 @@ async function downloadFeed(feedUrl) {
 			resolve(result);
 		});
 	});
+
 	const title = parsedResult?.rss?.channel?.[0]?.title?.[0];
+
+	if (!fs.existsSync(path.resolve(directory, `feeds`))) {
+		await mkdir(path.resolve(directory, `feeds`)); // Optional if you already have downloads directory
+	}
+	const feedDestination = path.resolve(directory, `feeds`, `${feedId}.xml`);
+	const feedFileStream = fs.createWriteStream(feedDestination, { flags: 'wx' });
+	await finished(Readable.fromWeb(rawResponse.body).pipe(feedFileStream));
+	console.log(`Downloaded feed ${feedId}: "${title}"`);
+
 	console.log(`Scraping "${title}"`);
 	const episodes = parsedResult?.rss?.channel?.[0]?.item;
 	for await (const episode of episodes) {
@@ -49,9 +62,10 @@ async function downloadFeed(feedUrl) {
 			return false;
 		}
 		console.log(`Downloading "${episode.title}"`);
-		if (!fs.existsSync('downloads')) await mkdir('downloads'); // Optional if you already have downloads directory
-		if (!fs.existsSync(`downloads/${title}`)) await mkdir(`downloads/${title}`); // Optional if you already have downloads directory
-		const destination = path.resolve(`./downloads/${title}`, filename);
+		if (!fs.existsSync(path.resolve(directory, `${feedId}`))) {
+			await mkdir(path.resolve(directory, `${feedId}`)); // Optional if you already have downloads directory
+		}
+		const destination = path.resolve(directory, `${feedId}`, filename);
 		const fileStream = fs.createWriteStream(destination, { flags: 'wx' });
 		await finished(Readable.fromWeb(ep.body).pipe(fileStream));
 		console.log(`Completed "${episode.title}"`);
@@ -60,6 +74,9 @@ async function downloadFeed(feedUrl) {
 }
 
 async function main() {
+	if (!fs.existsSync(directory)) {
+		await mkdir(directory);
+	}
 	for await (const feedUrl of feedUrls) {
 		let result;
 		try {
