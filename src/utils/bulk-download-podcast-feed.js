@@ -11,10 +11,14 @@ const key = process.env.UNOFFICIAL_RSS_KEY;
 const directory = path.resolve(require('os').homedir(), 'Desktop/tmp');
 
 const feedUrls = [
+	`https://v2.unofficialrss.com/feed/161410.xml?u=${key}`, // peecast blast
+	`https://v2.unofficialrss.com/feed/1001557.xml?u=${key}`, // andy daly podcast pilot project
 	`https://v2.unofficialrss.com/feed/474009.xml?u=${key}`, // gino
 	`https://v2.unofficialrss.com/feed/1001514.xml?u=${key}`, // neighborhood listen
 	`https://v2.unofficialrss.com/feed/1001575.xml?u=${key}`, // i was there too
 	`https://v2.unofficialrss.com/feed/1001522.xml?u=${key}`, // big grande teacher's lounge
+	`https://v2.unofficialrss.com/feed/1001413.xml?u=${key}`, // hollywood handbook
+	`https://v2.unofficialrss.com/feed/167152.xml?u=${key}`, // hollywood handbook pro version
 ];
 
 async function downloadFeed(feedUrl) {
