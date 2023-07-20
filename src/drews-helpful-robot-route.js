@@ -3,7 +3,7 @@ require('isomorphic-fetch');
 require('./utils/mongoose-connect');
 const slackBlockBuilder = require('slack-block-builder');
 const FrameControllerStatus = require('./mongoose-models/Frame-Controller-Status');
-const FrameStatus = require('./mongoose-models/Frame-Controller-Status');
+const FrameStatus = require('./mongoose-models/Frame-Status');
 
 const { getDrewsHelpfulRobot } = require('./utils/slack');
 
@@ -18,9 +18,38 @@ async function publishViewForUser(user) {
 		Blocks.Section().text(`*Welcome!!* \nI've got nothing for ya, head back to camp`),
 		Blocks.Divider(),
 		Blocks.Header().text('Frame Status:'),
-		Blocks.Section().text(JSON.stringify(frameStatus)),
+		Blocks.Section().text(`
+ip: ${frameStatus.ip}
+controller ip: ${frameStatus.controller_ip}
+network status: ${frameStatus.network_status}
+time: ${frameStatus.time}
+uptime: ${frameStatus.uptime}
+disk space remaining: ${frameStatus.disk_space_remaining}
+disk usage: ${frameStatus.disk_usage_percent}%
+number of photos: ${frameStatus.num_photos}
+last photo update: ${frameStatus.last_photo_update}
+log:
+\`\`\`
+hello world
+${frameStatus.log}
+\`\`\`
+debug:
+${JSON.stringify(frameStatus)}
+`),
 		Blocks.Header().text('Frame Controller Status:'),
-		Blocks.Section().text(JSON.stringify(frameControllerStatus)),
+		Blocks.Section().text(`
+ip: ${frameControllerStatus.ip}
+network status: ${frameControllerStatus.network_status}
+time: ${frameControllerStatus.time}
+uptime: ${frameControllerStatus.uptime}
+log:
+\`\`\`
+hello world
+${frameControllerStatus.log}
+\`\`\`
+debug:
+${JSON.stringify(frameControllerStatus)}
+`),
 	];
 
 	const view = {
