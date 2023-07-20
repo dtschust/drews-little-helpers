@@ -30,11 +30,12 @@ number of photos: ${frameStatus.num_photos}
 last photo update: ${frameStatus.last_photo_update}
 log:
 \`\`\`
-hello world
 ${frameStatus.log}
 \`\`\`
 debug:
+\`\`\`
 ${JSON.stringify(frameStatus)}
+\`\`\`
 `),
 		Blocks.Header().text('Frame Controller Status:'),
 		Blocks.Section().text(`
@@ -44,11 +45,12 @@ time: ${frameControllerStatus.time}
 uptime: ${frameControllerStatus.uptime}
 log:
 \`\`\`
-hello world
 ${frameControllerStatus.log}
 \`\`\`
 debug:
+\`\`\`
 ${JSON.stringify(frameControllerStatus)}
+\`\`\`
 `),
 	];
 
