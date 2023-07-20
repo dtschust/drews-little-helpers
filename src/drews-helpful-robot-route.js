@@ -17,9 +17,9 @@ async function publishViewForUser(user) {
 	const blocks = [
 		Blocks.Section().text(`*Welcome!!* \nI've got nothing for ya, head back to camp`),
 		Blocks.Divider(),
-		Blocks.Header.text('Frame Status:'),
+		Blocks.Header().text('Frame Status:'),
 		Blocks.Section().text(JSON.stringify(frameStatus)),
-		Blocks.Header.text('Frame Controller Status:'),
+		Blocks.Header().text('Frame Controller Status:'),
 		Blocks.Section().text(JSON.stringify(frameControllerStatus)),
 	];
 
