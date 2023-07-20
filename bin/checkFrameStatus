@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+require('../src/utils/mongoose-connect');
 require('dotenv').config();
 const FrameControllerStatus = require('../src/mongoose-models/Frame-Controller-Status');
 const FrameStatus = require('../src/mongoose-models/Frame-Status');
