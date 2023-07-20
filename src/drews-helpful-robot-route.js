@@ -2,6 +2,8 @@ require('dotenv').config();
 require('isomorphic-fetch');
 require('./utils/mongoose-connect');
 const slackBlockBuilder = require('slack-block-builder');
+const FrameControllerStatus = require('./mongoose-models/Frame-Controller-Status');
+const FrameStatus = require('./mongoose-models/Frame-Controller-Status');
 
 const { getDrewsHelpfulRobot } = require('./utils/slack');
 
@@ -10,9 +12,15 @@ const { Blocks, BlockCollection } = slackBlockBuilder;
 const { webRobot } = getDrewsHelpfulRobot();
 
 async function publishViewForUser(user) {
+	const frameControllerStatus = await FrameControllerStatus.findOne();
+	const frameStatus = await FrameStatus.findOne();
 	const blocks = [
 		Blocks.Section().text(`*Welcome!!* \nI've got nothing for ya, head back to camp`),
 		Blocks.Divider(),
+		Blocks.Header.text('Frame Status:'),
+		Blocks.Section().text(JSON.stringify(frameStatus)),
+		Blocks.Header.text('Frame Controller Status:'),
+		Blocks.Section().text(JSON.stringify(frameControllerStatus)),
 	];
 
 	const view = {
