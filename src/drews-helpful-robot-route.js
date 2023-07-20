@@ -19,15 +19,15 @@ async function publishViewForUser(user) {
 		Blocks.Divider(),
 		Blocks.Header().text('Frame Status:'),
 		Blocks.Section().text(`
-ip: ${frameStatus.ip}
-controller ip: ${frameStatus.controller_ip}
+ip: \`${frameStatus.ip}\`
+controller ip: \`${frameStatus.controller_ip}\`
 network status: ${frameStatus.network_status}
-time: ${frameStatus.time}
+time: ${new Date(frameStatus.time)}
 uptime: ${frameStatus.uptime}
 disk space remaining: ${frameStatus.disk_space_remaining}
 disk usage: ${frameStatus.disk_usage_percent}%
 number of photos: ${frameStatus.num_photos}
-last photo update: ${frameStatus.last_photo_update}
+last photo update: ${new Date(frameStatus.last_photo_update)}
 log:
 \`\`\`
 ${frameStatus.log}
@@ -39,9 +39,9 @@ ${JSON.stringify(frameStatus)}
 `),
 		Blocks.Header().text('Frame Controller Status:'),
 		Blocks.Section().text(`
-ip: ${frameControllerStatus.ip}
+ip: \`${frameControllerStatus.ip}\`
 network status: ${frameControllerStatus.network_status}
-time: ${frameControllerStatus.time}
+time: ${new Date(frameControllerStatus.time)}
 uptime: ${frameControllerStatus.uptime}
 log:
 \`\`\`
