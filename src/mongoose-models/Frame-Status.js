@@ -7,12 +7,12 @@ const FrameStatus = mongoose.model('FrameStatus', {
 	network_status: String,
 	time: Number,
 	log: String,
-	uptime: Number,
+	uptime: String,
 	controller_ip: String,
 	disk_space_remaining: Number,
 	disk_usage_percent: Number,
 	num_photos: Number,
-	last_photo_update: Number,
+	last_photo_update: String,
 });
 
 module.exports = FrameStatus;
