@@ -9,7 +9,7 @@ const FrameStatus = mongoose.model('FrameStatus', {
 	log: String,
 	uptime: String,
 	controller_ip: String,
-	disk_space_remaining: Number,
+	disk_space_remaining: String,
 	disk_usage_percent: Number,
 	num_photos: Number,
 	last_photo_update: String,
