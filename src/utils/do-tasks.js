@@ -6,8 +6,8 @@ const { getDrewsHelpfulRobot } = require('./slack');
 
 const { sendMessageToCronLogs, sendBlockMessageToCronLogs } = getDrewsHelpfulRobot();
 
-let someFailed = false;
 async function doTasks(tasks, cadence) {
+	let someFailed = false;
 	const logs = [[]];
 
 	function log(message) {
