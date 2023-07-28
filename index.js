@@ -35,7 +35,6 @@ addDrewsHelpfulRobotRoute(app);
 addLetterboxdFeedRoute(app);
 addSuperlightRoute(app);
 addPodcastFeedRoute(app);
-addFrameControllerStatusRoute(app);
 addFrameStatusRoute(app);
 
 app.listen(app.get('port'), () => {
