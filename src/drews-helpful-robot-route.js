@@ -19,13 +19,13 @@ async function publishViewForUser(user) {
 		Blocks.Section().text(`
 ip: \`${frameStatus.ip}\`
 controller ip: \`${frameStatus.controller_ip}\`
-network status: ${frameStatus.network_status}
-time: ${new Date(frameStatus.time)}
-uptime: ${frameStatus.uptime}
-disk space remaining: ${frameStatus.disk_space_remaining}
-disk usage: ${frameStatus.disk_usage_percent}%
-number of photos: ${frameStatus.num_photos}
-last photo update: ${new Date(frameStatus.last_photo_update)}
+network status: \`${frameStatus.network_status}\`
+time: \`${new Date(frameStatus.time)}\`
+uptime: \`${frameStatus.uptime}\`
+disk space remaining: \`${frameStatus.disk_space_remaining}\`
+disk usage: \`${frameStatus.disk_usage_percent}%\`
+number of photos: \`${frameStatus.num_photos}\`
+last photo update: \`${frameStatus.last_photo_update}\`
 log:
 \`\`\`
 ${frameStatus.log}
