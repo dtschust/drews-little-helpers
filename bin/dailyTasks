@@ -2,9 +2,9 @@
 
 const doTasks = require('../src/utils/do-tasks');
 
-const tasks = ['checkUpdatesForGaryKamiya', 'checkUnofficialRSS', 'ptpTopWeeklySanityCheck'];
+const tasks = ['checkUpdatesForGaryKamiya', 'checkUnofficialRSS'];
 
-const weeklyTasks = ['authUnofficialRSS', 'checkFrameStatus'];
+const weeklyTasks = ['authUnofficialRSS', 'checkFrameStatus', 'ptpTopWeeklySanityCheck'];
 
 async function main() {
 	await doTasks(tasks, 'Daily');
