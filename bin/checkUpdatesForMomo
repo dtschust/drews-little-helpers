@@ -59,39 +59,39 @@ function checkVersions() {
 			});
 
 			await new Promise((resolve) => {
-				FunBridgeVersions.findOne({ version: funbridge }, (err, response) => {
-					if (err) {
-						console.log(`Error querying the database for ${funbridge}`);
-						return;
-					}
-					if (response) {
-						// Nothing to do, we're already following this person.
-						resolve();
-						return;
-					}
+				FunBridgeVersions.findOne({ version: funbridge })
+					.then((response) => {
+						if (response) {
+							// Nothing to do, we're already following this person.
+							resolve();
+							return;
+						}
 
-					// we have a new version of funbridge!
-					console.log(`New funbridge version! ${funbridge}`);
-					sendMessage(
-						`
+						// we have a new version of funbridge!
+						console.log(`New funbridge version! ${funbridge}`);
+						sendMessage(
+							`
 *Laptop needs updates!*
 New FunBridge Version: ${funbridge}
 					`
-					).then(() => {
-						const newFunBridgeVersion = new FunBridgeVersions({
-							version: funbridge,
-							timestamp: Date.now(),
-						});
+						).then(() => {
+							const newFunBridgeVersion = new FunBridgeVersions({
+								version: funbridge,
+								timestamp: Date.now(),
+							});
 
-						newFunBridgeVersion.save((saveErr) => {
-							if (saveErr) {
-								console.log('Error saving to database', saveErr);
-							}
-							console.log(`done! Stored funbridge version ${funbridge}!`);
-							resolve();
+							newFunBridgeVersion.save((saveErr) => {
+								if (saveErr) {
+									console.log('Error saving to database', saveErr);
+								}
+								console.log(`done! Stored funbridge version ${funbridge}!`);
+								resolve();
+							});
 						});
+					})
+					.catch(() => {
+						console.log(`Error querying the database for ${funbridge}`);
 					});
-				});
 			});
 
 			if (!VERSION_DATA || !_.isEqual(VERSION_DATA, newVersionData)) {
