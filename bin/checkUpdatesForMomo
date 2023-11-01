@@ -96,34 +96,33 @@ New FunBridge Version: ${funbridge}
 
 			if (!VERSION_DATA || !_.isEqual(VERSION_DATA, newVersionData)) {
 				// remove all persisted versionData now that it's bad
-				VersionData.deleteMany(undefined, () => {
-					const newVersionDataModel = new VersionData(newVersionData);
-					// store the new version info!
-					newVersionDataModel.save(() => {
-						const changes = _.filter(
-							_.map(newVersionData, (value, key) => {
-								if (!VERSION_DATA || VERSION_DATA[key] !== value) {
-									return `*${_.startCase(key)}* update available: from *${
-										VERSION_DATA && VERSION_DATA[key]
-									}* to *${value}*`;
-								}
-							})
-						).join('\n');
-						sendMessage(
-							`
+				await VersionData.deleteMany(undefined);
+				const newVersionDataModel = new VersionData(newVersionData);
+				// store the new version info!
+				newVersionDataModel.save(() => {
+					const changes = _.filter(
+						_.map(newVersionData, (value, key) => {
+							if (!VERSION_DATA || VERSION_DATA[key] !== value) {
+								return `*${_.startCase(key)}* update available: from *${
+									VERSION_DATA && VERSION_DATA[key]
+								}* to *${value}*`;
+							}
+						})
+					).join('\n');
+					sendMessage(
+						`
 *Laptop needs updates!*
 ${changes}
 					`
-						).then(() => {
-							process.exit(0);
-						});
-
-						VERSION_DATA = {
-							screensConnect: newVersionDataModel.get('screensConnect'),
-							rescueTime: newVersionDataModel.get('rescueTime'),
-							onePassword: newVersionDataModel.get('onePassword'),
-						};
+					).then(() => {
+						process.exit(0);
 					});
+
+					VERSION_DATA = {
+						screensConnect: newVersionDataModel.get('screensConnect'),
+						rescueTime: newVersionDataModel.get('rescueTime'),
+						onePassword: newVersionDataModel.get('onePassword'),
+					};
 				});
 			} else {
 				console.log('Version checked, no updates!');
