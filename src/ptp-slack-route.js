@@ -372,6 +372,24 @@ Seeders: ${t.Seeders}, Snatched ${t.Snatched}, Size: ${t.Size / 1073741824} Gb`,
 }
 
 function addPtpSlackRoute(app) {
+	app.get('/get-top-movies/:username', async (req, res) => {
+		try {
+			const username = req?.params?.username;
+			if (username !== 'brook') {
+				res.status(500).end();
+			}
+		} catch (e) {
+			res.status(500).end();
+		}
+		try {
+			const { movies } = await TopMovies.findOne(undefined);
+			res.status(200).json({ movies }).end();
+		} catch (e) {
+			console.log(e);
+			res.status(200).end();
+			// don't care
+		}
+	});
 	app.post('/update-top-movies', async (req, res) => {
 		const reqBody = req.body;
 		if (reqBody.token !== process.env.PTP_SLACK_VERIFICATION_TOKEN) {
