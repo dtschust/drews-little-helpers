@@ -7,7 +7,7 @@ require('isomorphic-fetch');
 require('dotenv').config();
 const { exec } = require('child_process');
 
-const minifiedJavascript = `function unescape(string){return new DOMParser().parseFromString(string,'text/html').querySelector('html').textContent;}var data=coverViewJsonData[1].Movies.map(a=>({id:a.GroupId,title:unescape(a.Title),posterUrl:a.Cover,year:a.Year}));fetch('${process.env.SERVER_URL}/update-top-movies',{method:'POST',mode:'cors',cache:'no-cache',credentials:'same-origin',headers:{'Content-Type':'application/json'},redirect:'follow',referrerPolicy:'no-referrer',body:JSON.stringify({token:'${process.env.PTP_SLACK_VERIFICATION_TOKEN}',movies:data})});`;
+const minifiedJavascript = `function unescape(string){return new DOMParser().parseFromString(string,'text/html').querySelector('html').textContent;}var data=coverViewJsonData[1].Movies.map(a=>({id:a.GroupId,title:unescape(a.Title),posterUrl:a.Cover,year:a.Year,imdbId:a.ImdbId}));fetch('${process.env.SERVER_URL}/update-top-movies',{method:'POST',mode:'cors',cache:'no-cache',credentials:'same-origin',headers:{'Content-Type':'application/json'},redirect:'follow',referrerPolicy:'no-referrer',body:JSON.stringify({token:'${process.env.PTP_SLACK_VERIFICATION_TOKEN}',movies:data})});`;
 
 const appleScript = `
 tell application \\"Safari\\"
