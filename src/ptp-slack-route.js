@@ -383,8 +383,7 @@ function addPtpSlackRoute(app) {
 		}
 		try {
 			const { movies } = await TopMovies.findOne(undefined);
-			const result = movies.map(({ id, title, posterUrl, year, imdbId }) => ({
-				id,
+			const result = movies.map(({ title, posterUrl, year, imdbId }) => ({
 				title,
 				poster_url: posterUrl,
 				year,
