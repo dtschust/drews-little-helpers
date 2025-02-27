@@ -7,6 +7,16 @@ const { sendMessageToFollowShows } = getDrewsHelpfulRobot();
 const dbx = new Dropbox({ accessToken: process.env.DROPBOX_TOKEN });
 
 function sortTorrents(a, b) {
+	const hasDolbyVision = (title = '') => {
+		return title.indexOf('Dolby Vision') > -1;
+	};
+	// Avoid dolby vision
+	if (hasDolbyVision(a.RemasterTitle) && !hasDolbyVision(b.RemasterTitle)) {
+		return 1;
+	}
+	if (hasDolbyVision(b.RemasterTitle) && !hasDolbyVision(a.RemasterTitle)) {
+		return -1;
+	}
 	if (a.Quality === 'Ultra High Definition' && !b.quality !== 'Ultra High Definition') {
 		return -1;
 	}
