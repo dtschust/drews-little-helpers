@@ -49,8 +49,13 @@ function getSortedTorrentsForGroup(groupId) {
 function addMoviesRoute(app) {
 	// GET /movies/search?q=...
 	app.get('/movies/search', async (req, res) => {
-		try {
-			const query = req.query.q || req.query.query || '';
+    // Auth check
+    if ((req.query.token || '') !== process.env.CUSTOM_PTP_API_TOKEN) {
+      res.status(403).end('Access forbidden');
+      return;
+    }
+    try {
+      const query = req.query.q || req.query.query || '';
 			if (!query) {
 				res.status(400).json({ error: 'Missing query parameter `q`' }).end();
 				return;
@@ -72,8 +77,13 @@ function addMoviesRoute(app) {
 
 	// GET /movies/getVersions?id=...
 	app.get('/movies/getVersions', async (req, res) => {
-		try {
-			const { id } = req.query;
+    // Auth check
+    if ((req.query.token || '') !== process.env.CUSTOM_PTP_API_TOKEN) {
+      res.status(403).end('Access forbidden');
+      return;
+    }
+    try {
+      const { id } = req.query;
 			if (!id) {
 				res.status(400).json({ error: 'Missing query parameter `id`' }).end();
 				return;
@@ -111,8 +121,13 @@ function addMoviesRoute(app) {
 
 	// POST /movies/downloadMovie { torrentId, movieTitle }
 	app.post('/movies/downloadMovie', async (req, res) => {
-		try {
-			const { torrentId, movieTitle } = req.body || {};
+    // Auth check
+    if ((req.body && req.body.token) !== process.env.CUSTOM_PTP_API_TOKEN) {
+      res.status(403).end('Access forbidden');
+      return;
+    }
+    try {
+      const { torrentId, movieTitle } = req.body || {};
 			if (!torrentId || !movieTitle) {
 				res.status(400)
 					.json({ error: 'Missing `torrentId` or `movieTitle` in body' })
