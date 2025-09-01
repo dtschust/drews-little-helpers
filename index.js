@@ -10,6 +10,7 @@ const addLetterboxdFeedRoute = require('./src/letterboxd-feed-route');
 const addSuperlightRoute = require('./src/superlight-route');
 const addPodcastFeedRoute = require('./src/podcast-feed-route');
 const addFrameStatusRoute = require('./src/frame-status-route');
+const addMoviesRoute = require('./src/movies-route');
 
 const app = express();
 
@@ -34,6 +35,7 @@ addLetterboxdFeedRoute(app);
 addSuperlightRoute(app);
 addPodcastFeedRoute(app);
 addFrameStatusRoute(app);
+addMoviesRoute(app);
 
 app.listen(app.get('port'), () => {
 	console.log('Node app is running on port', app.get('port'));
