@@ -1,5 +1,8 @@
 require('dotenv').config();
 require('isomorphic-fetch');
+require('./utils/mongoose-connect');
+
+const TopMovies = require('./mongoose-models/Top-Movies');
 
 const { sortTorrents, saveUrlToDropbox } = require('./utils/ptp');
 
@@ -47,6 +50,29 @@ function getSortedTorrentsForGroup(groupId) {
 }
 
 function addMoviesRoute(app) {
+  // GET /movies/topMovies
+  app.get('/movies/topMovies', async (req, res) => {
+    // Auth check
+    if ((req.query.token || '') !== process.env.CUSTOM_PTP_API_TOKEN) {
+      res.status(403).end('Access forbidden');
+      return;
+    }
+    try {
+      const doc = await TopMovies.findOne(undefined);
+      const movies = (doc && Array.isArray(doc.movies)) ? doc.movies : [];
+      // Return same structure as /movies/search
+      const result = movies.map(({ title, id, posterUrl, year }) => ({
+        title,
+        id,
+        posterUrl,
+        year,
+      }));
+      res.status(200).json({ movies: result }).end();
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: 'Failed to get top movies' }).end();
+    }
+  });
 	// GET /movies/search?q=...
 	app.get('/movies/search', async (req, res) => {
     // Auth check
