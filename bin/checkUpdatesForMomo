@@ -80,13 +80,15 @@ New FunBridge Version: ${funbridge}
 								timestamp: Date.now(),
 							});
 
-							newFunBridgeVersion.save((saveErr) => {
-								if (saveErr) {
+							(async () => {
+								try {
+									await newFunBridgeVersion.save();
+								} catch (saveErr) {
 									console.log('Error saving to database', saveErr);
 								}
 								console.log(`done! Stored funbridge version ${funbridge}!`);
 								resolve();
-							});
+							})();
 						});
 					})
 					.catch(() => {
@@ -99,7 +101,7 @@ New FunBridge Version: ${funbridge}
 				await VersionData.deleteMany(undefined);
 				const newVersionDataModel = new VersionData(newVersionData);
 				// store the new version info!
-				newVersionDataModel.save(() => {
+				await newVersionDataModel.save();
 					const changes = _.filter(
 						_.map(newVersionData, (value, key) => {
 							if (!VERSION_DATA || VERSION_DATA[key] !== value) {
@@ -123,7 +125,7 @@ ${changes}
 						rescueTime: newVersionDataModel.get('rescueTime'),
 						onePassword: newVersionDataModel.get('onePassword'),
 					};
-				});
+				
 			} else {
 				console.log('Version checked, no updates!');
 				process.exit(0);
