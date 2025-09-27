@@ -34,7 +34,7 @@ async function searchAndCache({ query } = {}) {
 	authKey = apiResponse.AuthKey;
 	passKey = apiResponse.PassKey;
 
-	const movies = (apiResponse.Movies || []).slice(0, 5);
+	const movies = apiResponse.Movies || [];
 	movies.forEach((movie) => {
 		GroupIdMap[movie.GroupId] = movie;
 	});
@@ -46,42 +46,42 @@ function getSortedTorrentsForGroup(groupId) {
 	const movie = GroupIdMap[groupId];
 	if (!movie || !movie.Torrents) return null;
 	// Match slack sorting and slicing
-	return movie.Torrents.slice(0).sort(sortTorrents).slice(0, 12);
+	return movie.Torrents.slice(0).sort(sortTorrents);
 }
 
 function addMoviesRoute(app) {
-  // GET /movies/topMovies
-  app.get('/movies/topMovies', async (req, res) => {
-    // Auth check
-    if ((req.query.token || '') !== process.env.CUSTOM_PTP_API_TOKEN) {
-      res.status(403).end('Access forbidden');
-      return;
-    }
-    try {
-      const doc = await TopMovies.findOne(undefined);
-      const movies = (doc && Array.isArray(doc.movies)) ? doc.movies : [];
-      // Return same structure as /movies/search
-      const result = movies.map(({ title, id, posterUrl, year }) => ({
-        title,
-        id,
-        posterUrl,
-        year,
-      }));
-      res.status(200).json({ movies: result }).end();
-    } catch (e) {
-      console.error(e);
-      res.status(500).json({ error: 'Failed to get top movies' }).end();
-    }
-  });
+	// GET /movies/topMovies
+	app.get('/movies/topMovies', async (req, res) => {
+		// Auth check
+		if ((req.query.token || '') !== process.env.CUSTOM_PTP_API_TOKEN) {
+			res.status(403).end('Access forbidden');
+			return;
+		}
+		try {
+			const doc = await TopMovies.findOne(undefined);
+			const movies = doc && Array.isArray(doc.movies) ? doc.movies : [];
+			// Return same structure as /movies/search
+			const result = movies.map(({ title, id, posterUrl, year }) => ({
+				title,
+				id,
+				posterUrl,
+				year,
+			}));
+			res.status(200).json({ movies: result }).end();
+		} catch (e) {
+			console.error(e);
+			res.status(500).json({ error: 'Failed to get top movies' }).end();
+		}
+	});
 	// GET /movies/search?q=...
 	app.get('/movies/search', async (req, res) => {
-    // Auth check
-    if ((req.query.token || '') !== process.env.CUSTOM_PTP_API_TOKEN) {
-      res.status(403).end('Access forbidden');
-      return;
-    }
-    try {
-      const query = req.query.q || req.query.query || '';
+		// Auth check
+		if ((req.query.token || '') !== process.env.CUSTOM_PTP_API_TOKEN) {
+			res.status(403).end('Access forbidden');
+			return;
+		}
+		try {
+			const query = req.query.q || req.query.query || '';
 			if (!query) {
 				res.status(400).json({ error: 'Missing query parameter `q`' }).end();
 				return;
@@ -103,13 +103,13 @@ function addMoviesRoute(app) {
 
 	// GET /movies/getVersions?id=...
 	app.get('/movies/getVersions', async (req, res) => {
-    // Auth check
-    if ((req.query.token || '') !== process.env.CUSTOM_PTP_API_TOKEN) {
-      res.status(403).end('Access forbidden');
-      return;
-    }
-    try {
-      const { id } = req.query;
+		// Auth check
+		if ((req.query.token || '') !== process.env.CUSTOM_PTP_API_TOKEN) {
+			res.status(403).end('Access forbidden');
+			return;
+		}
+		try {
+			const { id } = req.query;
 			if (!id) {
 				res.status(400).json({ error: 'Missing query parameter `id`' }).end();
 				return;
@@ -147,13 +147,13 @@ function addMoviesRoute(app) {
 
 	// POST /movies/downloadMovie { torrentId, movieTitle }
 	app.post('/movies/downloadMovie', async (req, res) => {
-    // Auth check
-    if ((req.body && req.body.token) !== process.env.CUSTOM_PTP_API_TOKEN) {
-      res.status(403).end('Access forbidden');
-      return;
-    }
-    try {
-      const { torrentId, movieTitle } = req.body || {};
+		// Auth check
+		if ((req.body && req.body.token) !== process.env.CUSTOM_PTP_API_TOKEN) {
+			res.status(403).end('Access forbidden');
+			return;
+		}
+		try {
+			const { torrentId, movieTitle } = req.body || {};
 			if (!torrentId || !movieTitle) {
 				res.status(400)
 					.json({ error: 'Missing `torrentId` or `movieTitle` in body' })
