@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-const fetch = require('node-fetch');
-
 require('dotenv').config();
 
 const endpoint = process.env.HUE_ENDPOINT;
