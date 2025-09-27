@@ -4,7 +4,6 @@ const { mkdir } = require('fs/promises');
 const path = require('path');
 const { Readable } = require('stream');
 const { finished } = require('stream/promises');
-require('isomorphic-fetch');
 require('dotenv').config();
 const { parseString } = require('xml2js');
 

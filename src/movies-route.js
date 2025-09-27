@@ -1,5 +1,4 @@
 require('dotenv').config();
-require('isomorphic-fetch');
 require('./utils/mongoose-connect');
 
 const TopMovies = require('./mongoose-models/Top-Movies');

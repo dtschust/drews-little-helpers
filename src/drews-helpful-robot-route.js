@@ -1,5 +1,4 @@
 require('dotenv').config();
-require('isomorphic-fetch');
 require('./utils/mongoose-connect');
 const slackBlockBuilder = require('slack-block-builder');
 const FrameStatus = require('./mongoose-models/Frame-Status');

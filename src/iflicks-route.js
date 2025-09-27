@@ -1,5 +1,4 @@
 require('dotenv').config();
-require('isomorphic-fetch');
 
 function sendMessageToSlackResponseURL(responseURL, JSONmessage) {
 	return fetch(responseURL, {

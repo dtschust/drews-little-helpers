@@ -1,4 +1,3 @@
-require('isomorphic-fetch');
 
 function addSuperlightRoute(app) {
 	app.all('/superlight/feed.json', (req, res) => {

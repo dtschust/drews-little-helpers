@@ -1,5 +1,4 @@
 require('dotenv').config();
-require('isomorphic-fetch');
 const FrameStatus = require('./mongoose-models/Frame-Status');
 const { getDrewsHelpfulRobot } = require('./utils/slack');
 

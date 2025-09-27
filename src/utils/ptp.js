@@ -1,4 +1,3 @@
-require('isomorphic-fetch');
 require('dotenv').config();
 const { Dropbox } = require('dropbox');
 const { getDrewsHelpfulRobot } = require('./slack');

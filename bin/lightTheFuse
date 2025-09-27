@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-require('isomorphic-fetch');
 require('dotenv').config();
 const puppeteer = require('puppeteer');
 // go to https://www.lightthefusepodcast.com/episode-guide and run this in dev console
@@ -294,7 +293,6 @@ const episodeUrls = [
 	<itunes:duration>00:32:16</itunes:duration>
 	<itunes:explicit>no</itunes:explicit>
 	<guid>${url}</guid>
-
 
 */
 // const incrementer = 0;

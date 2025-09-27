@@ -2,7 +2,6 @@ const { parseString } = require('xml2js');
 const innertext = require('innertext');
 
 require('dotenv').config();
-require('isomorphic-fetch');
 
 async function parseFeed(username) {
 	const response = await fetch(`https://letterboxd.com/${username}/rss/`).then((resp) =>

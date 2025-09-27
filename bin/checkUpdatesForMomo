@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 require('dotenv').config();
-require('isomorphic-fetch');
 const _ = require('lodash');
 const { parseString } = require('xml2js');
 const { getMongoose } = require('../src/utils/mongoose-connect');

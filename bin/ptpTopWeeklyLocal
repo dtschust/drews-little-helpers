@@ -3,7 +3,6 @@
 // NOTE: this should only run locally on a mac, not in the cloud!
 // Also: You must enable the safari developer menu "Allow JavaScript from Apple Events"
 
-require('isomorphic-fetch');
 require('dotenv').config();
 const { exec } = require('child_process');
 

@@ -1,4 +1,3 @@
-require('isomorphic-fetch');
 require('dotenv').config();
 const childProcess = require('child_process');
 const path = require('path');

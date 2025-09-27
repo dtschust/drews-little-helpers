@@ -1,5 +1,4 @@
 require('dotenv').config();
-require('isomorphic-fetch');
 const FormData = require('form-data');
 require('./mongoose-connect');
 

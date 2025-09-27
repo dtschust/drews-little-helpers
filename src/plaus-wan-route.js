@@ -1,5 +1,4 @@
 require('dotenv').config();
-require('isomorphic-fetch');
 
 const { approvals, flair, nits, comments, getRandomFrom } = require('./plaus-wan/responses');
 
