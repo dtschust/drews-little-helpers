@@ -90,10 +90,12 @@ function addMoviesRoute(fastify) {
 			const movies = await searchAndCache({ query });
 			// Return a compact list similar to the Slack UI usage
 			const result = movies.map((m) => ({
+				...m,
 				title: m.Title,
 				id: m.GroupId,
 				posterUrl: m.Cover,
 				year: m.Year,
+				imdbId: m.ImdbId,
 			}));
 			reply.code(200).send({ movies: result });
 		} catch (e) {
