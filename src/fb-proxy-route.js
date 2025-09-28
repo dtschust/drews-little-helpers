@@ -14,7 +14,7 @@ apiProxy.on('proxyReq', (proxyReq, req) => {
 	}
 });
 
-const ALLOW_HEADERS = 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Delete';
+const ALLOW_HEADERS = 'Origin, X-Requested-With, Content-Type, Accept, Authorization';
 
 function setCorsHeaders(request, setHeader) {
 	const { origin } = request.headers;
@@ -27,7 +27,10 @@ function setCorsHeaders(request, setHeader) {
 		setHeader('access-control-allow-origin', '*');
 	}
 
-	setHeader('access-control-allow-headers', ALLOW_HEADERS);
+	setHeader(
+		'access-control-allow-headers',
+		request.headers['access-control-request-headers'] || ALLOW_HEADERS
+	);
 }
 
 function enableCors(request, reply) {

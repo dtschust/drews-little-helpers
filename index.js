@@ -20,14 +20,8 @@ const port = Number(process.env.PORT) || 8000;
 async function buildServer() {
 	await fastify.register(fastifyCors, {
 		origin: true,
-		allowedHeaders: [
-			'Origin',
-			'X-Requested-With',
-			'Content-Type',
-			'Accept',
-			'Authorization',
-			'Delete',
-		],
+		allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+		methods: ['GET', 'HEAD', 'POST', 'DELETE'],
 	});
 	await fastify.register(fastifyFormbody);
 
