@@ -2,7 +2,7 @@
 
 const doTasks = require('../src/utils/do-tasks');
 
-const tasks = ['checkUpdatesForGaryKamiya', 'ptpTopWeeklySanityCheck', 'checkUpdatesForMomo'];
+const tasks = ['checkUpdatesForGaryKamiya', 'ptpTopWeeklySanityCheck'];
 
 const weeklyTasks = [];
 
