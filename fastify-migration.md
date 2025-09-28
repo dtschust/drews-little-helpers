@@ -1,7 +1,7 @@
 # Fastify Migration Notes
 
 ## Overview
-- Replaced the Express server bootstrap with a Fastify instance in `index.js`.
+- Replaced the Express server bootstrap with a Fastify instance in `index.js`, enabling `ignoreTrailingSlash` to retain Express-style route matching.
 - Removed the `express` and `body-parser` dependencies and added `fastify`, `@fastify/cors`, and `@fastify/formbody` in `package.json` (and lockfile).
 - Updated every route module in `src/` to use Fastify's `request`/`reply` APIs.
 - Preserved functionality such as Slack interactions, Dropbox downloads, and the Feedbin proxy, adapting them to the Fastify ecosystem.

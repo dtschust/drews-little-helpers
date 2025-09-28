@@ -12,6 +12,7 @@ const addMoviesRoute = require('./src/movies-route');
 
 const fastify = fastifyFactory({
 	logger: false,
+	ignoreTrailingSlash: true,
 });
 
 const port = Number(process.env.PORT) || 8000;
