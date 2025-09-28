@@ -6,6 +6,9 @@
 - Updated every route module in `src/` to use Fastify's `request`/`reply` APIs.
 - Preserved functionality such as Slack interactions, Dropbox downloads, and the Feedbin proxy, adapting them to the Fastify ecosystem.
 - Ensured linting passes via `npm test` (ESLint).
+- Drew is particularly worried about regressions in:
+  - The Feedbin proxy (`/v2/*`).
+  - The Slack-driven `POST /update-top-movies` endpoint.
 
 ## Server Bootstrap (`index.js`)
 - Instantiate Fastify with `fastify({ logger: false })`.
