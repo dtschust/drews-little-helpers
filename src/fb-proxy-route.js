@@ -14,35 +14,59 @@ apiProxy.on('proxyReq', (proxyReq, req) => {
 	}
 });
 
-function enableCors(req, res) {
-	if (req.headers['access-control-request-method']) {
-		res.setHeader('access-control-allow-methods', req.headers['access-control-request-method']);
-	}
-
-	if (req.headers['access-control-request-headers']) {
-		res.setHeader(
-			'access-control-allow-headers',
-			req.headers['access-control-request-headers']
+function enableCors(request, reply) {
+	if (request.headers['access-control-request-method']) {
+		reply.header(
+			'access-control-allow-methods',
+			request.headers['access-control-request-method']
 		);
 	}
 
-	if (req.headers.origin) {
-		res.setHeader('access-control-allow-origin', req.headers.origin);
-		res.setHeader('access-control-allow-credentials', 'true');
+	if (request.headers['access-control-request-headers']) {
+		reply.header(
+			'access-control-allow-headers',
+			request.headers['access-control-request-headers']
+		);
+	}
+
+	if (request.headers.origin) {
+		reply.header('access-control-allow-origin', request.headers.origin);
+		reply.header('access-control-allow-credentials', 'true');
 	}
 }
 
-function addFbProxyRoute(app) {
-	app.all('/v2/*', (req, res) => {
-		// You can define here your custom logic to handle the request
-		// and then proxy the request.
-		if (req.method === 'OPTIONS') {
-			enableCors(req, res);
-			res.status(200);
-			res.end();
+function addFbProxyRoute(fastify) {
+	fastify.all('/v2/*', async (request, reply) => {
+		if (request.method === 'OPTIONS') {
+			enableCors(request, reply);
+			reply.code(200).send();
 			return;
 		}
-		apiProxy.web(req, res, { target: 'https://api.feedbin.com', changeOrigin: true });
+
+		reply.header('access-control-allow-origin', '*');
+		reply.header(
+			'access-control-allow-headers',
+			'Origin, X-Requested-With, Content-Type, Accept'
+		);
+
+		reply.hijack();
+		// Mirror Express behaviour for http-proxy by attaching parsed body to the raw request
+		// so the proxyReq listener can forward it downstream.
+		const rawRequest = request.raw;
+		const rawReply = reply.raw;
+		rawRequest.body = request.body;
+
+		apiProxy.web(
+			rawRequest,
+			rawReply,
+			{ target: 'https://api.feedbin.com', changeOrigin: true },
+			(err) => {
+				if (err) {
+					rawReply.writeHead(500);
+					rawReply.end();
+				}
+			}
+		);
 	});
 }
 

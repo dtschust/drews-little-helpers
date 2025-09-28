@@ -25,34 +25,35 @@ function publishViewForUser(user) {
 	});
 }
 
-function addDrewsHelpfulRobotRoute(app) {
-	app.post('/helper-action-endpoint', (req, res) => {
-		if (req.body.type === 'url_verification') {
-			res.send(req.body.challenge).status(200).end();
+function addDrewsHelpfulRobotRoute(fastify) {
+	fastify.post('/helper-action-endpoint', (request, reply) => {
+		const body = request.body || {};
+		if (body.type === 'url_verification') {
+			reply.code(200).send(body.challenge);
 			return;
 		}
-		if (req.body.type === 'event_callback') {
-			const { event } = req.body;
+		if (body.type === 'event_callback') {
+			const { event } = body;
 			const { user, type } = event;
 			if (type === 'app_home_opened') {
 				publishViewForUser(user);
 			}
-			res.status(200).end();
+			reply.code(200).send();
 			return;
 		}
-		const payload = JSON.parse(req.body.payload);
+		const payload = JSON.parse(body.payload);
 
 		if (payload.type === 'block_actions') {
-			res.status(200).end();
+			reply.code(200).send();
 			return;
 		}
 
 		if (payload.token !== process.env.ROBOT_VERIFICATION_TOKEN) {
-			res.status(403).end('Access forbidden');
+			reply.code(403).send('Access forbidden');
 			return;
 		}
 
-		res.status(200).end();
+		reply.code(200).send();
 
 		if (!payload.actions) {
 			// This is not a legacy slash comand, so it's probably a workflow

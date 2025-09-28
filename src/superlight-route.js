@@ -1,22 +1,24 @@
+async function fetchSuperlightFeed() {
+	const resp = await fetch('http://superlight.jimwhimpey.com/feed.json');
+	return resp.json();
+}
 
-function addSuperlightRoute(app) {
-	app.all('/superlight/feed.json', (req, res) => {
-		fetch('http://superlight.jimwhimpey.com/feed.json')
-			.then((resp) => resp.json())
-			.then((feed) => {
-				const convertedFeed = {
-					...feed,
-					items: feed.items.map((item) => {
-						return {
-							...item,
-							id: item.id.toString(),
-							summary: item.summary.replace(/\d{10}-/, ''),
-						};
-					}),
-				};
-				res.json(convertedFeed);
-				res.status(200);
-			});
+function addSuperlightRoute(fastify) {
+	fastify.all('/superlight/feed.json', async (request, reply) => {
+		try {
+			const feed = await fetchSuperlightFeed();
+			const convertedFeed = {
+				...feed,
+				items: feed.items.map((item) => ({
+					...item,
+					id: item.id.toString(),
+					summary: item.summary.replace(/\d{10}-/, ''),
+				})),
+			};
+			reply.code(200).send(convertedFeed);
+		} catch (e) {
+			reply.code(500).send();
+		}
 	});
 }
 

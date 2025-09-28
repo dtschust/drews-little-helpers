@@ -370,15 +370,17 @@ Seeders: ${t.Seeders}, Snatched ${t.Snatched}, Size: ${t.Size / 1073741824} Gb`,
 	});
 }
 
-function addPtpSlackRoute(app) {
-	app.get('/get-top-movies/:username', async (req, res) => {
+function addPtpSlackRoute(fastify) {
+	fastify.get('/get-top-movies/:username', async (request, reply) => {
 		try {
-			const username = req?.params?.username;
+			const username = request?.params?.username;
 			if (username !== 'brook') {
-				res.status(500).end();
+				reply.code(500).send();
+				return;
 			}
 		} catch (e) {
-			res.status(500).end();
+			reply.code(500).send();
+			return;
 		}
 		try {
 			const { movies } = await TopMovies.findOne(undefined);
@@ -388,54 +390,59 @@ function addPtpSlackRoute(app) {
 				year,
 				imdb_id: imdbId,
 			}));
-			res.status(200).json(result).end();
+			reply.code(200).send(result);
 		} catch (e) {
 			console.log(e);
-			res.status(200).end();
+			reply.code(200).send();
 			// don't care
 		}
 	});
-	app.post('/update-top-movies', async (req, res) => {
-		const reqBody = req.body;
+
+	fastify.post('/update-top-movies', async (request, reply) => {
+		const reqBody = request.body || {};
 		if (reqBody.token !== process.env.PTP_SLACK_VERIFICATION_TOKEN) {
-			res.status(403).end('Access forbidden');
-		} else {
-			try {
-				const { movies } = reqBody;
-				if (movies && movies.length) {
-					const topMoviesModel = new TopMovies({
-						movies,
-					});
-					await TopMovies.deleteMany();
-					await topMoviesModel.save();
-				}
-				sendMessageToCronLogs(`✅ Successfully loaded top movies! Movies in 🧵`).then(
-					({ ts }) => {
-						sendMessageToCronLogs(movies.map(({ title }) => `• ${title}`).join('\n'), {
-							thread_ts: ts,
-						});
-					}
-				);
-				res.status(200).end();
-			} catch (e) {
-				console.log(e);
-				res.status(200).end();
-				// don't care
+			reply.code(403).send('Access forbidden');
+			return;
+		}
+		try {
+			const { movies } = reqBody;
+			if (movies && movies.length) {
+				const topMoviesModel = new TopMovies({
+					movies,
+				});
+				await TopMovies.deleteMany();
+				await topMoviesModel.save();
 			}
+			sendMessageToCronLogs(`✅ Successfully loaded top movies! Movies in 🧵`).then(
+				({ ts }) => {
+					sendMessageToCronLogs(movies.map(({ title }) => `• ${title}`).join('\n'), {
+						thread_ts: ts,
+					});
+				}
+			);
+			reply.code(200).send();
+		} catch (e) {
+			console.log(e);
+			reply.code(200).send();
+			// don't care
 		}
 	});
-	app.post('/slash-command', (req, res) => {
-		res.status(200).end();
-		const reqBody = req.body;
+
+	fastify.post('/slash-command', (request, reply) => {
+		const reqBody = request.body || {};
+		if (reqBody.token !== process.env.PTP_SLACK_VERIFICATION_TOKEN) {
+			reply.code(403).send('Access forbidden');
+			return;
+		}
+		reply.code(200).send();
+
 		const responseURL = reqBody.response_url;
 		const query = reqBody.text;
 		async function provideFeedback(message) {
 			return sendMessageToSlackResponseURL(responseURL, message);
 		}
 
-		if (reqBody.token !== process.env.PTP_SLACK_VERIFICATION_TOKEN) {
-			res.status(403).end('Access forbidden');
-		} else if (!query || !query.length) {
+		if (!query || !query.length) {
 			sendTopTenMoviesOfTheWeek(provideFeedback);
 		} else {
 			const retry = true;
@@ -443,21 +450,26 @@ function addPtpSlackRoute(app) {
 		}
 	});
 
-	app.post('/action-endpoint', (req, res) => {
-		if (req.body.type === 'url_verification') {
-			res.send(req.body.challenge).status(200).end();
+	fastify.post('/action-endpoint', (request, reply) => {
+		const body = request.body || {};
+		if (body.type === 'url_verification') {
+			reply.code(200).send(body.challenge);
 			return;
 		}
-		if (req.body.type === 'event_callback') {
-			const { event } = req.body;
+		if (body.type === 'event_callback') {
+			const { event } = body;
 			const { user, type } = event;
 			if (type === 'app_home_opened') {
 				publishViewForUser(user);
 			}
-			res.status(200).end();
+			reply.code(200).send();
 			return;
 		}
-		const payload = JSON.parse(req.body.payload);
+		const payload = JSON.parse(body.payload);
+		if (payload.token !== process.env.PTP_SLACK_VERIFICATION_TOKEN) {
+			reply.code(403).send('Access forbidden');
+			return;
+		}
 		if (payload.type === 'block_actions') {
 			if (payload.view && payload.view.type === 'home') {
 				if (payload.actions[0].action_id.indexOf('selectMovieAppHome') === 0) {
@@ -478,15 +490,10 @@ function addPtpSlackRoute(app) {
 					downloadMovieModal(payload);
 				}
 			}
-			res.status(200).end();
+			reply.code(200).send();
 			return;
 		}
-		res.status(200).end();
-
-		if (payload.token !== process.env.PTP_SLACK_VERIFICATION_TOKEN) {
-			res.status(403).end('Access forbidden');
-			return;
-		}
+		reply.code(200).send();
 
 		if (!payload.actions) {
 			// This is not a legacy slash comand, so it's probably a workflow

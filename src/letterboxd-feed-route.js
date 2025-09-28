@@ -31,14 +31,14 @@ async function parseFeed(username) {
 	return structuredData;
 }
 
-function addLetterboxdFeedRoute(app) {
-	app.get('/letterboxd/:username', async (req, res) => {
+function addLetterboxdFeedRoute(fastify) {
+	fastify.get('/letterboxd/:username', async (request, reply) => {
 		try {
-			const username = req?.params?.username;
+			const username = request?.params?.username;
 			const response = await parseFeed(username);
-			res.status(200).json(response).end();
+			reply.code(200).send(response);
 		} catch (e) {
-			res.status(500).end();
+			reply.code(500).send();
 		}
 	});
 }

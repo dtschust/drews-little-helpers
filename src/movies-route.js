@@ -48,12 +48,13 @@ function getSortedTorrentsForGroup(groupId) {
 	return movie.Torrents.slice(0).sort(sortTorrents);
 }
 
-function addMoviesRoute(app) {
+function addMoviesRoute(fastify) {
 	// GET /movies/topMovies
-	app.get('/movies/topMovies', async (req, res) => {
+	fastify.get('/movies/topMovies', async (request, reply) => {
+		const query = request.query || {};
 		// Auth check
-		if ((req.query.token || '') !== process.env.CUSTOM_PTP_API_TOKEN) {
-			res.status(403).end('Access forbidden');
+		if ((query.token || '') !== process.env.CUSTOM_PTP_API_TOKEN) {
+			reply.code(403).send('Access forbidden');
 			return;
 		}
 		try {
@@ -66,23 +67,24 @@ function addMoviesRoute(app) {
 				posterUrl,
 				year,
 			}));
-			res.status(200).json({ movies: result }).end();
+			reply.code(200).send({ movies: result });
 		} catch (e) {
 			console.error(e);
-			res.status(500).json({ error: 'Failed to get top movies' }).end();
+			reply.code(500).send({ error: 'Failed to get top movies' });
 		}
 	});
 	// GET /movies/search?q=...
-	app.get('/movies/search', async (req, res) => {
+	fastify.get('/movies/search', async (request, reply) => {
+		const queryParams = request.query || {};
 		// Auth check
-		if ((req.query.token || '') !== process.env.CUSTOM_PTP_API_TOKEN) {
-			res.status(403).end('Access forbidden');
+		if ((queryParams.token || '') !== process.env.CUSTOM_PTP_API_TOKEN) {
+			reply.code(403).send('Access forbidden');
 			return;
 		}
 		try {
-			const query = req.query.q || req.query.query || '';
+			const query = queryParams.q || queryParams.query || '';
 			if (!query) {
-				res.status(400).json({ error: 'Missing query parameter `q`' }).end();
+				reply.code(400).send({ error: 'Missing query parameter `q`' });
 				return;
 			}
 			const movies = await searchAndCache({ query });
@@ -93,38 +95,37 @@ function addMoviesRoute(app) {
 				posterUrl: m.Cover,
 				year: m.Year,
 			}));
-			res.status(200).json({ movies: result }).end();
+			reply.code(200).send({ movies: result });
 		} catch (e) {
 			console.error(e);
-			res.status(500).json({ error: 'Search failed' }).end();
+			reply.code(500).send({ error: 'Search failed' });
 		}
 	});
 
 	// GET /movies/getVersions?id=...
-	app.get('/movies/getVersions', async (req, res) => {
+	fastify.get('/movies/getVersions', async (request, reply) => {
+		const queryParams = request.query || {};
 		// Auth check
-		if ((req.query.token || '') !== process.env.CUSTOM_PTP_API_TOKEN) {
-			res.status(403).end('Access forbidden');
+		if ((queryParams.token || '') !== process.env.CUSTOM_PTP_API_TOKEN) {
+			reply.code(403).send('Access forbidden');
 			return;
 		}
 		try {
-			const { id } = req.query;
+			const { id } = queryParams;
 			if (!id) {
-				res.status(400).json({ error: 'Missing query parameter `id`' }).end();
+				reply.code(400).send({ error: 'Missing query parameter `id`' });
 				return;
 			}
 			let torrents = getSortedTorrentsForGroup(id);
-			if (!torrents && req.query.title) {
-				const fallbackQuery = req.query.title;
+			if (!torrents && queryParams.title) {
+				const fallbackQuery = queryParams.title;
 				try {
 					await searchAndCache({ query: fallbackQuery });
 				} catch (e) {
 					console.warn('Failed to refresh movie cache for getVersions', e);
-					res.status(404)
-						.json({
-							error: `Failed to refresh movie cache for getVersions ${e}`,
-						})
-						.end();
+					reply.code(404).send({
+						error: `Failed to refresh movie cache for getVersions ${e}`,
+					});
 					return;
 				}
 				torrents = getSortedTorrentsForGroup(id);
@@ -144,26 +145,25 @@ function addMoviesRoute(app) {
 				snatched: t.Snatched,
 				sizeGB: t.Size / 1073741824,
 			}));
-			res.status(200).json({ versions }).end();
+			reply.code(200).send({ versions });
 		} catch (e) {
 			console.error(e);
-			res.status(500).json({ error: 'Failed to get versions' }).end();
+			reply.code(500).send({ error: 'Failed to get versions' });
 		}
 	});
 
 	// POST /movies/downloadMovie { torrentId, movieTitle }
-	app.post('/movies/downloadMovie', async (req, res) => {
+	fastify.post('/movies/downloadMovie', async (request, reply) => {
+		const body = request.body || {};
 		// Auth check
-		if ((req.body && req.body.token) !== process.env.CUSTOM_PTP_API_TOKEN) {
-			res.status(403).end('Access forbidden');
+		if ((body.token || '') !== process.env.CUSTOM_PTP_API_TOKEN) {
+			reply.code(403).send('Access forbidden');
 			return;
 		}
 		try {
-			const { torrentId, movieTitle } = req.body || {};
+			const { torrentId, movieTitle } = body;
 			if (!torrentId || !movieTitle) {
-				res.status(400)
-					.json({ error: 'Missing `torrentId` or `movieTitle` in body' })
-					.end();
+				reply.code(400).send({ error: 'Missing `torrentId` or `movieTitle` in body' });
 				return;
 			}
 
@@ -177,13 +177,13 @@ function addMoviesRoute(app) {
 				}
 			}
 
-			function provideFeedback(message) {
+			const provideFeedback = (message = {}) => {
 				// For REST, just log progress messages.
 				if (message && message.text) {
 					console.log('[movies/downloadMovie]', message.text);
 				}
 				return Promise.resolve();
-			}
+			};
 
 			// Kick off Dropbox save; respond immediately.
 			saveUrlToDropbox({
@@ -194,10 +194,10 @@ function addMoviesRoute(app) {
 				passKey,
 			}).catch((e) => console.error('saveUrlToDropbox error', e));
 
-			res.status(200).json({ ok: true, started: true }).end();
+			reply.code(200).send({ ok: true, started: true });
 		} catch (e) {
 			console.error(e);
-			res.status(500).json({ error: 'Failed to start download' }).end();
+			reply.code(500).send({ error: 'Failed to start download' });
 		}
 	});
 }

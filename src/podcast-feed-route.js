@@ -1,43 +1,42 @@
 const path = require('path');
 const fs = require('fs').promises;
 
-function addPodcastFeedRoute(app) {
-	app.get('/feeds/', async (req, res) => {
+const PODCAST_INDEX_HTML = [
+	'<html><head></head><body>',
+	'<ul>',
+	'\t<li><a href="feeds/161410.xml">Peecast Blast</a></li>',
+	'\t<li><a href="feeds/1001514.xml">Neighborhood Listen</a></li>',
+	'\t<li><a href="feeds/1001522.xml">Big Grande Teacher\'s Lounge</a></li>',
+	'\t<li><a href="feeds/1001557.xml">Andy Daly Podcast Pilot Project</a></li>',
+	'\t<li><a href="feeds/1001575.xml">I Was There Too</a></li>',
+	'\t<li><a href="feeds/1001823.xml">Celebrity Sighting! With Jonathan Biting!</a></li>',
+	'\t<li><a href="feeds/474009.xml">The Gino Lombardo Show</a></li>',
+	'</ul>',
+	'</body></html>',
+].join('\n');
+
+function addPodcastFeedRoute(fastify) {
+	fastify.get('/feeds/', async (request, reply) => {
 		try {
-			res.status(200)
-				.send(
-					`
-<html><head></head><body>
-<ul>
-	<li><a href="feeds/161410.xml">Peecast Blast</a></li>
-	<li><a href="feeds/1001514.xml">Neighborhood Listen</a></li>
-	<li><a href="feeds/1001522.xml">Big Grande Teacher's Lounge</a></li>
-	<li><a href="feeds/1001557.xml">Andy Daly Podcast Pilot Project</a></li>
-	<li><a href="feeds/1001575.xml">I Was There Too</a></li>
-	<li><a href="feeds/1001823.xml">Celebrity Sighting! With Jonathan Biting!</a></li>
-	<li><a href="feeds/474009.xml">The Gino Lombardo Show</a></li>
-</ul>
-</body></html>`
-				)
-				.end();
+			reply.type('text/html').code(200).send(PODCAST_INDEX_HTML);
 		} catch (e) {
 			console.log(e);
-			res.status(500).end();
+			reply.code(500).send();
 		}
 	});
-	app.get('/feeds/:feedId', async (req, res) => {
+	fastify.get('/feeds/:feedId', async (request, reply) => {
 		try {
-			const feedId = parseInt(req?.params?.feedId.match(/\d+/), 10);
+			const feedId = parseInt(request?.params?.feedId.match(/\d+/), 10);
 			const feed = await fs.readFile(
 				path.resolve('./static/feeds/', `${feedId}.xml`),
 				'utf-8'
 			);
 			const modifiedFeed = feed.replace(/S3_BUCKET_URL/g, process.env.S3_BUCKET_URL);
-			res.type('application/xml');
-			res.status(200).send(modifiedFeed).end();
+			reply.type('application/xml');
+			reply.code(200).send(modifiedFeed);
 		} catch (e) {
 			console.log(e);
-			res.status(500).end();
+			reply.code(500).send();
 		}
 	});
 }
