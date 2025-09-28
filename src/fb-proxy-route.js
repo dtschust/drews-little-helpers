@@ -14,6 +14,14 @@ apiProxy.on('proxyReq', (proxyReq, req) => {
 	}
 });
 
+const DEFAULT_ALLOWED_HEADERS = [
+	'origin',
+	'x-requested-with',
+	'content-type',
+	'accept',
+	'authorization',
+];
+
 function applyProxyCorsHeaders(request, setHeader) {
 	const { origin } = request.headers;
 
@@ -25,11 +33,17 @@ function applyProxyCorsHeaders(request, setHeader) {
 		setHeader('access-control-allow-origin', '*');
 	}
 
-	const requestedHeaders =
-		request.headers['access-control-request-headers'] ||
-		'Origin, X-Requested-With, Content-Type, Accept';
+	const allowedHeaders = new Set(DEFAULT_ALLOWED_HEADERS);
 
-	setHeader('access-control-allow-headers', requestedHeaders);
+	if (request.headers['access-control-request-headers']) {
+		request.headers['access-control-request-headers']
+			.split(',')
+			.map((header) => header.trim().toLowerCase())
+			.filter(Boolean)
+			.forEach((header) => allowedHeaders.add(header));
+	}
+
+	setHeader('access-control-allow-headers', Array.from(allowedHeaders).join(', '));
 }
 
 function enableCors(request, reply) {
