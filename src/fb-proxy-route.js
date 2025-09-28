@@ -14,15 +14,9 @@ apiProxy.on('proxyReq', (proxyReq, req) => {
 	}
 });
 
-const DEFAULT_ALLOWED_HEADERS = [
-	'origin',
-	'x-requested-with',
-	'content-type',
-	'accept',
-	'authorization',
-];
+const ALLOW_HEADERS = 'Origin, X-Requested-With, Content-Type, Accept, Authorization';
 
-function applyProxyCorsHeaders(request, setHeader) {
+function setCorsHeaders(request, setHeader) {
 	const { origin } = request.headers;
 
 	if (origin) {
@@ -33,21 +27,11 @@ function applyProxyCorsHeaders(request, setHeader) {
 		setHeader('access-control-allow-origin', '*');
 	}
 
-	const allowedHeaders = new Set(DEFAULT_ALLOWED_HEADERS);
-
-	if (request.headers['access-control-request-headers']) {
-		request.headers['access-control-request-headers']
-			.split(',')
-			.map((header) => header.trim().toLowerCase())
-			.filter(Boolean)
-			.forEach((header) => allowedHeaders.add(header));
-	}
-
-	setHeader('access-control-allow-headers', Array.from(allowedHeaders).join(', '));
+	setHeader('access-control-allow-headers', ALLOW_HEADERS);
 }
 
 function enableCors(request, reply) {
-	applyProxyCorsHeaders(request, reply.header.bind(reply));
+	setCorsHeaders(request, reply.header.bind(reply));
 
 	if (request.headers['access-control-request-method']) {
 		reply.header(
@@ -58,7 +42,7 @@ function enableCors(request, reply) {
 }
 
 apiProxy.on('proxyRes', (proxyRes, req, res) => {
-	applyProxyCorsHeaders(req, res.setHeader.bind(res));
+	setCorsHeaders(req, res.setHeader.bind(res));
 });
 
 function addFbProxyRoute(fastify) {
