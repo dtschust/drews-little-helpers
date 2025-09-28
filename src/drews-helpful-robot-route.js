@@ -1,39 +1,13 @@
 require('dotenv').config();
-require('./utils/mongoose-connect');
 const slackBlockBuilder = require('slack-block-builder');
-const FrameStatus = require('./mongoose-models/Frame-Status');
-
 const { getDrewsHelpfulRobot } = require('./utils/slack');
 
 const { Blocks, BlockCollection } = slackBlockBuilder;
-
 const { webRobot } = getDrewsHelpfulRobot();
 
-async function publishViewForUser(user) {
-	const frameStatus = await FrameStatus.findOne();
+function publishViewForUser(user) {
 	const blocks = [
 		Blocks.Section().text(`*Welcome!!* \nI've got nothing for ya, head back to camp`),
-		Blocks.Divider(),
-		Blocks.Header().text('Frame Status:'),
-		Blocks.Section().text(`
-ip: \`${frameStatus.ip}\`
-controller ip: \`${frameStatus.controller_ip}\`
-network status: \`${frameStatus.network_status}\`
-time: \`${new Date(frameStatus.time)}\`
-uptime: \`${frameStatus.uptime}\`
-disk space remaining: \`${frameStatus.disk_space_remaining}\`
-disk usage: \`${frameStatus.disk_usage_percent}%\`
-number of photos: \`${frameStatus.num_photos}\`
-last photo update: \`${frameStatus.last_photo_update}\`
-log:
-\`\`\`
-${frameStatus.log}
-\`\`\`
-debug:
-\`\`\`
-${JSON.stringify(frameStatus)}
-\`\`\`
-`),
 	];
 
 	const view = {

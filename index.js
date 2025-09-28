@@ -1,15 +1,12 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const addFwProxyRoute = require('./src/fw-proxy-route');
 const addFbProxyRoute = require('./src/fb-proxy-route');
 const addPtpSlackRoute = require('./src/ptp-slack-route');
 const addDrewsHelpfulRobotRoute = require('./src/drews-helpful-robot-route');
 const addIFlicksRoute = require('./src/iflicks-route');
-const addPlausWanRoute = require('./src/plaus-wan-route');
 const addLetterboxdFeedRoute = require('./src/letterboxd-feed-route');
 const addSuperlightRoute = require('./src/superlight-route');
 const addPodcastFeedRoute = require('./src/podcast-feed-route');
-const addFrameStatusRoute = require('./src/frame-status-route');
 const addMoviesRoute = require('./src/movies-route');
 
 const app = express();
@@ -25,16 +22,13 @@ app.use((req, res, next) => {
 	next();
 });
 
-addFwProxyRoute(app);
 addFbProxyRoute(app);
 addPtpSlackRoute(app);
 addIFlicksRoute(app);
-addPlausWanRoute(app);
 addDrewsHelpfulRobotRoute(app);
 addLetterboxdFeedRoute(app);
 addSuperlightRoute(app);
 addPodcastFeedRoute(app);
-addFrameStatusRoute(app);
 addMoviesRoute(app);
 
 app.listen(app.get('port'), () => {
