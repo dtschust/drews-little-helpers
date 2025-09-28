@@ -113,16 +113,23 @@ function addMoviesRoute(app) {
 				res.status(400).json({ error: 'Missing query parameter `id`' }).end();
 				return;
 			}
-			const torrents = getSortedTorrentsForGroup(id);
-			if (!torrents) {
-				res.status(404)
-					.json({
-						error: 'Movie not found in cache. Please call /movies/search first and use a returned id.',
-					})
-					.end();
-				return;
+			let torrents = getSortedTorrentsForGroup(id);
+			if (!torrents && req.query.title) {
+				const fallbackQuery = req.query.title;
+				try {
+					await searchAndCache({ query: fallbackQuery });
+				} catch (e) {
+					console.warn('Failed to refresh movie cache for getVersions', e);
+					res.status(404)
+						.json({
+							error: `Failed to refresh movie cache for getVersions ${e}`,
+						})
+						.end();
+					return;
+				}
+				torrents = getSortedTorrentsForGroup(id);
 			}
-			const versions = torrents.map((t) => ({
+			const versions = (torrents || []).map((t) => ({
 				id: t.Id,
 				goldenPopcorn: !!t.GoldenPopcorn,
 				checked: !!t.Checked,
