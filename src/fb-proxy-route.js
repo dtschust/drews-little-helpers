@@ -14,26 +14,38 @@ apiProxy.on('proxyReq', (proxyReq, req) => {
 	}
 });
 
+function applyProxyCorsHeaders(request, setHeader) {
+	const { origin } = request.headers;
+
+	if (origin) {
+		setHeader('access-control-allow-origin', origin);
+		setHeader('access-control-allow-credentials', 'true');
+		setHeader('vary', 'Origin');
+	} else {
+		setHeader('access-control-allow-origin', '*');
+	}
+
+	const requestedHeaders =
+		request.headers['access-control-request-headers'] ||
+		'Origin, X-Requested-With, Content-Type, Accept';
+
+	setHeader('access-control-allow-headers', requestedHeaders);
+}
+
 function enableCors(request, reply) {
+	applyProxyCorsHeaders(request, reply.header.bind(reply));
+
 	if (request.headers['access-control-request-method']) {
 		reply.header(
 			'access-control-allow-methods',
 			request.headers['access-control-request-method']
 		);
 	}
-
-	if (request.headers['access-control-request-headers']) {
-		reply.header(
-			'access-control-allow-headers',
-			request.headers['access-control-request-headers']
-		);
-	}
-
-	if (request.headers.origin) {
-		reply.header('access-control-allow-origin', request.headers.origin);
-		reply.header('access-control-allow-credentials', 'true');
-	}
 }
+
+apiProxy.on('proxyRes', (proxyRes, req, res) => {
+	applyProxyCorsHeaders(req, res.setHeader.bind(res));
+});
 
 function addFbProxyRoute(fastify) {
 	fastify.all('/v2/*', async (request, reply) => {
@@ -42,12 +54,6 @@ function addFbProxyRoute(fastify) {
 			reply.code(200).send();
 			return;
 		}
-
-		reply.header('access-control-allow-origin', '*');
-		reply.header(
-			'access-control-allow-headers',
-			'Origin, X-Requested-With, Content-Type, Accept'
-		);
 
 		reply.hijack();
 		// Mirror Express behaviour for http-proxy by attaching parsed body to the raw request
