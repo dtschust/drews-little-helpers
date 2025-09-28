@@ -26,6 +26,7 @@ async function buildServer() {
 			'Content-Type',
 			'Accept',
 			'Authorization',
+			'Delete',
 		],
 	});
 	await fastify.register(fastifyFormbody);

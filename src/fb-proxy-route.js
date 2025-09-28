@@ -14,7 +14,7 @@ apiProxy.on('proxyReq', (proxyReq, req) => {
 	}
 });
 
-const ALLOW_HEADERS = 'Origin, X-Requested-With, Content-Type, Accept, Authorization';
+const ALLOW_HEADERS = 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Delete';
 
 function setCorsHeaders(request, setHeader) {
 	const { origin } = request.headers;
