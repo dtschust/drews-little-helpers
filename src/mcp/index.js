@@ -13,6 +13,10 @@ import { z } from 'zod';
 
 import { createServer } from 'node:http';
 
+import { config } from 'dotenv';
+
+config();
+
 const MOVIE_DASHBOARD_EMBEDDED_HTML_URL = 'https://movs.drew.shoes/indexEmbedded.html';
 const API_BASE = 'https://tools.drew.shoes/movies';
 
@@ -342,7 +346,7 @@ async function initialize() {
 }
 
 async function searchMovies(query) {
-	const token = process.env.TOKEN;
+	const token = process.env.CUSTOM_PTP_API_TOKEN;
 	if (!token) {
 		throw new Error('TOKEN is not set');
 	}
@@ -358,7 +362,7 @@ async function searchMovies(query) {
 }
 
 async function getTopMovies() {
-	const token = process.env.TOKEN;
+	const token = process.env.CUSTOM_PTP_API_TOKEN;
 	if (!token) {
 		throw new Error('TOKEN is not set');
 	}
