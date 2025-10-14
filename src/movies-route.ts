@@ -49,9 +49,12 @@ let passKey: string | undefined;
 let GroupIdMap: Record<string, PtpMovie> = {};
 
 // Wipe the map once an hour
-setInterval(() => {
-	GroupIdMap = {};
-}, 60 * 1000 * 1000);
+setInterval(
+	() => {
+		GroupIdMap = {};
+	},
+	60 * 1000 * 1000
+);
 
 function sanitizeQuery(query?: string) {
 	return (query ?? '').replace(/’/g, "'");

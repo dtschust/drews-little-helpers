@@ -28,7 +28,10 @@ function setCorsHeaders(request: RequestLike, setHeader: HeaderSetter) {
 	const { origin } = request.headers;
 
 	if (origin) {
-		setHeader('access-control-allow-origin', Array.isArray(origin) ? origin[0] ?? '*' : origin);
+		setHeader(
+			'access-control-allow-origin',
+			Array.isArray(origin) ? (origin[0] ?? '*') : origin
+		);
 		setHeader('access-control-allow-credentials', 'true');
 		setHeader('vary', 'Origin');
 	} else {

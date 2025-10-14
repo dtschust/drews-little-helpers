@@ -49,9 +49,12 @@ let passKey: string | undefined;
 let groupIdMap: Record<string, PtpMovie> = {};
 
 // Wipe the map once an hour
-setInterval(() => {
-	groupIdMap = {};
-}, 60 * 1000 * 1000);
+setInterval(
+	() => {
+		groupIdMap = {};
+	},
+	60 * 1000 * 1000
+);
 
 async function sendTopTenMoviesOfTheWeek(provideFeedback: Feedback) {
 	const doc = await TopMovies.findOne(undefined);
