@@ -2,10 +2,9 @@
 	"name": "drews-little-helpers",
 	"version": "1.0.0",
 	"description": "",
-	"main": "dist/index.js",
+	"main": "index.ts",
 	"scripts": {
-		"build": "tsc -p tsconfig.json",
-		"start": "npm run build && forever dist/index.js",
+		"start": "forever -c \"tsx\" index.ts",
 		"test": "npm run typecheck",
 		"typecheck": "tsc --noEmit",
 		"prettier": "prettier --write \"src/**/*.{ts,tsx}\""
@@ -32,7 +31,8 @@
 		"tplink-smarthome-api": "^4.2.0",
 		"wifi-name": "^3.1.1",
 		"xml2js": "^0.4.19",
-		"zod": "^3.25.76"
+		"zod": "^3.25.76",
+		"tsx": "^4.19.2"
 	},
 	"devDependencies": {
 		"eslint": "^8.6.0",
