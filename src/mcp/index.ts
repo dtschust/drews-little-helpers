@@ -46,7 +46,7 @@ async function buildContext(): Promise<MCPContext> {
 
 	// TODO: keep version in db so that I can bump it remotely, also need to check it periodically to
 	// refetch templates
-	const RESOURCE_VERSION = '2';
+	const RESOURCE_VERSION = '3';
 
 	function widgetMeta(widget) {
 		return {
