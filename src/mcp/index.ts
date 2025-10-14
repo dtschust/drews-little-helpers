@@ -123,7 +123,7 @@ async function buildContext(): Promise<MCPContext> {
 			...widgetMeta(widgets[0]),
 			'openai/widgetAccessible': true,
 		},
-	} as any);
+	} as Tool);
 
 	tools.push({
 		name: 'get-top-movies',
@@ -138,7 +138,79 @@ async function buildContext(): Promise<MCPContext> {
 			...widgetMeta(widgets[0]),
 			'openai/widgetAccessible': true,
 		},
-	} as any);
+	} as Tool);
+
+	const versionToolInputSchema = {
+		type: 'object' as const,
+		properties: {
+			id: {
+				type: 'string' as const,
+				description: 'The id of the movie',
+			},
+			title: {
+				type: 'string' as const,
+				description: 'The title of the movie',
+				optional: true,
+			},
+		},
+		additionalProperties: false,
+	} as const;
+
+	const versionToolInputParser = z.object({
+		id: z.string().optional(),
+		title: z.string().optional(),
+	});
+
+	tools.push({
+		name: 'get-versions',
+		description: 'get available versions of a movie',
+		inputSchema: versionToolInputSchema,
+		title: 'Get Available Versions of a Movie',
+		templateUri: `ui://widget/movie-dashboard-v${RESOURCE_VERSION}.html`,
+		invoking: 'Loading Movie Dashboard',
+		invoked: 'Loaded Movie Dashboard',
+		html: MOVIE_DASHBOARD_HTML,
+		_meta: {
+			...widgetMeta(widgets[0]),
+			'openai/widgetAccessible': true,
+		},
+	} as Tool);
+
+	const fetchMovieToolInputSchema = {
+		type: 'object' as const,
+		properties: {
+			torrentId: {
+				type: 'string' as const,
+				description: 'The id of the movie',
+			},
+			movieTitle: {
+				type: 'string' as const,
+				description: 'The title of the movie',
+				optional: true,
+			},
+		},
+		additionalProperties: false,
+	} as const;
+
+	const fetchMovieToolInputParser = z.object({
+		torrentId: z.string().optional(),
+		movieTitle: z.string().optional(),
+	});
+
+	tools.push({
+		name: 'fetch-movie',
+		description: 'fetch a movie',
+		inputSchema: fetchMovieToolInputSchema,
+		title: 'Fetch a Movie',
+		templateUri: `ui://widget/movie-dashboard-v${RESOURCE_VERSION}.html`,
+		invoking: 'Fetching Movie',
+		invoked: 'Fetched Movie',
+		html: MOVIE_DASHBOARD_HTML,
+		_meta: {
+			...widgetMeta(widgets[0]),
+			'openai/widgetAccessible': true,
+		},
+	} as Tool);
 
 	const resources: Resource[] = widgets.map((widget) => ({
 		uri: widget.templateUri,
@@ -205,37 +277,73 @@ async function buildContext(): Promise<MCPContext> {
 		}));
 
 		server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest) => {
-			if (request.params.name === 'search-movies') {
-				const args = toolInputParser.parse(request.params.arguments ?? {});
-				const { movies } = await searchMovies(args.search ?? '');
+			const toolName = request.params.name;
 
-				return {
-					content: [
-						{
-							type: 'text',
-							text: `Found ${movies?.length ?? 0} movies`,
+			switch (toolName) {
+				case 'search-movies':
+					const args = toolInputParser.parse(request.params.arguments ?? {});
+					const { movies } = await searchMovies(args.search ?? '');
+
+					return {
+						content: [
+							{
+								type: 'text',
+								text: `Found ${movies?.length ?? 0} movies`,
+							},
+						],
+						structuredContent: {
+							movies,
 						},
-					],
-					structuredContent: {
-						movies,
-					},
-				};
-			}
+					};
+				case 'get-top-movies':
+					const { movies: topMovies } = await getTopMovies();
 
-			if (request.params.name === 'get-top-movies') {
-				const { movies } = await getTopMovies();
-
-				return {
-					content: [
-						{
-							type: 'text',
-							text: `Found ${movies?.length ?? 0} top movies`,
+					return {
+						content: [
+							{
+								type: 'text',
+								text: `Found ${movies?.length ?? 0} top movies`,
+							},
+						],
+						structuredContent: {
+							movies: topMovies,
 						},
-					],
-					structuredContent: {
-						movies,
-					},
-				};
+					};
+				case 'get-versions':
+					const { id, title } = versionToolInputParser.parse(
+						request.params.arguments ?? {}
+					);
+					const { versions } = await getVersions({ id, title });
+
+					return {
+						content: [
+							{
+								type: 'text',
+								text: `Found ${versions?.length ?? 0} versions`,
+							},
+						],
+						structuredContent: {
+							versions,
+						},
+					};
+				case 'fetch-movie':
+					const { torrentId, movieTitle } = fetchMovieToolInputParser.parse(
+						request.params.arguments ?? {}
+					);
+					const { ok, started } = await fetchMovie({ torrentId, movieTitle });
+
+					return {
+						content: [
+							{
+								type: 'text',
+								text: `Fetched ${movieTitle}: ${ok ? 'success' : 'failed'}`,
+							},
+						],
+						structuredContent: {
+							ok,
+							started,
+						},
+					};
 			}
 
 			const widget = widgetsById.get(request.params.name);
@@ -414,6 +522,40 @@ async function getTopMovies() {
 	if (!res.ok) {
 		const text = await res.text();
 		throw new Error(text || `Top movies failed (${res.status})`);
+	}
+	return res.json();
+}
+
+async function getVersions({ id, title }: { id: string; title: string }) {
+	const token = process.env.CUSTOM_PTP_API_TOKEN;
+	if (!token) {
+		throw new Error('TOKEN is not set');
+	}
+	const url = new URL(API_BASE + '/getVersions');
+	url.searchParams.set('id', String(id));
+	url.searchParams.set('title', title ?? '');
+	url.searchParams.set('token', token);
+	const res = await fetch(url.toString());
+	if (!res.ok) {
+		const text = await res.text();
+		throw new Error(text || `Get versions failed (${res.status})`);
+	}
+	return res.json();
+}
+
+async function fetchMovie({ torrentId, movieTitle }: { torrentId: string; movieTitle: string }) {
+	const token = process.env.CUSTOM_PTP_API_TOKEN;
+	if (!token) {
+		throw new Error('TOKEN is not set');
+	}
+	const res = await fetch(API_BASE + '/downloadMovie', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ torrentId, movieTitle, token }),
+	});
+	if (!res.ok) {
+		const text = await res.text();
+		throw new Error(text || `Download failed (${res.status})`);
 	}
 	return res.json();
 }
