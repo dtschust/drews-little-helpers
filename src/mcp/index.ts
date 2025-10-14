@@ -302,7 +302,7 @@ async function buildContext(): Promise<MCPContext> {
 						content: [
 							{
 								type: 'text',
-								text: `Found ${movies?.length ?? 0} top movies`,
+								text: `Found ${topMovies?.length ?? 0} top movies`,
 							},
 						],
 						structuredContent: {
