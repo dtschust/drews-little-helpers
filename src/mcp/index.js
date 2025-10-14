@@ -1,26 +1,27 @@
-import { URL } from 'node:url';
+require('dotenv').config();
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-import {
+const { Server } = require('@modelcontextprotocol/sdk/server');
+const { SSEServerTransport } = require('@modelcontextprotocol/sdk/server/sse');
+const {
 	CallToolRequestSchema,
 	ListResourceTemplatesRequestSchema,
 	ListResourcesRequestSchema,
 	ListToolsRequestSchema,
 	ReadResourceRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
-import { z } from 'zod';
-
-import { createServer } from 'node:http';
-
-import { config } from 'dotenv';
-
-config();
+} = require('@modelcontextprotocol/sdk/types');
+const { z } = require('zod');
 
 const MOVIE_DASHBOARD_EMBEDDED_HTML_URL = 'https://movs.drew.shoes/indexEmbedded.html';
 const API_BASE = 'https://tools.drew.shoes/movies';
 
-async function initialize() {
+let contextPromise;
+
+function normalizePathSegment(segment) {
+	const trimmed = (segment || '').trim();
+	return trimmed.replace(/^\/+|\/+$/g, '');
+}
+
+async function buildContext() {
 	const MOVIE_DASHBOARD_HTML = await fetch(MOVIE_DASHBOARD_EMBEDDED_HTML_URL).then((res) =>
 		res.text()
 	);
@@ -149,7 +150,7 @@ async function initialize() {
 			}
 		);
 
-		server.setRequestHandler(ListResourcesRequestSchema, async (_request) => ({
+		server.setRequestHandler(ListResourcesRequestSchema, async () => ({
 			resources,
 		}));
 
@@ -172,11 +173,11 @@ async function initialize() {
 			};
 		});
 
-		server.setRequestHandler(ListResourceTemplatesRequestSchema, async (_request) => ({
+		server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({
 			resourceTemplates,
 		}));
 
-		server.setRequestHandler(ListToolsRequestSchema, async (_request) => ({
+		server.setRequestHandler(ListToolsRequestSchema, async () => ({
 			tools,
 		}));
 
@@ -220,7 +221,7 @@ async function initialize() {
 				throw new Error(`Unknown tool: ${request.params.name}`);
 			}
 
-			const args = toolInputParser.parse(request.params.arguments ?? {});
+			toolInputParser.parse(request.params.arguments ?? {});
 			const structuredContent = {};
 
 			return {
@@ -238,112 +239,128 @@ async function initialize() {
 		return server;
 	}
 
-	const sessions = new Map();
-
-	const ssePath = '/mcp';
-	const postPath = '/mcp/messages';
-
-	async function handleSseRequest(res) {
-		res.setHeader('Access-Control-Allow-Origin', '*');
-		const server = createMCPServer();
-		const transport = new SSEServerTransport(postPath, res);
-		const { sessionId } = transport;
-
-		sessions.set(sessionId, { server, transport });
-
-		transport.onclose = async () => {
-			sessions.delete(sessionId);
-		};
-
-		transport.onerror = (error) => {
-			console.error('SSE transport error', error);
-		};
-
-		try {
-			await server.connect(transport);
-		} catch (error) {
-			sessions.delete(sessionId);
-			console.error('Failed to start SSE session', error);
-			if (!res.headersSent) {
-				res.writeHead(500).end('Failed to establish SSE connection');
-			}
-		}
-	}
-
-	async function handlePostMessage(req, res, url) {
-		res.setHeader('Access-Control-Allow-Origin', '*');
-		res.setHeader('Access-Control-Allow-Headers', 'content-type');
-		const sessionId = url.searchParams.get('sessionId');
-
-		if (!sessionId) {
-			res.writeHead(400).end('Missing sessionId query parameter');
-			return;
-		}
-
-		const session = sessions.get(sessionId);
-
-		if (!session) {
-			res.writeHead(404).end('Unknown session');
-			return;
-		}
-
-		try {
-			await session.transport.handlePostMessage(req, res);
-		} catch (error) {
-			console.error('Failed to process message', error);
-			if (!res.headersSent) {
-				res.writeHead(500).end('Failed to process message');
-			}
-		}
-	}
-
-	const portEnv = Number(process.env.PORT ?? 8000);
-	const port = Number.isFinite(portEnv) ? portEnv : 8000;
-
-	const httpServer = createServer(async (req, res) => {
-		if (!req.url) {
-			res.writeHead(400).end('Missing URL');
-			return;
-		}
-
-		const url = new URL(req.url, `http://${req.headers.host ?? 'localhost'}`);
-
-		if (req.method === 'OPTIONS' && (url.pathname === ssePath || url.pathname === postPath)) {
-			res.writeHead(204, {
-				'Access-Control-Allow-Origin': '*',
-				'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-				'Access-Control-Allow-Headers': 'content-type',
-			});
-			res.end();
-			return;
-		}
-
-		if (req.method === 'GET' && url.pathname === ssePath) {
-			await handleSseRequest(res);
-			return;
-		}
-
-		if (req.method === 'POST' && url.pathname === postPath) {
-			await handlePostMessage(req, res, url);
-			return;
-		}
-
-		res.writeHead(404).end('Not Found');
-	});
-
-	httpServer.on('clientError', (err, socket) => {
-		console.error('HTTP client error', err);
-		socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
-	});
-
-	httpServer.listen(port, () => {
-		console.log(`Drew's Movie Dashboard MCP server listening on http://localhost:${port}`);
-		console.log(`  SSE stream: GET http://localhost:${port}${ssePath}`);
-		console.log(
-			`  Message post endpoint: POST http://localhost:${port}${postPath}?sessionId=...`
-		);
-	});
+	return {
+		createMCPServer,
+		sessions: new Map(),
+	};
 }
+
+async function getContext() {
+	if (!contextPromise) {
+		contextPromise = buildContext();
+	}
+	return contextPromise;
+}
+
+async function handleSseRequest(reply, context, postPath) {
+	const res = reply.raw;
+	const { createMCPServer, sessions } = context;
+	res.setHeader('Access-Control-Allow-Origin', '*');
+	res.setHeader('Access-Control-Allow-Headers', 'content-type');
+	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+	const server = createMCPServer();
+	const transport = new SSEServerTransport(postPath, res);
+	const { sessionId } = transport;
+
+	sessions.set(sessionId, { server, transport });
+
+	transport.onclose = () => {
+		sessions.delete(sessionId);
+	};
+
+	transport.onerror = (error) => {
+		console.error('SSE transport error', error);
+	};
+
+	try {
+		await server.connect(transport);
+	} catch (error) {
+		sessions.delete(sessionId);
+		console.error('Failed to start SSE session', error);
+		if (!res.headersSent) {
+			res.writeHead(500).end('Failed to establish SSE connection');
+		} else {
+			res.end();
+		}
+	}
+}
+
+async function handlePostMessage(request, reply, context) {
+	const res = reply.raw;
+	const { sessions } = context;
+
+	res.setHeader('Access-Control-Allow-Origin', '*');
+	res.setHeader('Access-Control-Allow-Headers', 'content-type');
+
+	const { sessionId } = request.query || {};
+
+	if (!sessionId) {
+		res.writeHead(400).end('Missing sessionId query parameter');
+		return;
+	}
+
+	const session = sessions.get(sessionId);
+
+	if (!session) {
+		res.writeHead(404).end('Unknown session');
+		return;
+	}
+
+	try {
+		await session.transport.handlePostMessage(request.raw, res, request.body);
+	} catch (error) {
+		console.error('Failed to process message', error);
+		if (!res.headersSent) {
+			res.writeHead(500).end('Failed to process message');
+		}
+	}
+}
+
+async function addMcpRoutes(fastify) {
+	const context = await getContext();
+
+	const baseSegment = normalizePathSegment(process.env.MCP_PATH);
+
+	if (!baseSegment) {
+		throw new Error('MCP_PATH environment variable must be set');
+	}
+
+	const basePath = `/${baseSegment}`;
+	const ssePath = `${basePath}/mcp`;
+	const postPath = `${ssePath}/messages`;
+
+	fastify.options(ssePath, (request, reply) => {
+		reply
+			.header('Access-Control-Allow-Origin', '*')
+			.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+			.header('Access-Control-Allow-Headers', 'content-type')
+			.code(204)
+			.send();
+	});
+
+	fastify.options(postPath, (request, reply) => {
+		reply
+			.header('Access-Control-Allow-Origin', '*')
+			.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+			.header('Access-Control-Allow-Headers', 'content-type')
+			.code(204)
+			.send();
+	});
+
+	fastify.get(ssePath, async (request, reply) => {
+		reply.hijack();
+		await handleSseRequest(reply, context, postPath);
+	});
+
+	fastify.post(postPath, async (request, reply) => {
+		reply.hijack();
+		await handlePostMessage(request, reply, context);
+	});
+
+	console.log(`Registered MCP routes at ${ssePath} and ${postPath}`);
+}
+
+module.exports = addMcpRoutes;
 
 async function searchMovies(query) {
 	const token = process.env.CUSTOM_PTP_API_TOKEN;
@@ -375,5 +392,3 @@ async function getTopMovies() {
 	}
 	return res.json();
 }
-
-initialize();

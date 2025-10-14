@@ -9,6 +9,7 @@ const addLetterboxdFeedRoute = require('./src/letterboxd-feed-route');
 const addSuperlightRoute = require('./src/superlight-route');
 const addPodcastFeedRoute = require('./src/podcast-feed-route');
 const addMoviesRoute = require('./src/movies-route');
+const addMcpRoute = require('./src/mcp');
 
 const fastify = fastifyFactory({
 	logger: false,
@@ -33,6 +34,7 @@ async function buildServer() {
 	addSuperlightRoute(fastify);
 	addPodcastFeedRoute(fastify);
 	addMoviesRoute(fastify);
+	await addMcpRoute(fastify);
 }
 
 async function start() {
