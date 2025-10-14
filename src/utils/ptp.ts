@@ -1,11 +1,22 @@
-require('dotenv').config();
-const { Dropbox } = require('dropbox');
-const { getDrewsHelpfulRobot } = require('./slack');
+import dotenv from 'dotenv';
+import { Dropbox } from 'dropbox';
+import { getDrewsHelpfulRobot } from './slack';
+
+dotenv.config();
 
 const { sendMessageToFollowShows } = getDrewsHelpfulRobot();
-const dbx = new Dropbox({ accessToken: process.env.DROPBOX_TOKEN });
+const dbx = new Dropbox({ accessToken: process.env.DROPBOX_TOKEN ?? '' });
 
-function sortTorrents(a, b) {
+type Torrent = {
+	RemasterTitle?: string;
+	Quality?: string;
+	quality?: string;
+	GoldenPopcorn?: boolean;
+};
+
+type SlackFeedback = (message?: { text?: string; replace_original?: boolean }) => unknown;
+
+export function sortTorrents(a: Torrent, b: Torrent) {
 	const hasDolbyVision = (title = '') => {
 		return title.indexOf('Dolby Vision') > -1;
 	};
@@ -16,11 +27,11 @@ function sortTorrents(a, b) {
 	if (hasDolbyVision(b.RemasterTitle) && !hasDolbyVision(a.RemasterTitle)) {
 		return -1;
 	}
-	if (a.Quality === 'Ultra High Definition' && !b.quality !== 'Ultra High Definition') {
+	if (a.Quality === 'Ultra High Definition' && b.Quality !== 'Ultra High Definition') {
 		return -1;
 	}
 
-	if (b.Quality === 'Ultra High Definition' && !a.quality !== 'Ultra High Definition') {
+	if (b.Quality === 'Ultra High Definition' && a.Quality !== 'Ultra High Definition') {
 		return 1;
 	}
 
@@ -31,19 +42,22 @@ function sortTorrents(a, b) {
 		return 1;
 	}
 
-	if (a.Quality === 'High Definition' && !b.quality !== 'High Definition') {
+	if (a.Quality === 'High Definition' && b.Quality !== 'High Definition') {
 		return -1;
 	}
 
-	if (b.Quality === 'High Definition' && !a.quality !== 'High Definition') {
+	if (b.Quality === 'High Definition' && a.Quality !== 'High Definition') {
 		return 1;
 	}
 
 	return 0;
 }
 
-async function sendMessageToSlackResponseURL(responseURL, JSONmessage) {
-	if (!responseURL) return;
+export async function sendMessageToSlackResponseURL(
+	responseURL?: string,
+	JSONmessage?: unknown
+) {
+	if (!responseURL) return Promise.resolve();
 	return fetch(responseURL, {
 		method: 'POST',
 		headers: {
@@ -53,12 +67,27 @@ async function sendMessageToSlackResponseURL(responseURL, JSONmessage) {
 	});
 }
 
-function saveUrlToDropbox({ torrentId, movieTitle, provideFeedback, authKey, passKey } = {}) {
+interface SaveUrlOptions {
+	torrentId?: string | number;
+	movieTitle?: string;
+	provideFeedback?: SlackFeedback;
+	authKey?: string;
+	passKey?: string;
+}
+
+export function saveUrlToDropbox({
+	torrentId,
+	movieTitle,
+	provideFeedback,
+	authKey,
+	passKey,
+}: Partial<SaveUrlOptions> = {}) {
+	const feedbackHandler = provideFeedback ?? (() => undefined);
 	const message = {
 		text: `Chill, i'll download ${movieTitle} for you. If I fail, here's the url and you can do it yourself: https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey}`,
 		replace_original: true,
 	};
-	provideFeedback(message);
+	feedbackHandler(message);
 
 	const now = Date.now();
 	return dbx
@@ -66,29 +95,30 @@ function saveUrlToDropbox({ torrentId, movieTitle, provideFeedback, authKey, pas
 			url: `https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey}`,
 			path: `/torrents/${now}.torrent`,
 		})
-		.then(({ async_job_id: asyncJobId, '.tag': tag }) => {
+		.then((result: any) => {
+			const { async_job_id: asyncJobId, '.tag': tag } = result;
 			if (tag === 'complete') {
 				const successMessage = {
 					text: `Successfully placed ${movieTitle} in dropbox, have a great day!!`,
 					replace_original: true,
 				};
-				provideFeedback(successMessage);
+				feedbackHandler(successMessage);
 				sendMessageToFollowShows(`Started download of *${movieTitle}*`);
 				return;
 			}
-			let thirtySecondCheck;
+			let thirtySecondCheck: NodeJS.Timeout | undefined;
 			let numTries = 0;
 			const checkJobStatus = () => {
 				dbx.filesSaveUrlCheckJobStatus({
 					async_job_id: asyncJobId,
 				})
-					.then(async (response) => {
+					.then(async (response: any) => {
 						if (response['.tag'] === 'complete') {
 							const successMessage = {
 								text: `Successfully placed ${movieTitle} in dropbox, have a great day!`,
 								replace_original: true,
 							};
-							provideFeedback(successMessage);
+							feedbackHandler(successMessage);
 							sendMessageToFollowShows(`Started download of *${movieTitle}*`);
 							clearTimeout(thirtySecondCheck);
 						} else if (response['.tag'] === 'failed') {
@@ -102,7 +132,7 @@ function saveUrlToDropbox({ torrentId, movieTitle, provideFeedback, authKey, pas
 									text: `Successfully placed ${movieTitle} in dropbox and miniTorrents deleted it, have a great day!`,
 									replace_original: true,
 								};
-								provideFeedback(successMessage);
+								feedbackHandler(successMessage);
 								sendMessageToFollowShows(`Started download of *${movieTitle}*`);
 							} else {
 								const successMessage = {
@@ -111,7 +141,7 @@ function saveUrlToDropbox({ torrentId, movieTitle, provideFeedback, authKey, pas
 									)} ${JSON.stringify(filesMetadata)}`,
 									replace_original: true,
 								};
-								provideFeedback(successMessage);
+								feedbackHandler(successMessage);
 							}
 							clearTimeout(thirtySecondCheck);
 						} else {
@@ -121,7 +151,7 @@ function saveUrlToDropbox({ torrentId, movieTitle, provideFeedback, authKey, pas
 								} ${JSON.stringify(response)}`,
 								replace_original: true,
 							};
-							provideFeedback(successMessage);
+							feedbackHandler(successMessage);
 							numTries += 1;
 							if (numTries > 5) {
 								clearTimeout(thirtySecondCheck);
@@ -135,7 +165,7 @@ function saveUrlToDropbox({ torrentId, movieTitle, provideFeedback, authKey, pas
 							text: `I'm unable to check the status of job_id ${asyncJobId}, sorry!`,
 							replace_original: false,
 						};
-						provideFeedback(failMessage);
+						feedbackHandler(failMessage);
 					});
 			};
 			setTimeout(checkJobStatus, 5000);
@@ -145,12 +175,6 @@ function saveUrlToDropbox({ torrentId, movieTitle, provideFeedback, authKey, pas
 				text: `Oops, something went wrong. Sorry, here's your URL to do it manually: https://passthepopcorn.me/torrents.php?action=download&id=${torrentId}&authkey=${authKey}&torrent_pass=${passKey} . ${error}`,
 				replace_original: false,
 			};
-			provideFeedback(errorMessage);
+			feedbackHandler(errorMessage);
 		});
 }
-
-module.exports = {
-	sortTorrents,
-	sendMessageToSlackResponseURL,
-	saveUrlToDropbox,
-};

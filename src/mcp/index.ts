@@ -1,27 +1,40 @@
-require('dotenv').config();
-
-const { Server } = require('@modelcontextprotocol/sdk/server/index.js');
-const { SSEServerTransport } = require('@modelcontextprotocol/sdk/server/sse.js');
-const {
+import dotenv from 'dotenv';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import {
 	CallToolRequestSchema,
 	ListResourceTemplatesRequestSchema,
 	ListResourcesRequestSchema,
 	ListToolsRequestSchema,
 	ReadResourceRequestSchema,
-} = require('@modelcontextprotocol/sdk/types.js');
-const { z } = require('zod');
+} from '@modelcontextprotocol/sdk/types.js';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { z } from 'zod';
+
+dotenv.config();
 
 const MOVIE_DASHBOARD_EMBEDDED_HTML_URL = 'https://movs.drew.shoes/indexEmbedded.html';
 const API_BASE = 'https://tools.drew.shoes/movies';
 
-let contextPromise;
+interface MCPContext {
+	createMCPServer: () => Server;
+	sessions: Map<
+		string,
+		{
+			server: Server;
+			transport: SSEServerTransport;
+		}
+	>;
+}
 
-function normalizePathSegment(segment) {
+let contextPromise: Promise<MCPContext> | undefined;
+
+function normalizePathSegment(segment: string | undefined) {
 	const trimmed = (segment || '').trim();
 	return trimmed.replace(/^\/+|\/+$/g, '');
 }
 
-async function buildContext() {
+async function buildContext(): Promise<MCPContext> {
 	const MOVIE_DASHBOARD_HTML = await fetch(MOVIE_DASHBOARD_EMBEDDED_HTML_URL).then((res) =>
 		res.text()
 	);
@@ -84,7 +97,7 @@ async function buildContext() {
 		search: z.string().optional(),
 	});
 
-	const tools = widgets.map((widget) => ({
+	const tools: any[] = widgets.map((widget) => ({
 		name: widget.id,
 		description: widget.title,
 		inputSchema: toolInputSchema,
@@ -105,7 +118,7 @@ async function buildContext() {
 			...widgetMeta(widgets[0]),
 			'openai/widgetAccessible': true,
 		},
-	});
+	} as any);
 
 	tools.push({
 		name: 'get-top-movies',
@@ -120,9 +133,9 @@ async function buildContext() {
 			...widgetMeta(widgets[0]),
 			'openai/widgetAccessible': true,
 		},
-	});
+	} as any);
 
-	const resources = widgets.map((widget) => ({
+	const resources: any[] = widgets.map((widget) => ({
 		uri: widget.templateUri,
 		name: widget.title,
 		description: `${widget.title} widget markup`,
@@ -130,7 +143,7 @@ async function buildContext() {
 		_meta: widgetMeta(widget),
 	}));
 
-	const resourceTemplates = widgets.map((widget) => ({
+	const resourceTemplates: any[] = widgets.map((widget) => ({
 		uriTemplate: widget.templateUri,
 		name: widget.title,
 		description: `${widget.title} widget markup`,
@@ -138,7 +151,7 @@ async function buildContext() {
 		_meta: widgetMeta(widget),
 	}));
 
-	function createMCPServer() {
+	function createMCPServer(): Server {
 		const server = new Server(
 			{
 				name: 'drews-movie-dashboard',
@@ -247,14 +260,14 @@ async function buildContext() {
 	};
 }
 
-async function getContext() {
+async function getContext(): Promise<MCPContext> {
 	if (!contextPromise) {
 		contextPromise = buildContext();
 	}
 	return contextPromise;
 }
 
-async function handleSseRequest(reply, context, postPath) {
+async function handleSseRequest(reply: FastifyReply, context: MCPContext, postPath: string) {
 	const res = reply.raw;
 	const { createMCPServer, sessions } = context;
 	res.setHeader('Access-Control-Allow-Origin', '*');
@@ -287,14 +300,18 @@ async function handleSseRequest(reply, context, postPath) {
 	}
 }
 
-async function handlePostMessage(request, reply, context) {
+async function handlePostMessage(
+	request: FastifyRequest,
+	reply: FastifyReply,
+	context: MCPContext
+) {
 	const res = reply.raw;
 	const { sessions } = context;
 
 	res.setHeader('Access-Control-Allow-Origin', '*');
 	res.setHeader('Access-Control-Allow-Headers', 'content-type');
 
-	const { sessionId } = request.query || {};
+	const { sessionId } = (request.query as Record<string, string | undefined>) || {};
 
 	if (!sessionId) {
 		res.writeHead(400).end('Missing sessionId query parameter');
@@ -309,7 +326,7 @@ async function handlePostMessage(request, reply, context) {
 	}
 
 	try {
-		await session.transport.handlePostMessage(request.raw, res, request.body);
+		await session.transport.handlePostMessage(request.raw, res, request.body as any);
 	} catch (error) {
 		console.error('Failed to process message', error);
 		if (!res.headersSent) {
@@ -318,7 +335,7 @@ async function handlePostMessage(request, reply, context) {
 	}
 }
 
-async function addMcpRoutes(fastify) {
+export default async function addMcpRoutes(fastify: FastifyInstance) {
 	const context = await getContext();
 
 	const baseSegment = normalizePathSegment(process.env.MCP_PATH);
@@ -331,7 +348,7 @@ async function addMcpRoutes(fastify) {
 	const ssePath = `${basePath}/mcp`;
 	const postPath = `${ssePath}/messages`;
 
-	fastify.options(ssePath, (request, reply) => {
+	fastify.options(ssePath, (request: FastifyRequest, reply: FastifyReply) => {
 		reply
 			.header('Access-Control-Allow-Origin', '*')
 			.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
@@ -340,7 +357,7 @@ async function addMcpRoutes(fastify) {
 			.send();
 	});
 
-	fastify.options(postPath, (request, reply) => {
+	fastify.options(postPath, (request: FastifyRequest, reply: FastifyReply) => {
 		reply
 			.header('Access-Control-Allow-Origin', '*')
 			.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
@@ -349,12 +366,12 @@ async function addMcpRoutes(fastify) {
 			.send();
 	});
 
-	fastify.get(ssePath, async (request, reply) => {
+	fastify.get(ssePath, async (request: FastifyRequest, reply: FastifyReply) => {
 		reply.hijack();
 		await handleSseRequest(reply, context, postPath);
 	});
 
-	fastify.post(postPath, async (request, reply) => {
+	fastify.post(postPath, async (request: FastifyRequest, reply: FastifyReply) => {
 		reply.hijack();
 		await handlePostMessage(request, reply, context);
 	});
@@ -362,9 +379,7 @@ async function addMcpRoutes(fastify) {
 	console.log(`Registered MCP routes at ${ssePath} and ${postPath}`);
 }
 
-module.exports = addMcpRoutes;
-
-async function searchMovies(query) {
+async function searchMovies(query: string) {
 	const token = process.env.CUSTOM_PTP_API_TOKEN;
 	if (!token) {
 		throw new Error('TOKEN is not set');

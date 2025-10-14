@@ -1,5 +1,9 @@
-const path = require('path');
-const fs = require('fs').promises;
+import path from 'path';
+import { promises as fs } from 'fs';
+import dotenv from 'dotenv';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+
+dotenv.config();
 
 const PODCAST_INDEX_HTML = [
 	'<html><head></head><body>',
@@ -15,8 +19,10 @@ const PODCAST_INDEX_HTML = [
 	'</body></html>',
 ].join('\n');
 
-function addPodcastFeedRoute(fastify) {
-	fastify.get('/feeds/', async (request, reply) => {
+type FeedRequest = FastifyRequest<{ Params: { feedId: string } }>;
+
+export default function addPodcastFeedRoute(fastify: FastifyInstance) {
+	fastify.get('/feeds/', async (_request, reply: FastifyReply) => {
 		try {
 			reply.type('text/html').code(200).send(PODCAST_INDEX_HTML);
 		} catch (e) {
@@ -24,14 +30,19 @@ function addPodcastFeedRoute(fastify) {
 			reply.code(500).send();
 		}
 	});
-	fastify.get('/feeds/:feedId', async (request, reply) => {
+	fastify.get('/feeds/:feedId', async (request: FeedRequest, reply: FastifyReply) => {
 		try {
-			const feedId = parseInt(request?.params?.feedId.match(/\d+/), 10);
+			const match = request.params.feedId.match(/\d+/);
+			if (!match) {
+				reply.code(400).send('Invalid feed id');
+				return;
+			}
+			const feedId = parseInt(match[0], 10);
 			const feed = await fs.readFile(
 				path.resolve('./static/feeds/', `${feedId}.xml`),
 				'utf-8'
 			);
-			const modifiedFeed = feed.replace(/S3_BUCKET_URL/g, process.env.S3_BUCKET_URL);
+			const modifiedFeed = feed.replace(/S3_BUCKET_URL/g, process.env.S3_BUCKET_URL ?? '');
 			reply.type('application/xml');
 			reply.code(200).send(modifiedFeed);
 		} catch (e) {
@@ -40,5 +51,3 @@ function addPodcastFeedRoute(fastify) {
 		}
 	});
 }
-
-module.exports = addPodcastFeedRoute;

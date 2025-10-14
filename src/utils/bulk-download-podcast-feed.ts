@@ -1,11 +1,13 @@
-const fs = require('fs');
-const os = require('os');
-const { mkdir } = require('fs/promises');
-const path = require('path');
-const { Readable } = require('stream');
-const { finished } = require('stream/promises');
-require('dotenv').config();
-const { parseString } = require('xml2js');
+import fs from 'fs';
+import os from 'os';
+import { mkdir } from 'fs/promises';
+import path from 'path';
+import { Readable } from 'stream';
+import { finished } from 'stream/promises';
+import dotenv from 'dotenv';
+import { parseString } from 'xml2js';
+
+dotenv.config();
 
 // const key = process.env.UNOFFICIAL_RSS_KEY;
 const directory = process.env.PODCAST_DOWNLOAD_DIR || path.resolve(os.homedir(), 'Desktop/tmp');
@@ -20,8 +22,12 @@ const feedUrls = [
 	// `https://v2.unofficialrss.com/feed/1001823.xml?u=${key}`, // celebrity sighting
 ];
 
-async function downloadFeed(feedUrl) {
-	const feedId = feedUrl.match(/(\d+).xml/)[1];
+async function downloadFeed(feedUrl: string) {
+	const feedIdMatch = feedUrl.match(/(\d+).xml/);
+	if (!feedIdMatch) {
+		throw new Error(`Unable to determine feed id from url ${feedUrl}`);
+	}
+	const feedId = feedIdMatch[1];
 	console.log(`Downloading "${feedId}"`);
 	const rawResponse = await fetch(feedUrl);
 	const response = await fetch(feedUrl);
@@ -32,7 +38,7 @@ async function downloadFeed(feedUrl) {
 		console.error('response = ', text);
 		return 1;
 	}
-	const parsedResult = await new Promise((resolve, reject) => {
+	const parsedResult = await new Promise<any>((resolve, reject) => {
 		parseString(text, (err, result) => {
 			if (err) {
 				reject(err);
@@ -51,15 +57,27 @@ async function downloadFeed(feedUrl) {
 		console.log(`Skipping "${title}" because the directory already exists`);
 	} else {
 		const feedFileStream = fs.createWriteStream(feedDestination, { flags: 'wx' });
-		await finished(Readable.fromWeb(rawResponse.body).pipe(feedFileStream));
+		if (!rawResponse.body) {
+			throw new Error('Feed response missing body');
+		}
+		await finished(Readable.fromWeb(rawResponse.body as any).pipe(feedFileStream));
 		console.log(`Downloaded feed ${feedId}: "${title}"`);
 
 		console.log(`Scraping "${title}"`);
-		const episodes = parsedResult?.rss?.channel?.[0]?.item;
-		for await (const episode of episodes) {
+		const episodes = parsedResult?.rss?.channel?.[0]?.item ?? [];
+		for (const episode of episodes) {
 			console.log(episode.title);
 			const url = episode?.enclosure?.[0]?.$?.url;
-			const filename = url.match(/\d*.mp3/)[0];
+			if (!url) {
+				console.warn('Skipping episode without enclosure url');
+				continue;
+			}
+			const filenameMatch = url.match(/\d*.mp3/);
+			if (!filenameMatch) {
+				console.warn('Skipping episode with unexpected filename format', url);
+				continue;
+			}
+			const filename = filenameMatch[0];
 			console.log(url, filename);
 			const ep = await fetch(url);
 			const { status: epStatus } = ep;
@@ -72,7 +90,10 @@ async function downloadFeed(feedUrl) {
 				}
 				const destination = path.resolve(directory, `${feedId}`, filename);
 				const fileStream = fs.createWriteStream(destination, { flags: 'wx' });
-				await finished(Readable.fromWeb(ep.body).pipe(fileStream));
+				if (!ep.body) {
+					throw new Error(`Episode ${url} missing body`);
+				}
+				await finished(Readable.fromWeb(ep.body as any).pipe(fileStream));
 				console.log(`Completed "${episode.title}"`);
 			}
 		}
@@ -98,4 +119,9 @@ async function main() {
 	}
 }
 
-main().then(process.exit);
+main()
+	.then(() => process.exit(0))
+	.catch((error) => {
+		console.error('Bulk download failed', error);
+		process.exit(1);
+	});

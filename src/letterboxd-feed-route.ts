@@ -1,13 +1,22 @@
-const { parseString } = require('xml2js');
-const innertext = require('innertext');
+import dotenv from 'dotenv';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { parseString } from 'xml2js';
+import innertext from 'innertext';
 
-require('dotenv').config();
+dotenv.config();
 
-async function parseFeed(username) {
+type LetterboxdItem = {
+	title: string;
+	link: string;
+	poster?: string;
+	review: string;
+};
+
+async function parseFeed(username: string): Promise<LetterboxdItem[]> {
 	const response = await fetch(`https://letterboxd.com/${username}/rss/`).then((resp) =>
 		resp.text()
 	);
-	const parsedResult = await new Promise((resolve, reject) => {
+	const parsedResult = await new Promise<any>((resolve, reject) => {
 		parseString(response, (err, result) => {
 			if (err) {
 				reject(err);
@@ -31,10 +40,12 @@ async function parseFeed(username) {
 	return structuredData;
 }
 
-function addLetterboxdFeedRoute(fastify) {
-	fastify.get('/letterboxd/:username', async (request, reply) => {
+type LetterboxdRequest = FastifyRequest<{ Params: { username: string } }>;
+
+export default function addLetterboxdFeedRoute(fastify: FastifyInstance) {
+	fastify.get('/letterboxd/:username', async (request: LetterboxdRequest, reply: FastifyReply) => {
 		try {
-			const username = request?.params?.username;
+			const { username } = request.params;
 			const response = await parseFeed(username);
 			reply.code(200).send(response);
 		} catch (e) {
@@ -42,5 +53,3 @@ function addLetterboxdFeedRoute(fastify) {
 		}
 	});
 }
-
-module.exports = addLetterboxdFeedRoute;

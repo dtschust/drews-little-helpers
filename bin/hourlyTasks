@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-const doTasks = require('../src/utils/do-tasks');
+const loadDist = require('./load-dist');
+const doTasks = loadDist('src/utils/do-tasks.js');
 
 const tasks = [];
 

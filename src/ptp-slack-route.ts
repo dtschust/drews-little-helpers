@@ -1,28 +1,61 @@
-require('dotenv').config();
-require('./utils/mongoose-connect');
+import dotenv from 'dotenv';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import './utils/mongoose-connect';
+import { Surfaces, Blocks, Elements, BlockCollection } from 'slack-block-builder';
+import TopMovies = require('./mongoose-models/Top-Movies');
+import { getDrewsHelpfulRobot } from './utils/slack';
+import { sortTorrents, sendMessageToSlackResponseURL, saveUrlToDropbox } from './utils/ptp';
 
-const slackBlockBuilder = require('slack-block-builder');
-
-const TopMovies = require('./mongoose-models/Top-Movies');
-const { getDrewsHelpfulRobot } = require('./utils/slack');
-const { sortTorrents, sendMessageToSlackResponseURL, saveUrlToDropbox } = require('./utils/ptp');
-
-const { Surfaces, Blocks, Elements, BlockCollection /* Bits, Utilities */ } = slackBlockBuilder;
+dotenv.config();
 
 const { sendMessageToCronLogs, webMovies } = getDrewsHelpfulRobot();
 
-let authKey;
-let passKey;
+type Feedback = (message: any) => Promise<unknown> | unknown;
 
-let GroupIdMap = {};
+interface PtpTorrent {
+	Id: number;
+	GoldenPopcorn: boolean;
+	Checked: boolean;
+	Quality: string;
+	Codec: string;
+	Container: string;
+	Source: string;
+	Resolution: string;
+	Scene: boolean;
+	RemasterTitle?: string;
+	Seeders: number;
+	Snatched: number;
+	Size: number;
+}
+
+interface PtpMovie {
+	GroupId: string;
+	Title: string;
+	Year: string;
+	Cover: string;
+	ImdbId?: string;
+	Torrents: PtpTorrent[];
+	[key: string]: unknown;
+}
+
+interface SearchResponse {
+	AuthKey: string;
+	PassKey: string;
+	Movies: Array<PtpMovie & { GroupId: string | number; Year: string | number }>;
+}
+
+let authKey: string | undefined;
+let passKey: string | undefined;
+let groupIdMap: Record<string, PtpMovie> = {};
 
 // Wipe the map once an hour
 setInterval(() => {
-	GroupIdMap = {};
+	groupIdMap = {};
 }, 60 * 1000 * 1000);
 
-async function sendTopTenMoviesOfTheWeek(provideFeedback) {
-	const { movies } = await TopMovies.findOne(undefined);
+async function sendTopTenMoviesOfTheWeek(provideFeedback: Feedback) {
+	const doc = await TopMovies.findOne(undefined);
+	const movies: any[] = doc?.movies ?? [];
 
 	const attachments = movies.map(({ title, id, posterUrl, year }) => ({
 		title,
@@ -42,11 +75,12 @@ async function sendTopTenMoviesOfTheWeek(provideFeedback) {
 		text: `Top Ten Movies of the Week :`,
 		attachments,
 	};
-	provideFeedback(message);
+	return provideFeedback(message);
 }
 
-async function publishViewForUser(user) {
-	const { movies } = await TopMovies.findOne(undefined);
+async function publishViewForUser(user: string) {
+	const doc = await TopMovies.findOne(undefined);
+	const movies: any[] = doc?.movies ?? [];
 	const blocks = [
 		Blocks.Input()
 			.dispatchAction(true)
@@ -82,26 +116,36 @@ async function publishViewForUser(user) {
 	});
 }
 
-function search(query) {
-	const sanitizedQuery = query.replace(/’/g, "'");
-	return fetch(
+function sanitizeQuery(query: string) {
+	return query.replace(/’/g, "'");
+}
+
+async function search(query: string): Promise<SearchResponse> {
+	const sanitizedQuery = sanitizeQuery(query);
+	const response = await fetch(
 		`https://passthepopcorn.me/torrents.php?json=noredirect&order_by=relevance&searchstr=${sanitizedQuery}`,
 		{
 			headers: {
-				ApiUser: process.env.PTP_API_USER,
-				ApiKey: process.env.PTP_API_KEY,
+				ApiUser: process.env.PTP_API_USER ?? '',
+				ApiKey: process.env.PTP_API_KEY ?? '',
 			},
 		}
-	).then((resp) => resp.json());
+	);
+	return (await response.json()) as SearchResponse;
 }
 
 async function searchAndRespond({
 	query,
 	provideFeedback = () => true,
 	retry = true,
-	groupId = undefined,
-} = {}) {
-	let apiResponse;
+	groupId,
+}: {
+	query: string;
+	provideFeedback?: Feedback;
+	retry?: boolean;
+	groupId?: string;
+}) {
+	let apiResponse: SearchResponse | undefined;
 	try {
 		apiResponse = await search(query);
 	} catch (e) {
@@ -117,12 +161,24 @@ async function searchAndRespond({
 		}
 	}
 
+	if (!apiResponse) {
+		return [];
+	}
+
 	authKey = apiResponse.AuthKey;
 	passKey = apiResponse.PassKey;
 
-	const movies = apiResponse.Movies.slice(0, 5);
+	const movies = (apiResponse.Movies || [])
+		.slice(0, 5)
+		.map((movie) => ({
+			...movie,
+			GroupId: String(movie.GroupId),
+			Year: String(movie.Year),
+			Torrents: Array.isArray(movie.Torrents) ? movie.Torrents : [],
+		}));
+
 	movies.forEach((movie) => {
-		GroupIdMap[movie.GroupId] = movie;
+		groupIdMap[movie.GroupId] = movie;
 	});
 
 	if (groupId) {
@@ -152,8 +208,12 @@ async function searchAndRespond({
 	return movies;
 }
 
-async function selectMovie(movieTitle, groupId, provideFeedback) {
-	const torrents = GroupIdMap[groupId].Torrents.slice(0).sort(sortTorrents).slice(0, 12);
+async function selectMovie(movieTitle: string, groupId: string, provideFeedback: Feedback) {
+	const movie = groupIdMap[groupId];
+	if (!movie) {
+		throw new Error(`Unknown movie for group ${groupId}`);
+	}
+	const torrents = movie.Torrents.slice(0).sort(sortTorrents).slice(0, 12);
 	const attachments = torrents.map((t) => ({
 		title: `\
 ${t.GoldenPopcorn ? ':popcorn: ' : ''}${t.Checked ? ':white_check_mark: ' : ''}\
@@ -179,10 +239,10 @@ ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${t.RemasterTitle ? `/ ${t.Remaster
 	return torrents;
 }
 
-async function downloadMovieModal(resp) {
-	const { title, torrentId } = JSON.parse(resp.actions[0].value);
-	const viewId = resp.view.id;
-	function provideFeedback({ text } = {}) {
+async function downloadMovieModal(payload: any) {
+	const { title, torrentId } = JSON.parse(payload.actions[0].value);
+	const viewId = payload.view.id;
+	function provideFeedback({ text }: { text?: string } = {}) {
 		return webMovies.views.update({
 			view_id: viewId,
 			view: {
@@ -209,7 +269,7 @@ async function downloadMovieModal(resp) {
 	return saveUrlToDropbox({ torrentId, movieTitle: title, provideFeedback, authKey, passKey });
 }
 
-async function openMovieSearchModal(triggerId, query = '') {
+async function openMovieSearchModal(triggerId: string, query = '') {
 	const resp = await webMovies.views.open({
 		trigger_id: triggerId,
 		view: {
@@ -234,12 +294,12 @@ async function openMovieSearchModal(triggerId, query = '') {
 
 	const viewId = resp.view.id;
 
-	const movies = await searchAndRespond({
+	const movies = (await searchAndRespond({
 		query,
 		retry: true,
-	});
+	})) as PtpMovie[];
 
-	const blocks = [];
+	const blocks: any[] = [];
 	movies.forEach(({ Title: title, GroupId: id, Cover: posterUrl, Year: year }) => {
 		blocks.push(Blocks.Section().text(`*${title}* (${year})`));
 		blocks.push(Blocks.Image({ imageUrl: posterUrl, altText: title }));
@@ -269,10 +329,10 @@ async function openMovieSearchModal(triggerId, query = '') {
 }
 
 async function openMovieSelectedModal(
-	{ triggerId, viewId: inViewId },
-	{ title, id, posterUrl, year }
+	{ triggerId, viewId: inViewId }: { triggerId?: string; viewId?: string },
+	{ title, id, posterUrl, year }: { title: string; id: string; posterUrl: string; year: string }
 ) {
-	let viewId;
+	let viewId: string;
 	if (!inViewId) {
 		const resp = await webMovies.views.open({
 			trigger_id: triggerId,
@@ -300,7 +360,7 @@ async function openMovieSelectedModal(
 		viewId = inViewId;
 	}
 
-	async function provideFeedback({ text } = {}) {
+	async function provideFeedback({ text }: { text?: string } = {}) {
 		return webMovies.views.update({
 			view_id: viewId,
 			view: {
@@ -324,37 +384,34 @@ async function openMovieSelectedModal(
 		});
 	}
 
-	const torrents = await searchAndRespond({
+	const torrents = (await searchAndRespond({
 		query: title,
 		provideFeedback,
 		retry: true,
 		groupId: id,
-	});
+	})) as PtpTorrent[];
 	// TODO: Use hash when I add buttons here
 
-	const blocks = [];
-	torrents.forEach((t) => {
-		blocks.push({
-			type: 'section',
-			text: {
-				type: 'mrkdwn',
-				text: `\
+	const blocks = torrents.map((t) => ({
+		type: 'section',
+		text: {
+			type: 'mrkdwn',
+			text: `\
 *${t.GoldenPopcorn ? ':popcorn: ' : ''}${t.Checked ? ':white_check_mark: ' : ''}\
 ${t.Quality} / ${t.Codec} / ${t.Container} / ${t.Source} /\
 ${t.Resolution} ${t.Scene ? '/ Scene ' : ''} ${t.RemasterTitle ? `/ ${t.RemasterTitle}` : ''}*
 Seeders: ${t.Seeders}, Snatched ${t.Snatched}, Size: ${t.Size / 1073741824} Gb`,
+		},
+		accessory: {
+			type: 'button',
+			text: {
+				type: 'plain_text',
+				text: `Download ${title.slice(0, 30)}`,
 			},
-			accessory: {
-				type: 'button',
-				text: {
-					type: 'plain_text',
-					text: `Download ${title.slice(0, 30)}`,
-				},
-				action_id: `downloadMovieAppHome ${title}`,
-				value: JSON.stringify({ title, torrentId: t.Id, id, posterUrl, year }),
-			},
-		});
-	});
+			action_id: `downloadMovieAppHome ${title}`,
+			value: JSON.stringify({ title, torrentId: t.Id, id, posterUrl, year }),
+		},
+	}));
 
 	return webMovies.views.update({
 		view_id: viewId,
@@ -370,36 +427,43 @@ Seeders: ${t.Seeders}, Snatched ${t.Snatched}, Size: ${t.Size / 1073741824} Gb`,
 	});
 }
 
-function addPtpSlackRoute(fastify) {
-	fastify.get('/get-top-movies/:username', async (request, reply) => {
-		try {
-			const username = request?.params?.username;
-			if (username !== 'brook') {
+export default function addPtpSlackRoute(fastify: FastifyInstance) {
+	fastify.get(
+		'/get-top-movies/:username',
+		async (
+			request: FastifyRequest<{ Params: { username: string } }>,
+			reply: FastifyReply
+		) => {
+			try {
+				const { username } = request.params;
+				if (username !== 'brook') {
+					reply.code(500).send();
+					return;
+				}
+			} catch (e) {
 				reply.code(500).send();
 				return;
 			}
-		} catch (e) {
-			reply.code(500).send();
-			return;
+			try {
+				const doc = await TopMovies.findOne(undefined);
+				const movies: any[] = doc?.movies ?? [];
+				const result = movies.map(({ title, posterUrl, year, imdbId }) => ({
+					title,
+					poster_url: posterUrl,
+					year,
+					imdb_id: imdbId,
+				}));
+				reply.code(200).send(result);
+			} catch (e) {
+				console.log(e);
+				reply.code(200).send();
+				// don't care
+			}
 		}
-		try {
-			const { movies } = await TopMovies.findOne(undefined);
-			const result = movies.map(({ title, posterUrl, year, imdbId }) => ({
-				title,
-				poster_url: posterUrl,
-				year,
-				imdb_id: imdbId,
-			}));
-			reply.code(200).send(result);
-		} catch (e) {
-			console.log(e);
-			reply.code(200).send();
-			// don't care
-		}
-	});
+	);
 
 	fastify.post('/update-top-movies', async (request, reply) => {
-		const reqBody = request.body || {};
+		const reqBody = (request.body as any) || {};
 		if (reqBody.token !== process.env.PTP_SLACK_VERIFICATION_TOKEN) {
 			reply.code(403).send('Access forbidden');
 			return;
@@ -415,9 +479,14 @@ function addPtpSlackRoute(fastify) {
 			}
 			sendMessageToCronLogs(`✅ Successfully loaded top movies! Movies in 🧵`).then(
 				({ ts }) => {
-					sendMessageToCronLogs(movies.map(({ title }) => `• ${title}`).join('\n'), {
-						thread_ts: ts,
-					});
+					if (ts) {
+						sendMessageToCronLogs(
+							movies.map(({ title }: any) => `• ${title}`).join('\n'),
+							{
+								thread_ts: ts,
+							}
+						);
+					}
 				}
 			);
 			reply.code(200).send();
@@ -429,7 +498,7 @@ function addPtpSlackRoute(fastify) {
 	});
 
 	fastify.post('/slash-command', (request, reply) => {
-		const reqBody = request.body || {};
+		const reqBody = (request.body as any) || {};
 		if (reqBody.token !== process.env.PTP_SLACK_VERIFICATION_TOKEN) {
 			reply.code(403).send('Access forbidden');
 			return;
@@ -438,7 +507,7 @@ function addPtpSlackRoute(fastify) {
 
 		const responseURL = reqBody.response_url;
 		const query = reqBody.text;
-		async function provideFeedback(message) {
+		async function provideFeedback(message: any) {
 			return sendMessageToSlackResponseURL(responseURL, message);
 		}
 
@@ -451,7 +520,7 @@ function addPtpSlackRoute(fastify) {
 	});
 
 	fastify.post('/action-endpoint', (request, reply) => {
-		const body = request.body || {};
+		const body = (request.body as any) || {};
 		if (body.type === 'url_verification') {
 			reply.code(200).send(body.challenge);
 			return;
@@ -501,7 +570,7 @@ function addPtpSlackRoute(fastify) {
 		}
 		const { name, value: groupId } = payload.actions[0];
 
-		async function provideFeedback(message) {
+		async function provideFeedback(message: any) {
 			return sendMessageToSlackResponseURL(payload.response_url, message);
 		}
 		if (name.indexOf('searchMovie') === 0) {
@@ -521,5 +590,3 @@ function addPtpSlackRoute(fastify) {
 		}
 	});
 }
-
-module.exports = addPtpSlackRoute;

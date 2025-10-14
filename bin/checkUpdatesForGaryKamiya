@@ -3,11 +3,12 @@
 require('dotenv').config();
 const Diff = require('diff');
 const puppeteer = require('puppeteer');
-const { getMongoose } = require('../src/utils/mongoose-connect');
+const loadDist = require('./load-dist');
+const { getMongoose } = loadDist('src/utils/mongoose-connect.js');
 
 const mongoose = getMongoose();
 
-const { getDrewsHelpfulRobot } = require('../src/utils/slack');
+const { getDrewsHelpfulRobot } = loadDist('src/utils/slack.js');
 
 const { sendMessageToFollowShows } = getDrewsHelpfulRobot();
 

@@ -1,11 +1,13 @@
-require('dotenv').config();
-const slackBlockBuilder = require('slack-block-builder');
-const { getDrewsHelpfulRobot } = require('./utils/slack');
+import dotenv from 'dotenv';
+import type { FastifyInstance } from 'fastify';
+import { Blocks, BlockCollection } from 'slack-block-builder';
+import { getDrewsHelpfulRobot } from './utils/slack';
 
-const { Blocks, BlockCollection } = slackBlockBuilder;
+dotenv.config();
+
 const { webRobot } = getDrewsHelpfulRobot();
 
-function publishViewForUser(user) {
+function publishViewForUser(user: string) {
 	const blocks = [
 		Blocks.Section().text(`*Welcome!!* \nI've got nothing for ya, head back to camp`),
 	];
@@ -21,13 +23,13 @@ function publishViewForUser(user) {
 
 	return webRobot.views.publish({
 		user_id: user,
-		view: JSON.stringify(view),
+		view: JSON.stringify(view) as any,
 	});
 }
 
-function addDrewsHelpfulRobotRoute(fastify) {
+export default function addDrewsHelpfulRobotRoute(fastify: FastifyInstance) {
 	fastify.post('/helper-action-endpoint', (request, reply) => {
-		const body = request.body || {};
+		const body = (request.body as Record<string, any>) || {};
 		if (body.type === 'url_verification') {
 			reply.code(200).send(body.challenge);
 			return;
@@ -60,5 +62,3 @@ function addDrewsHelpfulRobotRoute(fastify) {
 		}
 	});
 }
-
-module.exports = addDrewsHelpfulRobotRoute;

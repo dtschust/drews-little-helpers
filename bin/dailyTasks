@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-const doTasks = require('../src/utils/do-tasks');
+const loadDist = require('./load-dist');
+const doTasks = loadDist('src/utils/do-tasks.js');
 
 const tasks = ['checkUpdatesForGaryKamiya', 'ptpTopWeeklySanityCheck'];
 
@@ -13,7 +14,7 @@ async function main() {
 	if (new Date().getDay() === 2) {
 		console.log('Also running weekly tasks!');
 		await doTasks(weeklyTasks, 'Weekly');
-	}
+}
 }
 
 main().then(process.exit);

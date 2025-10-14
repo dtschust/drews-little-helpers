@@ -2,12 +2,13 @@
 
 require('dotenv').config();
 const puppeteer = require('puppeteer');
-const TopMovies = require('../src/mongoose-models/Top-Movies');
-const PtpCookie = require('../src/mongoose-models/Ptp-Cookie');
-// const getPtpLoginCookies = require('../src/utils/get-ptp-login-cookie');
-require('../src/utils/mongoose-connect');
+const loadDist = require('./load-dist');
+const TopMovies = loadDist('src/mongoose-models/Top-Movies.js');
+const PtpCookie = loadDist('src/mongoose-models/Ptp-Cookie.js');
+// const getPtpLoginCookies = loadDist('src/utils/get-ptp-login-cookie.js');
+loadDist('src/utils/mongoose-connect.js');
 
-const { getDrewsHelpfulRobot } = require('../src/utils/slack');
+const { getDrewsHelpfulRobot } = loadDist('src/utils/slack.js');
 
 const { sendMessageToFollowShowsAsMovies } = getDrewsHelpfulRobot();
 

@@ -1,15 +1,15 @@
-const fastifyFactory = require('fastify');
-const fastifyCors = require('@fastify/cors');
-const fastifyFormbody = require('@fastify/formbody');
-const addFbProxyRoute = require('./src/fb-proxy-route');
-const addPtpSlackRoute = require('./src/ptp-slack-route');
-const addDrewsHelpfulRobotRoute = require('./src/drews-helpful-robot-route');
-const addIFlicksRoute = require('./src/iflicks-route');
-const addLetterboxdFeedRoute = require('./src/letterboxd-feed-route');
-const addSuperlightRoute = require('./src/superlight-route');
-const addPodcastFeedRoute = require('./src/podcast-feed-route');
-const addMoviesRoute = require('./src/movies-route');
-const addMcpRoute = require('./src/mcp');
+import fastifyFactory from 'fastify';
+import fastifyCors from '@fastify/cors';
+import fastifyFormbody from '@fastify/formbody';
+import addFbProxyRoute from './src/fb-proxy-route';
+import addPtpSlackRoute from './src/ptp-slack-route';
+import addDrewsHelpfulRobotRoute from './src/drews-helpful-robot-route';
+import addIFlicksRoute from './src/iflicks-route';
+import addLetterboxdFeedRoute from './src/letterboxd-feed-route';
+import addSuperlightRoute from './src/superlight-route';
+import addPodcastFeedRoute from './src/podcast-feed-route';
+import addMoviesRoute from './src/movies-route';
+import addMcpRoute from './src/mcp';
 
 const fastify = fastifyFactory({
 	logger: false,

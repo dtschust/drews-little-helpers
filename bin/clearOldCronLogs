@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 require('dotenv').config();
-
-const { getDrewsHelpfulRobot } = require('../src/utils/slack');
+const loadDist = require('./load-dist');
+const { getDrewsHelpfulRobot } = loadDist('src/utils/slack.js');
 
 const { web, webRobot } = getDrewsHelpfulRobot();
 

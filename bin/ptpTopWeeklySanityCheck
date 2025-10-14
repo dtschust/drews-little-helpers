@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
 require('dotenv').config();
-const TopMovies = require('../src/mongoose-models/Top-Movies');
-require('../src/utils/mongoose-connect');
+const loadDist = require('./load-dist');
+const TopMovies = loadDist('src/mongoose-models/Top-Movies.js');
+loadDist('src/utils/mongoose-connect.js');
 
 async function main() {
 	const model = await TopMovies.findOne(undefined);
