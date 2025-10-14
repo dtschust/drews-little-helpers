@@ -1,7 +1,7 @@
 #!/usr/bin/env -S npx tsx
 
 import dotenv from 'dotenv';
-import Diff from 'diff';
+import { Diff } from 'diff';
 import puppeteer from 'puppeteer';
 import mongoose from 'mongoose';
 import { getMongoose } from '../src/utils/mongoose-connect';

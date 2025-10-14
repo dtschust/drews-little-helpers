@@ -2,10 +2,13 @@ import dotenv from 'dotenv';
 import { spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import type { ChatPostMessageArguments } from '@slack/web-api';
 import { getDrewsHelpfulRobot } from './slack';
 
 dotenv.config();
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 const { sendMessageToCronLogs, sendBlockMessageToCronLogs } = getDrewsHelpfulRobot();
 
