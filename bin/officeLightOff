@@ -1,7 +1,0 @@
-#!/usr/bin/env node
-// eslint-disable-next-line import/extensions
-const { toggleLight } = require('./officeLight');
-
-toggleLight(false).then(() => {
-	process.exit(0);
-});

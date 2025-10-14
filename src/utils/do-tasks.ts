@@ -10,13 +10,21 @@ dotenv.config();
 const { sendMessageToCronLogs, sendBlockMessageToCronLogs } = getDrewsHelpfulRobot();
 
 function resolveTaskPath(task: string) {
-	const candidates = [
+	const bases = [
 		path.resolve(__dirname, '../../bin', task),
 		path.resolve(__dirname, '../../../bin', task),
 		path.resolve(process.cwd(), 'bin', task),
 	];
 
-	return candidates.find((candidate) => fs.existsSync(candidate)) ?? candidates[0];
+	for (const base of bases) {
+		const candidates = ['', '.ts', '.js'].map((extension) => `${base}${extension}`);
+		const match = candidates.find((candidatePath) => fs.existsSync(candidatePath));
+		if (match) {
+			return match;
+		}
+	}
+
+	return `${bases[0]}.ts`;
 }
 
 async function doTasks(tasks: string[], cadence: string) {

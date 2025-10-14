@@ -88,15 +88,15 @@ async function buildContext(): Promise<MCPContext> {
 	});
 
 	const toolInputSchema = {
-		type: 'object',
+		type: 'object' as const,
 		properties: {
 			search: {
-				type: 'string',
+				type: 'string' as const,
 				description: 'Search for movies',
 			},
 		},
 		additionalProperties: false,
-	};
+	} as const;
 
 	const toolInputParser = z.object({
 		search: z.string().optional(),

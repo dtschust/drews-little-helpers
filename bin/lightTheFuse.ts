@@ -1,9 +1,13 @@
-#!/usr/bin/env node
-require('dotenv').config();
-const puppeteer = require('puppeteer');
+#!/usr/bin/env -S npx tsx
+
+import dotenv from 'dotenv';
+import puppeteer from 'puppeteer';
+import type { Page } from 'puppeteer';
+
+dotenv.config();
 // go to https://www.lightthefusepodcast.com/episode-guide and run this in dev console
 // copy([...document.querySelectorAll('.sqs-html-content p a')].map(({href})=>href).reverse())
-const episodeUrls = [
+const episodeUrls: string[] = [
 	// 'https://www.lightthefusepodcast.com/episode-guide-alphabetical',
 	// 'https://www.lightthefusepodcast.com/episode-guide-by-job-title',
 	// 'https://www.lightthefusepodcast.com/episode-guide-by-movie',
@@ -282,6 +286,15 @@ const episodeUrls = [
 	// 'https://www.lightthefusepodcast.com/episode-guide-by-movie',
 ].reverse();
 
+type EpisodeInfo = {
+	audioEmbedUrl: string;
+	duration: number;
+	description: string;
+	title: string;
+	link: string;
+	pubDate: string;
+};
+
 /*
 	<title>${title}</title>
 	<itunes:summary>${description}</itunes:summary>
@@ -296,36 +309,48 @@ const episodeUrls = [
 
 */
 // const incrementer = 0;
-async function scrapeEpisodePage(page, url) {
+async function scrapeEpisodePage(page: Page, url: string): Promise<EpisodeInfo> {
 	await page.goto(url);
 
-	const audioEmbedDiv = await page.$('.sqs-audio-embed');
-	const {
-		url: audioEmbedUrl,
-		durationInMs,
-		title,
-	} = await page.evaluate((el) => {
-		// eslint-disable-next-line
-		const { title, url, durationInMs } = el.dataset;
-		return { title, url, durationInMs };
-	}, audioEmbedDiv);
+	const dataset = await page.$eval('.sqs-audio-embed', (element) => {
+		const el = element as { dataset?: { title?: string; url?: string; durationInMs?: string } };
+		const { title, url: embedUrl, durationInMs } = el.dataset ?? {};
+		return {
+			title: title ?? '',
+			embedUrl: embedUrl ?? '',
+			durationInMs: durationInMs ?? '0',
+		};
+	});
 
 	const description = await page.evaluate(() => {
-		// eslint-disable-next-line no-undef
-		return document.querySelectorAll('.sqs-html-content')[0].innerHTML;
+		const doc = (globalThis as typeof globalThis & { document?: any }).document;
+		const htmlContent = doc?.querySelectorAll('.sqs-html-content')?.[0];
+		return htmlContent?.innerHTML ?? '';
 	});
-	const [, monthDay, year] = description.match(/Released (.*\d+).*, (20\d\d)./);
+
+	const match = description.match(/Released (.*\d+).*, (20\d\d)./);
+	const monthDay = match?.[1] ?? '';
+	const year = match?.[2] ?? '';
+
+	const durationMs = Number.parseInt(dataset.durationInMs, 10);
+	const durationSeconds = Number.isFinite(durationMs) ? Math.floor(durationMs / 1000) : 0;
+
+	const parsedPublicationDate = new Date(`${monthDay} ${year}`);
+	const publicationSource = Number.isNaN(parsedPublicationDate.getTime())
+		? new Date()
+		: parsedPublicationDate;
+	const publicationDate = new Date(publicationSource.getTime() + 60 * 1000)
+		.toUTCString()
+		.replace(' GMT', ' -0000');
 
 	return {
-		audioEmbedUrl,
-		duration: Math.floor(parseInt(durationInMs, 10) / 1000),
+		audioEmbedUrl: dataset.embedUrl,
+		duration: durationSeconds,
 		description,
-		title: title.replace(/ & /g, ' and '),
+		title: dataset.title.replace(/ & /g, ' and '),
 		link: url,
 		// pubDate: new Date(`${monthDay} ${year}`).toString(),
-		pubDate: new Date(new Date(`${monthDay} ${year}`).getTime() + 60 * 1000)
-			.toGMTString()
-			.replace(' GMT', ' -0000'),
+		pubDate: publicationDate,
 		// pubDate: new Date(
 		// 	// eslint-disable-next-line no-plusplus
 		// 	new Date('06-20-2023').getTime() - 24 * 60 * 60 * 1000 * incrementer++
@@ -333,25 +358,27 @@ async function scrapeEpisodePage(page, url) {
 	};
 }
 
-async function main() {
+async function main(): Promise<void> {
 	const browser = await puppeteer.launch({
 		headless: true,
 		args: ['--no-sandbox', '--disable-setuid-sandbox'],
 	});
 	const page = await browser.newPage();
 
-	const epInfos = [];
+	const epInfos: EpisodeInfo[] = [];
 	// const epInfos = await Promise.all(
 	// 	episodeUrls.slice(0, 3).map((url) => {
 	// 		return scrapeEpisodePage(page, url);
 	// 	})
 	// );
-	for await (const url of episodeUrls /* .slice(0, 3) */) {
+	for (const url of episodeUrls /* .slice(0, 3) */) {
 		const epInfo = await scrapeEpisodePage(page, url);
 		// console.log(epInfo);
 		epInfos.push(epInfo);
 	}
 	// console.log(epInfo);
+
+	await browser.close();
 
 	console.log(`<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:googleplay="http://www.google.com/schemas/play-podcasts/1.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xmlns:content="http://purl.org/rss/1.0/modules/content/">
@@ -407,4 +434,5 @@ ${epInfos
 </rss>
 `);
 }
-main().then(process.exit);
+
+void main().then(() => process.exit());

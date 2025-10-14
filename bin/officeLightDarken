@@ -1,7 +1,0 @@
-#!/usr/bin/env node
-// eslint-disable-next-line import/extensions
-const { darken } = require('./officeLight');
-
-darken().then(() => {
-	process.exit(0);
-});
