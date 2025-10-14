@@ -53,10 +53,7 @@ export function sortTorrents(a: Torrent, b: Torrent) {
 	return 0;
 }
 
-export async function sendMessageToSlackResponseURL(
-	responseURL?: string,
-	JSONmessage?: unknown
-) {
+export async function sendMessageToSlackResponseURL(responseURL?: string, JSONmessage?: unknown) {
 	if (!responseURL) return Promise.resolve();
 	return fetch(responseURL, {
 		method: 'POST',

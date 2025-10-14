@@ -168,14 +168,12 @@ async function searchAndRespond({
 	authKey = apiResponse.AuthKey;
 	passKey = apiResponse.PassKey;
 
-	const movies = (apiResponse.Movies || [])
-		.slice(0, 5)
-		.map((movie) => ({
-			...movie,
-			GroupId: String(movie.GroupId),
-			Year: String(movie.Year),
-			Torrents: Array.isArray(movie.Torrents) ? movie.Torrents : [],
-		}));
+	const movies = (apiResponse.Movies || []).slice(0, 5).map((movie) => ({
+		...movie,
+		GroupId: String(movie.GroupId),
+		Year: String(movie.Year),
+		Torrents: Array.isArray(movie.Torrents) ? movie.Torrents : [],
+	}));
 
 	movies.forEach((movie) => {
 		groupIdMap[movie.GroupId] = movie;
@@ -430,10 +428,7 @@ Seeders: ${t.Seeders}, Snatched ${t.Snatched}, Size: ${t.Size / 1073741824} Gb`,
 export default function addPtpSlackRoute(fastify: FastifyInstance) {
 	fastify.get(
 		'/get-top-movies/:username',
-		async (
-			request: FastifyRequest<{ Params: { username: string } }>,
-			reply: FastifyReply
-		) => {
+		async (request: FastifyRequest<{ Params: { username: string } }>, reply: FastifyReply) => {
 			try {
 				const { username } = request.params;
 				if (username !== 'brook') {

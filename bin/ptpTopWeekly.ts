@@ -162,20 +162,20 @@ async function main(usePersistedCookies = true): Promise<number> {
 			);
 			for (const titleInfo of titlesInfo) {
 				const { title, id, posterUrl, year } = titleInfo;
-			const attachment = {
-				title,
-				fallback: 'TODO',
-				callback_id: title,
-				image_url: posterUrl,
-				actions: [
-					{
-						name: `searchMovie ${title}`,
-						text: `Select ${title} (${year})`,
-						type: 'button' as const,
-						value: id,
-					},
-				],
-			};
+				const attachment = {
+					title,
+					fallback: 'TODO',
+					callback_id: title,
+					image_url: posterUrl,
+					actions: [
+						{
+							name: `searchMovie ${title}`,
+							text: `Select ${title} (${year})`,
+							type: 'button' as const,
+							value: id,
+						},
+					],
+				};
 				await sendMessageToFollowShowsAsMovies(' ', {
 					attachments: [attachment],
 				});

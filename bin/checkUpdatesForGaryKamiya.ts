@@ -51,9 +51,9 @@ async function checkForUpdates(oldPageContent: string) {
 
 		await goToPage();
 
-	const contentText = await page.$eval<string>('#content', (el) => {
-		return (el as { innerText?: string }).innerText ?? '';
-	});
+		const contentText = await page.$eval<string>('#content', (el) => {
+			return (el as { innerText?: string }).innerText ?? '';
+		});
 
 		if (contentText === oldPageContent) {
 			console.log('No Updates!');

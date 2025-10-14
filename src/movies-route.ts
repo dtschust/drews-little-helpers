@@ -155,7 +155,10 @@ export default function addMoviesRoute(fastify: FastifyInstance) {
 	// GET /movies/search?q=...
 	fastify.get(
 		'/movies/search',
-		async (request: FastifyRequest<{ Querystring: MoviesSearchQuery }>, reply: FastifyReply) => {
+		async (
+			request: FastifyRequest<{ Querystring: MoviesSearchQuery }>,
+			reply: FastifyReply
+		) => {
 			const queryParams = request.query;
 			if (!(await ensureAuthorized(queryParams.token, reply))) {
 				return;

@@ -43,13 +43,16 @@ async function parseFeed(username: string): Promise<LetterboxdItem[]> {
 type LetterboxdRequest = FastifyRequest<{ Params: { username: string } }>;
 
 export default function addLetterboxdFeedRoute(fastify: FastifyInstance) {
-	fastify.get('/letterboxd/:username', async (request: LetterboxdRequest, reply: FastifyReply) => {
-		try {
-			const { username } = request.params;
-			const response = await parseFeed(username);
-			reply.code(200).send(response);
-		} catch (e) {
-			reply.code(500).send();
+	fastify.get(
+		'/letterboxd/:username',
+		async (request: LetterboxdRequest, reply: FastifyReply) => {
+			try {
+				const { username } = request.params;
+				const response = await parseFeed(username);
+				reply.code(200).send(response);
+			} catch (e) {
+				reply.code(500).send();
+			}
 		}
-	});
+	);
 }
