@@ -6,6 +6,7 @@
 	"main": "index.ts",
 	"scripts": {
 		"start": "forever -c \"tsx\" index.ts",
+		"lint": "eslint index.ts src bin --ext .ts",
 		"test": "npm run typecheck",
 		"typecheck": "tsc --noEmit",
 		"prettier": "prettier --write \"src/**/*.{ts,tsx}\""
