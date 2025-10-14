@@ -122,4 +122,4 @@ ${stdout.toString().trim()}
 	}
 }
 
-export = doTasks;
+export default doTasks;

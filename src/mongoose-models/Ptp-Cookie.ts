@@ -10,4 +10,4 @@ const cookieSchema = new Schema<PtpCookieDocument>({
 
 const PtpCookie: Model<PtpCookieDocument> = mongoose.model('Cookie', cookieSchema);
 
-export = PtpCookie;
+export default PtpCookie;

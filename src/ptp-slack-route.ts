@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import './utils/mongoose-connect';
 import { Surfaces, Blocks, Elements, BlockCollection } from 'slack-block-builder';
-import TopMovies = require('./mongoose-models/Top-Movies');
+import TopMovies from './mongoose-models/Top-Movies';
 import { getDrewsHelpfulRobot } from './utils/slack';
 import { sortTorrents, sendMessageToSlackResponseURL, saveUrlToDropbox } from './utils/ptp';
 

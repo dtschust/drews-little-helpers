@@ -15,4 +15,4 @@ const moviesSchema = new Schema<TopMovieDocument>(
 
 const TopMovies: Model<TopMovieDocument> = mongoose.model('TopMovies', moviesSchema);
 
-export = TopMovies;
+export default TopMovies;

@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import './utils/mongoose-connect';
-import TopMovies = require('./mongoose-models/Top-Movies');
+import TopMovies from './mongoose-models/Top-Movies';
 import { saveUrlToDropbox, sortTorrents } from './utils/ptp';
 
 dotenv.config();

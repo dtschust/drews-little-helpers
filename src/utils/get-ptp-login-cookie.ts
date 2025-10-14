@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import FormData from 'form-data';
 import './mongoose-connect';
-import PtpCookie = require('../mongoose-models/Ptp-Cookie');
+import PtpCookie from '../mongoose-models/Ptp-Cookie';
 
 dotenv.config();
 
