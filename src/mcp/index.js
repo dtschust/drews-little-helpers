@@ -1,14 +1,14 @@
 require('dotenv').config();
 
-const { Server } = require('@modelcontextprotocol/sdk/server');
-const { SSEServerTransport } = require('@modelcontextprotocol/sdk/server/sse');
+const { Server } = require('@modelcontextprotocol/sdk/server/index.js');
+const { SSEServerTransport } = require('@modelcontextprotocol/sdk/server/sse.js');
 const {
 	CallToolRequestSchema,
 	ListResourceTemplatesRequestSchema,
 	ListResourcesRequestSchema,
 	ListToolsRequestSchema,
 	ReadResourceRequestSchema,
-} = require('@modelcontextprotocol/sdk/types');
+} = require('@modelcontextprotocol/sdk/types.js');
 const { z } = require('zod');
 
 const MOVIE_DASHBOARD_EMBEDDED_HTML_URL = 'https://movs.drew.shoes/indexEmbedded.html';
@@ -26,6 +26,8 @@ async function buildContext() {
 		res.text()
 	);
 
+	// TODO: keep version in db so that I can bump it remotely, also need to check it periodically to
+	// refetch templates
 	const RESOURCE_VERSION = '1';
 
 	function widgetMeta(widget) {
