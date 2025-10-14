@@ -37,7 +37,7 @@ async function buildContext() {
 			'openai/toolInvocation/invoked': widget.invoked,
 			'openai/widgetAccessible': true,
 			'openai/resultCanProduceWidget': true,
-			'openai/widgetDomain': 'https://dtschust.github.io/drews-movie-dashboard/',
+			'openai/widgetDomain': 'https://movs.drew.shoes',
 			'openai/widgetCSP': {
 				connect_domains: ['https://tools.drew.shoes', 'https://api.imdbapi.dev'],
 				resource_domains: [
