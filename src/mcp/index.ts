@@ -7,6 +7,11 @@ import {
 	ListResourcesRequestSchema,
 	ListToolsRequestSchema,
 	ReadResourceRequestSchema,
+	type CallToolRequest,
+	type ReadResourceRequest,
+	type Resource,
+	type ResourceTemplate,
+	type Tool,
 } from '@modelcontextprotocol/sdk/types.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
@@ -97,7 +102,7 @@ async function buildContext(): Promise<MCPContext> {
 		search: z.string().optional(),
 	});
 
-	const tools: any[] = widgets.map((widget) => ({
+	const tools: Tool[] = widgets.map((widget) => ({
 		name: widget.id,
 		description: widget.title,
 		inputSchema: toolInputSchema,
@@ -135,7 +140,7 @@ async function buildContext(): Promise<MCPContext> {
 		},
 	} as any);
 
-	const resources: any[] = widgets.map((widget) => ({
+	const resources: Resource[] = widgets.map((widget) => ({
 		uri: widget.templateUri,
 		name: widget.title,
 		description: `${widget.title} widget markup`,
@@ -143,7 +148,7 @@ async function buildContext(): Promise<MCPContext> {
 		_meta: widgetMeta(widget),
 	}));
 
-	const resourceTemplates: any[] = widgets.map((widget) => ({
+	const resourceTemplates: ResourceTemplate[] = widgets.map((widget) => ({
 		uriTemplate: widget.templateUri,
 		name: widget.title,
 		description: `${widget.title} widget markup`,
@@ -169,24 +174,27 @@ async function buildContext(): Promise<MCPContext> {
 			resources,
 		}));
 
-		server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-			const widget = widgetsByUri.get(request.params.uri);
+		server.setRequestHandler(
+			ReadResourceRequestSchema,
+			async (request: ReadResourceRequest) => {
+				const widget = widgetsByUri.get(request.params.uri);
 
-			if (!widget) {
-				throw new Error(`Unknown resource: ${request.params.uri}`);
+				if (!widget) {
+					throw new Error(`Unknown resource: ${request.params.uri}`);
+				}
+
+				return {
+					contents: [
+						{
+							uri: widget.templateUri,
+							mimeType: 'text/html+skybridge',
+							text: widget.html,
+							_meta: widgetMeta(widget),
+						},
+					],
+				};
 			}
-
-			return {
-				contents: [
-					{
-						uri: widget.templateUri,
-						mimeType: 'text/html+skybridge',
-						text: widget.html,
-						_meta: widgetMeta(widget),
-					},
-				],
-			};
-		});
+		);
 
 		server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({
 			resourceTemplates,
@@ -196,7 +204,7 @@ async function buildContext(): Promise<MCPContext> {
 			tools,
 		}));
 
-		server.setRequestHandler(CallToolRequestSchema, async (request) => {
+		server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest) => {
 			if (request.params.name === 'search-movies') {
 				const args = toolInputParser.parse(request.params.arguments ?? {});
 				const { movies } = await searchMovies(args.search ?? '');
