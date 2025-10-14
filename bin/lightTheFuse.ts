@@ -1,0 +1,438 @@
+#!/usr/bin/env -S npx tsx
+
+import dotenv from 'dotenv';
+import puppeteer from 'puppeteer';
+import type { Page } from 'puppeteer';
+
+dotenv.config();
+// go to https://www.lightthefusepodcast.com/episode-guide and run this in dev console
+// copy([...document.querySelectorAll('.sqs-html-content p a')].map(({href})=>href).reverse())
+const episodeUrls: string[] = [
+	// 'https://www.lightthefusepodcast.com/episode-guide-alphabetical',
+	// 'https://www.lightthefusepodcast.com/episode-guide-by-job-title',
+	// 'https://www.lightthefusepodcast.com/episode-guide-by-movie',
+	'https://www.lightthefusepodcast.com/1-intro',
+	'https://www.lightthefusepodcast.com/2-mission-impossible-1996',
+	'https://www.lightthefusepodcast.com/3-mission-impossible-ii-2000',
+	'https://www.lightthefusepodcast.com/4-mission-impossible-iii-2006',
+	'https://www.lightthefusepodcast.com/5-mission-impossible-the-original-tv-series-part-1',
+	'https://www.lightthefusepodcast.com/6-mission-impossible-fallout-2018-first-impressions',
+	'https://www.lightthefusepodcast.com/7-mission-impossible-ghost-protocol-2011',
+	'https://www.lightthefusepodcast.com/bonus-danny-elfmans-mission-impossible-vinyl-soundtrack-from-mondo',
+	'https://www.lightthefusepodcast.com/8-mission-impossible-rogue-nation-2015',
+	'https://www.lightthefusepodcast.com/9-mission-impossible-fallout-2018',
+	'https://www.lightthefusepodcast.com/10-unmade-missions',
+	'https://www.lightthefusepodcast.com/11-mission-impossible-the-original-tv-series-part-2',
+	'https://lightthefusepodcast.com/12-mission-impossible-spoofs',
+	'https://www.lightthefusepodcast.com/13-mission-impossible-title-sequences',
+	'https://www.lightthefusepodcast.com/14-ranking-the-mission-impossible-films-part-1',
+	'https://www.lightthefusepodcast.com/15-ranking-the-mission-impossible-films-part-2',
+	'https://www.lightthefusepodcast.com/16-mission-impossible-toys',
+	'https://www.lightthefusepodcast.com/17-lorne-balfe-interview-part-1',
+	'https://www.lightthefusepodcast.com/18-lorne-balfe-interview-part-2',
+	'https://www.lightthefusepodcast.com/19-patrick-h-willems-interview-part-1',
+	'https://www.lightthefusepodcast.com/20-patrick-h-willems-interview-part-2',
+	'https://www.lightthefusepodcast.com/21-mission-impossible-the-80s-tv-series-part-1',
+	'https://www.lightthefusepodcast.com/22-the-making-of-mission-impossible-1996-part-1',
+	'https://www.lightthefusepodcast.com/23-the-making-of-mission-impossible-1996-part-2',
+	'https://www.lightthefusepodcast.com/24-mission-impossible-fallout-home-video-release',
+	'https://www.lightthefusepodcast.com/25-mission-impossible-fallout-stunt-team-interviews',
+	'https://www.lightthefusepodcast.com/26-eddie-hamilton-interview-part-1',
+	'https://www.lightthefusepodcast.com/27-eddie-hamilton-interview-part-2',
+	'https://www.lightthefusepodcast.com/28-christopher-mcquarrie-interview-part-1',
+	'https://www.lightthefusepodcast.com/29-christopher-mcquarrie-interview-part-2',
+	'https://www.lightthefusepodcast.com/30-awards-critics-top-10-lists-for-mission-impossible-fallout-plus-news-roundup',
+	'https://www.lightthefusepodcast.com/bonus-two-mission-impossible-sequels-coming-soon',
+	'https://www.lightthefusepodcast.com/31-mark-bristol-interview',
+	'https://www.lightthefusepodcast.com/32-the-making-of-mission-impossible-2-2000-part-1',
+	'https://www.lightthefusepodcast.com/33-the-making-of-mission-impossible-2-2000-part-2',
+	'https://www.lightthefusepodcast.com/34-robert-elswit-interview-part-1',
+	'https://www.lightthefusepodcast.com/35-robert-elswit-interview-part-2',
+	'https://www.lightthefusepodcast.com/36-oliver-stones-mission-impossible-2',
+	'https://www.lightthefusepodcast.com/37-filmograph-interview-part-1',
+	'https://www.lightthefusepodcast.com/38-filmograph-interview-part-2',
+	'https://www.lightthefusepodcast.com/39-brad-bird-interview-part-1',
+	'https://www.lightthefusepodcast.com/40-brad-bird-interview-part-2',
+	'https://www.lightthefusepodcast.com/41-brad-bird-interview-part-3',
+	'https://www.lightthefusepodcast.com/42-the-making-of-mission-impossible-iii-2006-part-1',
+	'https://www.lightthefusepodcast.com/43-the-making-of-mission-impossible-iii-2006-part-2',
+	'https://www.lightthefusepodcast.com/44-the-making-of-mission-impossible-iii-2006-part-3',
+	'https://www.lightthefusepodcast.com/45-neverbeforeheard-stories-from-the-set-of-mission-impossible-iii',
+	'https://www.lightthefusepodcast.com/46-mailbag',
+	'https://www.lightthefusepodcast.com/47-barney-burman-interview-part-1',
+	'https://www.lightthefusepodcast.com/48-barney-burman-interview-part-2',
+	'https://www.lightthefusepodcast.com/49-marketing-mission-impossible-with-kendra-james-part-1',
+	'https://www.lightthefusepodcast.com/50-marketing-mission-impossible-with-kendra-james-part-2',
+	'https://www.lightthefusepodcast.com/51-paul-hirsch-interview-part-1',
+	'https://www.lightthefusepodcast.com/52-paul-hirsch-interview-part-2',
+	'https://www.lightthefusepodcast.com/53-paul-hirsch-interview-part-3',
+	'https://www.lightthefusepodcast.com/54-our-mission-impossible-1996-commentary-preview',
+	'https://www.lightthefusepodcast.com/55-the-music-of-mission-impossible-with-jeremy-dylan-part-1',
+	'https://www.lightthefusepodcast.com/56-the-music-of-mission-impossible-with-jeremy-dylan-part-2',
+	'https://www.lightthefusepodcast.com/57-the-music-of-mission-impossible-with-jeremy-dylan-part-3',
+	'https://www.lightthefusepodcast.com/58-the-music-of-mission-impossible-with-jeremy-dylan-part-4',
+	'https://www.lightthefusepodcast.com/59-mikey-neumann-interview-part-1',
+	'https://www.lightthefusepodcast.com/60-mikey-neumann-interview-part-2',
+	'https://www.lightthefusepodcast.com/61-mission-impossible-fallout-vinyl-soundtrack',
+	'https://www.lightthefusepodcast.com/62-mission-impossible-theme-park-rides-part-1',
+	'https://www.lightthefusepodcast.com/63-mission-impossible-theme-park-rides-part-2',
+	'https://www.lightthefusepodcast.com/64-stu-maschwitz-interview-part-1',
+	'https://www.lightthefusepodcast.com/bonus-mission-impossible-7-casting-news',
+	'https://www.lightthefusepodcast.com/65-stu-maschwitz-interview-part-2',
+	'https://www.lightthefusepodcast.com/66-stu-maschwitz-interview-part-3',
+	'https://www.lightthefusepodcast.com/67-todd-vaziri-interview-part-1',
+	'https://www.lightthefusepodcast.com/68-todd-vaziri-interview-part-2',
+	'https://www.lightthefusepodcast.com/69-mission-impossible-set-pieces-with-kendra-james-patrick-h-willems',
+	'https://www.lightthefusepodcast.com/70-keith-campbell-interview-part-1',
+	'https://www.lightthefusepodcast.com/71-keith-campbell-interview-part-2',
+	'https://www.lightthefusepodcast.com/72-keith-campbell-interview-part-3',
+	'https://www.lightthefusepodcast.com/73-scott-chambliss-interview-part-1',
+	'https://www.lightthefusepodcast.com/74-scott-chambliss-interview-part-2',
+	'https://www.lightthefusepodcast.com/75-michael-kamper-interview-part-1',
+	'https://www.lightthefusepodcast.com/76-michael-kamper-interview-part-2',
+	'https://www.lightthefusepodcast.com/77-jack-howard-interview-part-1',
+	'https://www.lightthefusepodcast.com/78-jack-howard-interview-part-2',
+	'https://www.lightthefusepodcast.com/79-paul-hirsch-strikes-back-part-1',
+	'https://www.lightthefusepodcast.com/80-paul-hirsch-strikes-back-part-2',
+	'https://www.lightthefusepodcast.com/81-paul-hirsch-strikes-back-part-3',
+	'https://www.lightthefusepodcast.com/82-tommy-harper-interview-part-1',
+	'https://www.lightthefusepodcast.com/83-tommy-harper-interview-part-2',
+	'https://www.lightthefusepodcast.com/84-mission-impossible-the-original-tv-series-part-3-plus-mailbag',
+	'https://www.lightthefusepodcast.com/85-the-making-of-mission-impossible-ghost-protocol-2011-part-1',
+	'https://www.lightthefusepodcast.com/bonus-kittridge-confirmed',
+	'https://www.lightthefusepodcast.com/86-the-making-of-mission-impossible-ghost-protocol-2011-part-2',
+	'https://www.lightthefusepodcast.com/87-the-making-of-mission-impossible-ghost-protocol-2011-part-3',
+	'https://www.lightthefusepodcast.com/88-the-making-of-mission-impossible-ghost-protocol-2011-part-4',
+	'https://www.lightthefusepodcast.com/89-john-knoll-interview-part-1',
+	'https://www.lightthefusepodcast.com/90-john-knoll-interview-part-2',
+	'https://www.lightthefusepodcast.com/91-john-knoll-interview-part-3',
+	'https://www.lightthefusepodcast.com/92-maryann-brandon-mary-jo-markey-interview-part-1',
+	'https://www.lightthefusepodcast.com/93-maryann-brandon-mary-jo-markey-interview-part-2',
+	'https://www.lightthefusepodcast.com/94-maryann-brandon-mary-jo-markey-interview-part-3',
+	'https://www.lightthefusepodcast.com/95-david-james-interview-part-1',
+	'https://www.lightthefusepodcast.com/96-david-james-interview-part-2',
+	'https://www.lightthefusepodcast.com/97-michael-kaplan-interview-part-1',
+	'https://www.lightthefusepodcast.com/98-michael-kaplan-interview-part-2',
+	'https://www.lightthefusepodcast.com/99-the-long-history-of-mission-impossibles-mostly-terrible-video-games',
+	'https://www.lightthefusepodcast.com/100-christopher-mcquarrie-simon-pegg-hayley-atwell-and-lorne-balfe',
+	'https://www.lightthefusepodcast.com/101-ronald-d-moore-interview',
+	'https://www.lightthefusepodcast.com/102-mitchell-leib-interview-part-1',
+	'https://www.lightthefusepodcast.com/103-mitchell-leib-interview-part-2',
+	'https://www.lightthefusepodcast.com/104-joe-kraemer-interview-part-1',
+	'https://www.lightthefusepodcast.com/105-joe-kraemer-interview-part-2',
+	'https://www.lightthefusepodcast.com/106-roger-guyett-interview-part-1',
+	'https://www.lightthefusepodcast.com/107-roger-guyett-interview-part-2',
+	'https://www.lightthefusepodcast.com/108-gary-rydstrom-interview-part-1',
+	'https://www.lightthefusepodcast.com/109-gary-rydstrom-interview-part-2',
+	'https://www.lightthefusepodcast.com/110-liz-hannah-interview',
+	'https://www.lightthefusepodcast.com/111-seth-grahamesmith-interview',
+	'https://www.lightthefusepodcast.com/112-kevin-yagher-interview-part-1',
+	'https://www.lightthefusepodcast.com/113-kevin-yagher-interview-part-2',
+	'https://www.lightthefusepodcast.com/114-kevin-yagher-interview-part-3',
+	'https://www.lightthefusepodcast.com/115-chiabella-james-interview',
+	'https://www.lightthefusepodcast.com/116-dan-mindel-interview-part-1',
+	'https://www.lightthefusepodcast.com/117-dan-mindel-interview-part-2',
+	'https://www.lightthefusepodcast.com/118-riccardo-bacigalupo-interview',
+	'https://www.lightthefusepodcast.com/119-evan-schiff-interview-part-1',
+	'https://www.lightthefusepodcast.com/120-evan-schiff-interview-part-2',
+	'https://www.lightthefusepodcast.com/121-david-koepp-interview-part-1',
+	'https://www.lightthefusepodcast.com/122-david-koepp-interview-part-2',
+	'https://www.lightthefusepodcast.com/123-barbara-bain-interview-part-1',
+	'https://www.lightthefusepodcast.com/124-barbara-bain-interview-part-2',
+	'https://www.lightthefusepodcast.com/125-michael-giacchino-interview-part-1',
+	'https://www.lightthefusepodcast.com/126-michael-giacchino-interview-part-2',
+	'https://www.lightthefusepodcast.com/127-james-bond-vs-mission-impossible-part-1',
+	'https://www.lightthefusepodcast.com/128-james-bond-vs-mission-impossible-part-2',
+	'https://www.lightthefusepodcast.com/129-greg-grunberg-interview-part-1',
+	'https://www.lightthefusepodcast.com/130-greg-grunberg-interview-part-2',
+	'https://www.lightthefusepodcast.com/131-lesley-ann-warren-interview',
+	'https://www.lightthefusepodcast.com/132-david-dozoretz-interview-part-1',
+	'https://www.lightthefusepodcast.com/133-david-dozoretz-interview-part-2',
+	'https://www.lightthefusepodcast.com/134-eric-vespe-scott-wampler-interview',
+	'https://www.lightthefusepodcast.com/135-matthew-pearl-interview-part-1',
+	'https://www.lightthefusepodcast.com/136-matthew-pearl-interview-part-2',
+	'https://www.lightthefusepodcast.com/137-chad-stahelski-interview-part-1',
+	'https://www.lightthefusepodcast.com/138-chad-stahelski-interview-part-2',
+	'https://www.lightthefusepodcast.com/139-kevin-kavanaugh-interview-part-1',
+	'https://www.lightthefusepodcast.com/140-kevin-kavanaugh-interview-part-2',
+	'https://www.lightthefusepodcast.com/141-elsabet-ronaldsdttir-interview',
+	'https://www.lightthefusepodcast.com/142-mark-stoeckinger-interview-part-1',
+	'https://www.lightthefusepodcast.com/143-mark-stoeckinger-interview-part-2',
+	'https://www.lightthefusepodcast.com/144-john-wick-chapter-3-editors-roundtable-part-1',
+	'https://www.lightthefusepodcast.com/145-john-wick-chapter-3-editors-roundtable-part-2',
+	'https://www.lightthefusepodcast.com/146-luca-mosca-interview',
+	'https://www.lightthefusepodcast.com/147-rob-nederhorst-interview',
+	'https://www.lightthefusepodcast.com/148-filmograph-interview-part-1',
+	'https://www.lightthefusepodcast.com/149-filmograph-interview-part-2',
+	'https://www.lightthefusepodcast.com/150-return-of-paul-hirsch-part-1',
+	'https://www.lightthefusepodcast.com/151-return-of-paul-hirsch-part-2',
+	'https://www.lightthefusepodcast.com/152-return-of-paul-hirsch-part-3',
+	'https://www.lightthefusepodcast.com/153-bilge-ebiri-interview-part-1',
+	'https://www.lightthefusepodcast.com/154-bilge-ebiri-interview-part-2',
+	'https://www.lightthefusepodcast.com/155-sean-gerace-interview',
+	'https://www.lightthefusepodcast.com/156-pete-romano-interview-part-1',
+	'https://www.lightthefusepodcast.com/157-pete-romano-interview-part-2',
+	'https://www.lightthefusepodcast.com/158-brian-de-palma-and-susan-lehman-interview-part-1',
+	'https://www.lightthefusepodcast.com/159-brian-de-palma-and-susan-lehman-interview-part-2',
+	'https://www.lightthefusepodcast.com/160-dan-laustsen-interview-part-1',
+	'https://www.lightthefusepodcast.com/161-dan-laustsen-interview-part-2',
+	'https://www.lightthefusepodcast.com/162-david-leitch-interview-part-1',
+	'https://www.lightthefusepodcast.com/163-david-leitch-interview-part-2',
+	'https://www.lightthefusepodcast.com/164-greg-powell-interview-part-1',
+	'https://www.lightthefusepodcast.com/165-greg-powell-interview-part-2',
+	'https://www.lightthefusepodcast.com/166-craig-obrien-interview',
+	'https://www.lightthefusepodcast.com/167-our-trip-to-cinemacon',
+	'https://www.lightthefusepodcast.com/168-david-naylor-interview',
+	'https://www.lightthefusepodcast.com/169-the-making-of-mission-impossible-rogue-nation-2015-part-1',
+	'https://www.lightthefusepodcast.com/170-the-making-of-mission-impossible-rogue-nation-2015-part-2',
+	'https://www.lightthefusepodcast.com/171-the-making-of-mission-impossible-rogue-nation-2015-part-3',
+	'https://www.lightthefusepodcast.com/172-the-making-of-mission-impossible-rogue-nation-2015-part-4',
+	'https://www.lightthefusepodcast.com/173-chris-soldo-interview-part-1',
+	'https://www.lightthefusepodcast.com/174-chris-soldo-interview-part-2',
+	'https://www.lightthefusepodcast.com/175-ben-rosenblatt-interview-part-1',
+	'https://www.lightthefusepodcast.com/176-ben-rosenblatt-interview-part-2',
+	'https://www.lightthefusepodcast.com/177-ben-rosenblatt-interview-part-3',
+	'https://www.lightthefusepodcast.com/178-kris-peck-interview-part-1',
+	'https://www.lightthefusepodcast.com/179-kris-peck-interview-part-2',
+	'https://www.lightthefusepodcast.com/180-kris-peck-interview-part-3',
+	'https://www.lightthefusepodcast.com/181-teddy-newton-interview',
+	'https://www.lightthefusepodcast.com/182-josh-appelbaum-andre-nemec-part-1',
+	'https://www.lightthefusepodcast.com/183-josh-appelbaum-andre-nemec-part-2',
+	'https://www.lightthefusepodcast.com/revisiting-our-brad-bird-interview',
+	'https://www.lightthefusepodcast.com/revisiting-the-making-of-mission-impossible-ghost-protocol',
+	'https://www.lightthefusepodcast.com/184-anthony-giacchino-part-1',
+	'https://www.lightthefusepodcast.com/185-anthony-giacchino-part-2',
+	'https://www.lightthefusepodcast.com/186-ilia-volok',
+	'https://www.lightthefusepodcast.com/187-miraj-grbic',
+	'https://www.lightthefusepodcast.com/188-blake-howard-part-1',
+	'https://www.lightthefusepodcast.com/189-blake-howard-part-2',
+	'https://www.lightthefusepodcast.com/190-jim-bissell-part-1',
+	'https://www.lightthefusepodcast.com/191-jim-bissell-part-2',
+	'https://www.lightthefusepodcast.com/debrief-the-cinematography-part-4',
+	'https://www.lightthefusepodcast.com/debrief-the-cinematography-part-3',
+	'https://www.lightthefusepodcast.com/debrief-the-cinematography-part-2',
+	'https://www.lightthefusepodcast.com/debrief-the-cinematography-part-1',
+	'https://www.lightthefusepodcast.com/revisiting-christopher-mcquarrie',
+	'https://www.lightthefusepodcast.com/revisiting-oliver-stones-mi2',
+	'https://www.lightthefusepodcast.com/192-bendavid-grabinski-part-1',
+	'https://www.lightthefusepodcast.com/193-bendavid-grabinski-part-2',
+	'https://www.lightthefusepodcast.com/194-cinemacon-2022',
+	'https://www.lightthefusepodcast.com/195-josh-tate',
+	'https://www.lightthefusepodcast.com/196-david-vickery-part-1',
+	'https://www.lightthefusepodcast.com/197-david-vickery-part-2',
+	'https://www.lightthefusepodcast.com/bonus-the-mission-impossible-dead-reckoning-part-1-trailer-is-out',
+	'https://www.lightthefusepodcast.com/light-the-fuselage-joseph-kosinski',
+	'https://www.lightthefusepodcast.com/light-the-fuselage-greg-tarzan-davis',
+	'https://www.lightthefusepodcast.com/light-the-fuselage-eddie-hamilton-part-1',
+	'https://www.lightthefusepodcast.com/light-the-fuselage-eddie-hamilton-part-2',
+	'https://www.lightthefusepodcast.com/light-the-fuselage-eddie-hamilton-part-3',
+	'https://www.lightthefusepodcast.com/light-the-fuselage-kevin-larosa',
+	'https://www.lightthefusepodcast.com/light-the-fuselage-lorne-balfe-part-1',
+	'https://www.lightthefusepodcast.com/light-the-fuselage-lorne-balfe-part-2',
+	'https://www.lightthefusepodcast.com/198-kerry-warn',
+	'https://www.lightthefusepodcast.com/199-robert-townes-draft-of-mission-impossible',
+	'https://www.lightthefusepodcast.com/200-christopher-mcquarrie-tom-cruise-eddie-hamilton',
+	'https://www.lightthefusepodcast.com/201-maggie-q-part-1',
+	'https://www.lightthefusepodcast.com/202-maggie-q-part-2',
+	'https://www.lightthefusepodcast.com/203-tom-peitzman-part-1',
+	'https://www.lightthefusepodcast.com/204-tom-peitzman-part-2',
+	'https://www.lightthefusepodcast.com/205-garvin-cross-part-1',
+	'https://www.lightthefusepodcast.com/206-garvin-cross-part-2',
+	'https://www.lightthefusepodcast.com/207-lightyear-the-fuse-part-1',
+	'https://www.lightthefusepodcast.com/208-lightyear-the-fuse-part-2',
+	'https://www.lightthefusepodcast.com/209-lightyear-the-fuse-part-3',
+	'https://www.lightthefusepodcast.com/210-michael-kehoe',
+	'https://www.lightthefusepodcast.com/revisiting-robert-elswit',
+	'https://www.lightthefusepodcast.com/revisiting-dan-mindel',
+	'https://www.lightthefusepodcast.com/211-phil-pirrello-part-1',
+	'https://www.lightthefusepodcast.com/212-phil-pirrello-part-2',
+	'https://www.lightthefusepodcast.com/213-mark-bristol',
+	'https://www.lightthefusepodcast.com/214-blake-howard-part-1',
+	'https://www.lightthefusepodcast.com/215-blake-howard-part-2',
+	'https://www.lightthefusepodcast.com/patreon-preview-favorite-tom-cruise-performances',
+	'https://www.lightthefusepodcast.com/216-christopher-mcquarrie-part-1',
+	'https://www.lightthefusepodcast.com/217-christopher-mcquarrie-part-2',
+	'https://www.lightthefusepodcast.com/218-christopher-mcquarrie-part-3',
+	'https://www.lightthefusepodcast.com/revisiting-mitchell-leib',
+	'https://www.lightthefusepodcast.com/219-james-mather-part-1',
+	'https://www.lightthefusepodcast.com/220-james-mather-part-2',
+	'https://www.lightthefusepodcast.com/221-our-top-gun-maverick-oscar-special',
+	'https://www.lightthefusepodcast.com/222-the-rogue-nation-screenplay-a-reading-of-deleted-scenes',
+	'https://www.lightthefusepodcast.com/223-erik-jendresen-part-1',
+	'https://www.lightthefusepodcast.com/224-erik-jendresen-part-2',
+	'https://www.lightthefusepodcast.com/225-maricel-pagulayan-part-1',
+	'https://www.lightthefusepodcast.com/226-maricel-pagulayan-part-2',
+	'https://www.lightthefusepodcast.com/227-graham-moore-part-1',
+	'https://www.lightthefusepodcast.com/228-graham-moore-part-2',
+	'https://www.lightthefusepodcast.com/bonus-william-donloe-returns',
+	'https://www.lightthefusepodcast.com/229-graham-moore-part-3',
+	'https://www.lightthefusepodcast.com/230-paul-scheer-part-1',
+	'https://www.lightthefusepodcast.com/231-paul-scheer-part-2',
+	'https://www.lightthefusepodcast.com/revisiting-tom-cruise',
+	'https://www.lightthefusepodcast.com/cinemacon-2023',
+	'https://www.lightthefusepodcast.com/233-clint-schultz-part-1',
+	'https://www.lightthefusepodcast.com/234-clint-schultz-part-2',
+	'https://www.lightthefusepodcast.com/235-new-trailer-breakdown',
+	'https://www.lightthefusepodcast.com/236-bryan-burk-part-1',
+	'https://www.lightthefusepodcast.com/237-bryan-burk-part-2',
+	// 'https://www.lightthefusepodcast.com/announcement',
+	// 'https://www.lightthefusepodcast.com/coming-soon-light-the-fuse-the-official-mission-impossible-podcast',
+	// 'https://www.lightthefusepodcast.com/when-in-rome-with-tom-cruise-christopher-mcquarrie',
+	// 'https://www.lightthefusepodcast.com/how-simon-pegg-ended-up-in-mission-impossible',
+	// 'https://www.lightthefusepodcast.com/hayley-atwell-graces-us-with-her-presence',
+	// 'https://www.lightthefusepodcast.com/inside-the-action-with-the-cast-of-dead-reckoning',
+	// 'https://www.lightthefusepodcast.com/episode-guide-alphabetical',
+	// 'https://www.lightthefusepodcast.com/episode-guide-by-job-title',
+	// 'https://www.lightthefusepodcast.com/episode-guide-by-movie',
+].reverse();
+
+type EpisodeInfo = {
+	audioEmbedUrl: string;
+	duration: number;
+	description: string;
+	title: string;
+	link: string;
+	pubDate: string;
+};
+
+/*
+	<title>${title}</title>
+	<itunes:summary>${description}</itunes:summary>
+	<description>${description}</description>
+	<link>${url}</link>
+	<enclosure url="${url}" type="audio/mpeg" length="1024"></enclosure>
+	<pubDate>${pubDate}</pubDate>
+	<itunes:author>Drew Taylor & Charles Hood</itunes:author>
+	<itunes:duration>00:32:16</itunes:duration>
+	<itunes:explicit>no</itunes:explicit>
+	<guid>${url}</guid>
+
+*/
+// const incrementer = 0;
+async function scrapeEpisodePage(page: Page, url: string): Promise<EpisodeInfo> {
+	await page.goto(url);
+
+	const dataset = await page.$eval('.sqs-audio-embed', (element) => {
+		const el = element as { dataset?: { title?: string; url?: string; durationInMs?: string } };
+		const { title, url: embedUrl, durationInMs } = el.dataset ?? {};
+		return {
+			title: title ?? '',
+			embedUrl: embedUrl ?? '',
+			durationInMs: durationInMs ?? '0',
+		};
+	});
+
+	const description = await page.evaluate(() => {
+		const doc = (globalThis as typeof globalThis & { document?: any }).document;
+		const htmlContent = doc?.querySelectorAll('.sqs-html-content')?.[0];
+		return htmlContent?.innerHTML ?? '';
+	});
+
+	const match = description.match(/Released (.*\d+).*, (20\d\d)./);
+	const monthDay = match?.[1] ?? '';
+	const year = match?.[2] ?? '';
+
+	const durationMs = Number.parseInt(dataset.durationInMs, 10);
+	const durationSeconds = Number.isFinite(durationMs) ? Math.floor(durationMs / 1000) : 0;
+
+	const parsedPublicationDate = new Date(`${monthDay} ${year}`);
+	const publicationSource = Number.isNaN(parsedPublicationDate.getTime())
+		? new Date()
+		: parsedPublicationDate;
+	const publicationDate = new Date(publicationSource.getTime() + 60 * 1000)
+		.toUTCString()
+		.replace(' GMT', ' -0000');
+
+	return {
+		audioEmbedUrl: dataset.embedUrl,
+		duration: durationSeconds,
+		description,
+		title: dataset.title.replace(/ & /g, ' and '),
+		link: url,
+		// pubDate: new Date(`${monthDay} ${year}`).toString(),
+		pubDate: publicationDate,
+		// pubDate: new Date(
+		// 	// eslint-disable-next-line no-plusplus
+		// 	new Date('06-20-2023').getTime() - 24 * 60 * 60 * 1000 * incrementer++
+		// ).toString(),
+	};
+}
+
+async function main(): Promise<void> {
+	const browser = await puppeteer.launch({
+		headless: true,
+		args: ['--no-sandbox', '--disable-setuid-sandbox'],
+	});
+	const page = await browser.newPage();
+
+	const epInfos: EpisodeInfo[] = [];
+	// const epInfos = await Promise.all(
+	// 	episodeUrls.slice(0, 3).map((url) => {
+	// 		return scrapeEpisodePage(page, url);
+	// 	})
+	// );
+	for (const url of episodeUrls /* .slice(0, 3) */) {
+		const epInfo = await scrapeEpisodePage(page, url);
+		// console.log(epInfo);
+		epInfos.push(epInfo);
+	}
+	// console.log(epInfo);
+
+	await browser.close();
+
+	console.log(`<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:googleplay="http://www.google.com/schemas/play-podcasts/1.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+	<atom:link href="https://drew.shoes/misc/lightTheFuseArchive.xml" rel="self" type="application/rss+xml"/>
+	<title>Light The Fuse: Rogue Backlog Feed</title>
+	<language>en</language>
+	<copyright>298061</copyright>
+	<description>Unofficial Rogue Feed of the Archived Episodes of Light the Fuse Podcast. As always, should you or any of your IM Force be caught or killed, the Secretary will disavow any knowledge of your actions. This tape will self-destruct in five seconds.</description>
+	<image>
+	  <url>https://megaphone.imgix.net/podcasts/5a4af91e-092c-11ee-a253-13009ff074b2/image/ltf_key_art_V2.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress</url>
+	  <title>Light The Fuse: Rogue Backlog Feed</title>
+	</image>
+	<itunes:explicit>no</itunes:explicit>
+	<itunes:type>episodic</itunes:type>
+	<itunes:subtitle></itunes:subtitle>
+	<itunes:author>Drew Taylor and Charles Hood</itunes:author>
+	<itunes:summary>Unofficial Rogue Feed of the Archived Episodes of Light the Fuse Podcast. As always, should you or any of your IM Force be caught or killed, the Secretary will disavow any knowledge of your actions. This tape will self-destruct in five seconds.</itunes:summary>
+	<content:encoded>
+	  <![CDATA[<p>Unofficial Rogue Feed of the Archived Episodes of Light the Fuse Podcast. As always, should you or any of your IM Force be caught or killed, the Secretary will disavow any knowledge of your actions. This tape will self-destruct in five seconds.</p>]]>
+	</content:encoded>
+	<itunes:owner>
+	  <itunes:name>Drew Taylor and Charles Hood</itunes:name>
+	</itunes:owner>
+	<itunes:image href="https://megaphone.imgix.net/podcasts/5a4af91e-092c-11ee-a253-13009ff074b2/image/ltf_key_art_V2.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"/>
+	<itunes:category text="TV &amp; Film">
+	  <itunes:category text="Film Interviews"/>
+	  <itunes:category text="After Shows"/>
+	</itunes:category>
+${epInfos
+	.map(({ title, link, pubDate, description, duration, audioEmbedUrl }) => {
+		return `	<item>
+	  <title>${title}</title>
+	  <link>${link}</link>
+	  <description><![CDATA[${description}]]></description>
+	  <pubDate>${pubDate}</pubDate>
+	  <itunes:title>${title}</itunes:title>
+	  <itunes:episodeType>full</itunes:episodeType>
+	  <itunes:author>Drew Taylor and Charles Hood</itunes:author>
+	  <itunes:subtitle></itunes:subtitle>
+	  <itunes:summary><![CDATA[${description}]]></itunes:summary>
+	  <content:encoded>
+		<![CDATA[${description}]]>
+	  </content:encoded>
+	  <itunes:duration>${duration}</itunes:duration>
+	  <guid isPermaLink="false">${audioEmbedUrl}?nonce=1</guid>
+	  <enclosure url="${audioEmbedUrl}" length="0" type="audio/mpeg"/>
+	</item>
+`;
+	})
+	.join('')}
+  </channel>
+</rss>
+`);
+}
+
+void main().then(() => process.exit());

@@ -1,6 +1,7 @@
 .env
 .vscode
 node_modules
+dist/
 album.jpg
 *.swp
 .DS_Store
