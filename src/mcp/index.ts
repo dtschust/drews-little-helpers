@@ -212,6 +212,25 @@ async function buildContext(): Promise<MCPContext> {
 		},
 	} as Tool);
 
+	tools.push({
+		name: 'get-rss-entries',
+		description: 'get rss entries',
+		inputSchema: {
+			type: 'object' as const,
+			properties: {},
+			additionalProperties: false,
+		},
+		title: 'Get RSS Entries',
+		// templateUri: `ui://widget/movie-dashboard-v${RESOURCE_VERSION}.html`,
+		// invoking: 'Fetching Movie',
+		// invoked: 'Fetched Movie',
+		// html: MOVIE_DASHBOARD_HTML,
+		_meta: {
+			// ...widgetMeta(widgets[0]),
+			'openai/widgetAccessible': true,
+		},
+	} as Tool);
+
 	const resources: Resource[] = widgets.map((widget) => ({
 		uri: widget.templateUri,
 		name: widget.title,
@@ -342,6 +361,24 @@ async function buildContext(): Promise<MCPContext> {
 						structuredContent: {
 							ok,
 							started,
+						},
+					};
+				case 'get-rss-entries':
+					const { unreadEntryIds, taggings, subscriptions, unreadEntries } =
+						await getRSSEntries();
+
+					return {
+						content: [
+							{
+								type: 'text',
+								text: `Found ${unreadEntries?.length ?? 0} unread entries`,
+							},
+						],
+						structuredContent: {
+							unreadEntryIds,
+							unreadEntries,
+							taggings,
+							subscriptions,
 						},
 					};
 			}
@@ -558,4 +595,29 @@ async function fetchMovie({ torrentId, movieTitle }: { torrentId: string; movieT
 		throw new Error(text || `Download failed (${res.status})`);
 	}
 	return res.json();
+}
+
+const FEEDBIN_BASE_URL = 'https://tools.drew.shoes/v2';
+
+async function getRSSEntries() {
+	const authToken = process.env.FEEDBIN_AUTH;
+	const headers = new Headers();
+	headers.set('Authorization', authToken);
+	headers.set('Content-Type', 'application/json');
+
+	// TODO: make this useful, and don't waterfall them.
+	const unreadEntryIds = await fetch(`${FEEDBIN_BASE_URL}/unread_entries.json`, {
+		headers,
+	}).then((res) => res.json());
+	const taggings = await fetch(`${FEEDBIN_BASE_URL}/taggings.json`, {
+		headers,
+	}).then((res) => res.json());
+	const subscriptions = await fetch(`${FEEDBIN_BASE_URL}/subscriptions.json`, {
+		headers,
+	}).then((res) => res.json());
+	const unreadEntries = await fetch(`${FEEDBIN_BASE_URL}/entries.json?read=false&mode=extended`, {
+		headers,
+	}).then((res) => res.json());
+
+	return { unreadEntryIds, taggings, subscriptions, unreadEntries };
 }
