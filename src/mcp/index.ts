@@ -681,11 +681,16 @@ async function getRSSEntries(): Promise<RssEntriesResponse> {
 			continue;
 		}
 
+		const unreadForSubscription = entriesByFeedId.get(tagging.feed_id);
+		if (!unreadForSubscription || unreadForSubscription.length === 0) {
+			continue;
+		}
+
 		if (!data[tagging.name]) {
 			data[tagging.name] = {};
 		}
 
-		data[tagging.name][subscription.title] = entriesByFeedId.get(tagging.feed_id) ?? [];
+		data[tagging.name][subscription.title] = unreadForSubscription;
 	}
 
 	return { unreadEntryIds, taggings, subscriptions, unreadEntries, data };
