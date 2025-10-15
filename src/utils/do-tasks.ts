@@ -8,6 +8,7 @@ import { getDrewsHelpfulRobot } from './slack';
 
 dotenv.config();
 
+// eslint-disable-next-line no-underscore-dangle
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 const { sendMessageToCronLogs, sendBlockMessageToCronLogs } = getDrewsHelpfulRobot();
