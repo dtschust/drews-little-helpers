@@ -21,6 +21,27 @@ dotenv.config();
 const MOVIE_DASHBOARD_EMBEDDED_HTML_URL = 'https://movs.drew.shoes/indexEmbedded.html';
 const API_BASE = 'https://tools.drew.shoes/movies';
 
+type FeedbinTagging = {
+	name: string;
+	feed_id: number;
+};
+
+type FeedbinSubscription = {
+	feed_id: number;
+	title: string;
+};
+
+type FeedbinEntry = {
+	id: number;
+	feed_id: number;
+	title: string;
+	summary: string;
+	content: string;
+	url: string;
+};
+
+type FeedbinTagData = Record<string, Record<string, FeedbinEntry[]>>;
+
 interface MCPContext {
 	createMCPServer: () => Server;
 	sessions: Map<
@@ -362,9 +383,9 @@ async function buildContext(): Promise<MCPContext> {
 							ok,
 							started,
 						},
-					};
+				};
 				case 'get-rss-entries':
-					const { unreadEntryIds, taggings, subscriptions, unreadEntries } =
+					const { unreadEntryIds, taggings, subscriptions, unreadEntries, data } =
 						await getRSSEntries();
 
 					return {
@@ -379,6 +400,7 @@ async function buildContext(): Promise<MCPContext> {
 							unreadEntries,
 							taggings,
 							subscriptions,
+							data,
 						},
 					};
 			}
@@ -599,25 +621,72 @@ async function fetchMovie({ torrentId, movieTitle }: { torrentId: string; movieT
 
 const FEEDBIN_BASE_URL = 'https://tools.drew.shoes/v2';
 
-async function getRSSEntries() {
+interface RssEntriesResponse {
+	unreadEntryIds: number[];
+	taggings: FeedbinTagging[];
+	subscriptions: FeedbinSubscription[];
+	unreadEntries: FeedbinEntry[];
+	data: FeedbinTagData;
+}
+
+async function getRSSEntries(): Promise<RssEntriesResponse> {
 	const authToken = process.env.FEEDBIN_AUTH;
+	if (!authToken) {
+		throw new Error('FEEDBIN_AUTH is not set');
+	}
 	const headers = new Headers();
 	headers.set('Authorization', authToken);
 	headers.set('Content-Type', 'application/json');
 
-	// TODO: make this useful, and don't waterfall them.
-	const unreadEntryIds = await fetch(`${FEEDBIN_BASE_URL}/unread_entries.json`, {
-		headers,
-	}).then((res) => res.json());
-	const taggings = await fetch(`${FEEDBIN_BASE_URL}/taggings.json`, {
-		headers,
-	}).then((res) => res.json());
-	const subscriptions = await fetch(`${FEEDBIN_BASE_URL}/subscriptions.json`, {
-		headers,
-	}).then((res) => res.json());
-	const unreadEntries = await fetch(`${FEEDBIN_BASE_URL}/entries.json?read=false`, {
-		headers,
-	}).then((res) => res.json());
+	const fetchFeedbinResource = async <T>(path: string): Promise<T> => {
+		const res = await fetch(`${FEEDBIN_BASE_URL}/${path}`, {
+			headers,
+		});
 
-	return { unreadEntryIds, taggings, subscriptions, unreadEntries };
+		if (!res.ok) {
+			const body = await res.text();
+			throw new Error(body || `Feedbin request failed (${res.status})`);
+		}
+
+		return (await res.json()) as T;
+	};
+
+	// TODO: make this useful, and don't waterfall them.
+	const unreadEntryIds = await fetchFeedbinResource<number[]>('unread_entries.json');
+	const taggings = await fetchFeedbinResource<FeedbinTagging[]>('taggings.json');
+	const subscriptions = await fetchFeedbinResource<FeedbinSubscription[]>('subscriptions.json');
+	const unreadEntries = await fetchFeedbinResource<FeedbinEntry[]>('entries.json?read=false');
+
+	const subscriptionsByFeedId = new Map<number, FeedbinSubscription>();
+	for (const subscription of subscriptions) {
+		subscriptionsByFeedId.set(subscription.feed_id, subscription);
+	}
+
+	const entriesByFeedId = unreadEntries.reduce<Map<number, FeedbinEntry[]>>((acc, entry) => {
+		const collection = acc.get(entry.feed_id);
+		if (collection) {
+			collection.push(entry);
+		} else {
+			acc.set(entry.feed_id, [entry]);
+		}
+
+		return acc;
+	}, new Map());
+
+	const data: FeedbinTagData = {};
+
+	for (const tagging of taggings) {
+		const subscription = subscriptionsByFeedId.get(tagging.feed_id);
+		if (!subscription) {
+			continue;
+		}
+
+		if (!data[tagging.name]) {
+			data[tagging.name] = {};
+		}
+
+		data[tagging.name][subscription.title] = entriesByFeedId.get(tagging.feed_id) ?? [];
+	}
+
+	return { unreadEntryIds, taggings, subscriptions, unreadEntries, data };
 }
