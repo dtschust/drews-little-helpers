@@ -574,10 +574,12 @@ export default async function addMcpRoutes(fastify: FastifyInstance) {
 
 		try {
 			const existing = await McpTemplateVersion.findOne().exec();
-			const currentVersion = existing?.version ?? '4';
+			const currentVersion = existing?.version;
+			if (!currentVersion) {
+				throw new Error('No MCP template version found');
+			}
 			const currentVersionNumber = Number.parseInt(currentVersion, 10);
-			const baseVersion = Number.isNaN(currentVersionNumber) ? 4 : currentVersionNumber;
-			const nextVersion = String(baseVersion + 1);
+			const nextVersion = String(currentVersionNumber + 1);
 
 			await McpTemplateVersion.deleteMany({});
 			const nextVersionDocument = new McpTemplateVersion({ version: nextVersion });
