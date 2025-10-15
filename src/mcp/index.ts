@@ -15,6 +15,8 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
+import '../utils/mongoose-connect';
+import McpTemplateVersion from '../mongoose-models/Mcp-Template-Version';
 
 dotenv.config();
 
@@ -55,6 +57,10 @@ interface MCPContext {
 
 let contextPromise: Promise<MCPContext> | undefined;
 
+function resetContext() {
+	contextPromise = undefined;
+}
+
 function normalizePathSegment(segment: string | undefined) {
 	const trimmed = (segment || '').trim();
 	return trimmed.replace(/^\/+|\/+$/g, '');
@@ -65,9 +71,8 @@ async function buildContext(): Promise<MCPContext> {
 		res.text()
 	);
 
-	// TODO: keep version in db so that I can bump it remotely, also need to check it periodically to
-	// refetch templates
-	const RESOURCE_VERSION = '3';
+	const templateVersionDoc = await McpTemplateVersion.findOne().exec();
+	const resourceVersion = templateVersionDoc?.version ?? '4';
 
 	function widgetMeta(widget) {
 		return {
@@ -92,7 +97,7 @@ async function buildContext(): Promise<MCPContext> {
 		{
 			id: 'movie-dashboard',
 			title: 'Show Movie Dashboard or get information about a Movie',
-			templateUri: `ui://widget/movie-dashboard-v${RESOURCE_VERSION}.html`,
+			templateUri: `ui://widget/movie-dashboard-v${resourceVersion}.html`,
 			invoking: 'Loading Movie Dashboard',
 			invoked: 'Loaded Movie Dashboard',
 			html: MOVIE_DASHBOARD_HTML,
@@ -136,7 +141,7 @@ async function buildContext(): Promise<MCPContext> {
 		description: 'Search for movies',
 		inputSchema: toolInputSchema,
 		title: 'Search for movies',
-		templateUri: `ui://widget/movie-dashboard-v${RESOURCE_VERSION}.html`,
+		templateUri: `ui://widget/movie-dashboard-v${resourceVersion}.html`,
 		invoking: 'Loading Movie Dashboard',
 		invoked: 'Loaded Movie Dashboard',
 		html: MOVIE_DASHBOARD_HTML,
@@ -151,7 +156,7 @@ async function buildContext(): Promise<MCPContext> {
 		description: 'get top movies',
 		inputSchema: toolInputSchema,
 		title: 'Get Top Movies',
-		templateUri: `ui://widget/movie-dashboard-v${RESOURCE_VERSION}.html`,
+		templateUri: `ui://widget/movie-dashboard-v${resourceVersion}.html`,
 		invoking: 'Loading Movie Dashboard',
 		invoked: 'Loaded Movie Dashboard',
 		html: MOVIE_DASHBOARD_HTML,
@@ -187,7 +192,7 @@ async function buildContext(): Promise<MCPContext> {
 		description: 'get available versions of a movie',
 		inputSchema: versionToolInputSchema,
 		title: 'Get Available Versions of a Movie',
-		templateUri: `ui://widget/movie-dashboard-v${RESOURCE_VERSION}.html`,
+		templateUri: `ui://widget/movie-dashboard-v${resourceVersion}.html`,
 		invoking: 'Loading Movie Dashboard',
 		invoked: 'Loaded Movie Dashboard',
 		html: MOVIE_DASHBOARD_HTML,
@@ -223,7 +228,7 @@ async function buildContext(): Promise<MCPContext> {
 		description: 'fetch a movie',
 		inputSchema: fetchMovieToolInputSchema,
 		title: 'Fetch a Movie',
-		templateUri: `ui://widget/movie-dashboard-v${RESOURCE_VERSION}.html`,
+		templateUri: `ui://widget/movie-dashboard-v${resourceVersion}.html`,
 		invoking: 'Fetching Movie',
 		invoked: 'Fetched Movie',
 		html: MOVIE_DASHBOARD_HTML,
@@ -242,7 +247,7 @@ async function buildContext(): Promise<MCPContext> {
 			additionalProperties: false,
 		},
 		title: 'Get RSS Entries',
-		// templateUri: `ui://widget/movie-dashboard-v${RESOURCE_VERSION}.html`,
+		// templateUri: `ui://widget/movie-dashboard-v${resourceVersion}.html`,
 		// invoking: 'Fetching Movie',
 		// invoked: 'Fetched Movie',
 		// html: MOVIE_DASHBOARD_HTML,
@@ -511,7 +516,7 @@ async function handlePostMessage(
 }
 
 export default async function addMcpRoutes(fastify: FastifyInstance) {
-	const context = await getContext();
+	let context = await getContext();
 
 	const baseSegment = normalizePathSegment(process.env.MCP_PATH);
 
@@ -522,6 +527,7 @@ export default async function addMcpRoutes(fastify: FastifyInstance) {
 	const basePath = `/${baseSegment}`;
 	const ssePath = `${basePath}/mcp`;
 	const postPath = `${ssePath}/messages`;
+	const bumpPath = `${basePath}/mcp-bump`;
 
 	fastify.options(ssePath, (request: FastifyRequest, reply: FastifyReply) => {
 		reply
@@ -541,6 +547,15 @@ export default async function addMcpRoutes(fastify: FastifyInstance) {
 			.send();
 	});
 
+	fastify.options(bumpPath, (request: FastifyRequest, reply: FastifyReply) => {
+		reply
+			.header('Access-Control-Allow-Origin', '*')
+			.header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+			.header('Access-Control-Allow-Headers', 'content-type')
+			.code(204)
+			.send();
+	});
+
 	fastify.get(ssePath, async (request: FastifyRequest, reply: FastifyReply) => {
 		reply.hijack();
 		await handleSseRequest(reply, context, postPath);
@@ -551,7 +566,34 @@ export default async function addMcpRoutes(fastify: FastifyInstance) {
 		await handlePostMessage(request, reply, context);
 	});
 
-	console.log(`Registered MCP routes at ${ssePath} and ${postPath}`);
+	fastify.post(bumpPath, async (request: FastifyRequest, reply: FastifyReply) => {
+		reply
+			.header('Access-Control-Allow-Origin', '*')
+			.header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+			.header('Access-Control-Allow-Headers', 'content-type');
+
+		try {
+			const existing = await McpTemplateVersion.findOne().exec();
+			const currentVersion = existing?.version ?? '4';
+			const currentVersionNumber = Number.parseInt(currentVersion, 10);
+			const baseVersion = Number.isNaN(currentVersionNumber) ? 4 : currentVersionNumber;
+			const nextVersion = String(baseVersion + 1);
+
+			await McpTemplateVersion.deleteMany({});
+			const nextVersionDocument = new McpTemplateVersion({ version: nextVersion });
+			await nextVersionDocument.save();
+
+			resetContext();
+			context = await getContext();
+
+			return reply.send({ version: nextVersion });
+		} catch (error) {
+			request.log.error({ err: error }, 'Failed to bump MCP template version');
+			return reply.status(500).send({ error: 'Failed to bump MCP template version' });
+		}
+	});
+
+	console.log(`Registered MCP routes at ${ssePath}, ${postPath}, and ${bumpPath}`);
 }
 
 async function searchMovies(query: string) {
