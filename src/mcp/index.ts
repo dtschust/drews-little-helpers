@@ -320,7 +320,7 @@ async function buildContext(): Promise<MCPContext> {
 			const toolName = request.params.name;
 
 			switch (toolName) {
-				case 'search-movies':
+				case 'search-movies': {
 					const args = toolInputParser.parse(request.params.arguments ?? {});
 					const { movies } = await searchMovies(args.search ?? '');
 
@@ -335,21 +335,23 @@ async function buildContext(): Promise<MCPContext> {
 							movies,
 						},
 					};
-				case 'get-top-movies':
-					const { movies: topMovies } = await getTopMovies();
+				}
+				case 'get-top-movies': {
+					const { movies } = await getTopMovies();
 
 					return {
 						content: [
 							{
 								type: 'text',
-								text: `Found ${topMovies?.length ?? 0} top movies`,
+								text: `Found ${movies?.length ?? 0} top movies`,
 							},
 						],
 						structuredContent: {
-							movies: topMovies,
+							movies,
 						},
 					};
-				case 'get-versions':
+				}
+				case 'get-versions': {
 					const { id, title } = versionToolInputParser.parse(
 						request.params.arguments ?? {}
 					);
@@ -366,7 +368,8 @@ async function buildContext(): Promise<MCPContext> {
 							versions,
 						},
 					};
-				case 'fetch-movie':
+				}
+				case 'fetch-movie': {
 					const { torrentId, movieTitle } = fetchMovieToolInputParser.parse(
 						request.params.arguments ?? {}
 					);
@@ -383,29 +386,23 @@ async function buildContext(): Promise<MCPContext> {
 							ok,
 							started,
 						},
-				};
-                                case 'get-rss-entries':
-                                        const data = await getRSSEntries();
+					};
+				}
+				case 'get-rss-entries': {
+					const data = await getRSSEntries();
 
-                                        const unreadCount = Object.values(data).reduce((total, subscriptionMap) => {
-                                                return (
-                                                        total +
-                                                        Object.values(subscriptionMap).reduce(
-                                                                (count, entries) => count + entries.length,
-                                                                0,
-                                                        )
-                                                );
-                                        }, 0);
-
-                                        return {
-                                                content: [
-                                                        {
-                                                                type: 'text',
-                                                                text: `Found ${unreadCount} unread entries`,
-                                                        },
-                                                ],
-                                                structuredContent: data,
-                                        };
+					return {
+						content: [
+							{
+								type: 'text',
+								text: `Found RSS entries`,
+							},
+						],
+						structuredContent: data,
+					};
+				}
+				default:
+					break;
 			}
 
 			const widget = widgetsById.get(request.params.name);
@@ -593,7 +590,7 @@ async function getVersions({ id, title }: { id: string; title: string }) {
 	if (!token) {
 		throw new Error('TOKEN is not set');
 	}
-	const url = new URL(API_BASE + '/getVersions');
+	const url = new URL(`${API_BASE}/getVersions`);
 	url.searchParams.set('id', String(id));
 	url.searchParams.set('title', title ?? '');
 	url.searchParams.set('token', token);
@@ -610,7 +607,7 @@ async function fetchMovie({ torrentId, movieTitle }: { torrentId: string; movieT
 	if (!token) {
 		throw new Error('TOKEN is not set');
 	}
-	const res = await fetch(API_BASE + '/downloadMovie', {
+	const res = await fetch(`${API_BASE}/downloadMovie`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ torrentId, movieTitle, token }),
@@ -648,10 +645,10 @@ async function getRSSEntries(): Promise<RssEntriesResponse> {
 		return (await res.json()) as T;
 	};
 
-        // TODO: make this useful, and don't waterfall them.
-        const taggings = await fetchFeedbinResource<FeedbinTagging[]>('taggings.json');
-        const subscriptions = await fetchFeedbinResource<FeedbinSubscription[]>('subscriptions.json');
-        const unreadEntries = await fetchFeedbinResource<FeedbinEntry[]>('entries.json?read=false');
+	// TODO: make this useful, and don't waterfall them.
+	const taggings = await fetchFeedbinResource<FeedbinTagging[]>('taggings.json');
+	const subscriptions = await fetchFeedbinResource<FeedbinSubscription[]>('subscriptions.json');
+	const unreadEntries = await fetchFeedbinResource<FeedbinEntry[]>('entries.json?read=false');
 
 	const subscriptionsByFeedId = new Map<number, FeedbinSubscription>();
 	for (const subscription of subscriptions) {
@@ -689,5 +686,5 @@ async function getRSSEntries(): Promise<RssEntriesResponse> {
 		data[tagging.name][subscription.title] = unreadForSubscription;
 	}
 
-        return data;
+	return data;
 }
