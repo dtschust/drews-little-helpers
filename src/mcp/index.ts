@@ -620,10 +620,24 @@ async function fetchMovie({ torrentId, movieTitle }: { torrentId: string; movieT
 }
 
 const FEEDBIN_BASE_URL = 'https://tools.drew.shoes/v2';
+const RSS_ENTRIES_CACHE_TTL_MS = 10 * 60 * 1000;
+
+let rssEntriesCache:
+	| {
+			data: RssEntriesResponse;
+			expiresAt: number;
+	  }
+	| undefined;
 
 type RssEntriesResponse = FeedbinTagData;
 
 async function getRSSEntries(): Promise<RssEntriesResponse> {
+	const now = Date.now();
+
+	if (rssEntriesCache && rssEntriesCache.expiresAt > now) {
+		return rssEntriesCache.data;
+	}
+
 	const authToken = process.env.FEEDBIN_AUTH;
 	if (!authToken) {
 		throw new Error('FEEDBIN_AUTH is not set');
@@ -686,6 +700,12 @@ async function getRSSEntries(): Promise<RssEntriesResponse> {
 
 		data[tagging.name][subscription.title] = unreadForSubscription;
 	}
+
+	// Cache successful result to avoid hitting Feedbin on every call.
+	rssEntriesCache = {
+		data,
+		expiresAt: Date.now() + RSS_ENTRIES_CACHE_TTL_MS,
+	};
 
 	return data;
 }
