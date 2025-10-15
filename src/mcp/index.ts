@@ -384,25 +384,28 @@ async function buildContext(): Promise<MCPContext> {
 							started,
 						},
 				};
-				case 'get-rss-entries':
-					const { unreadEntryIds, taggings, subscriptions, unreadEntries, data } =
-						await getRSSEntries();
+                                case 'get-rss-entries':
+                                        const data = await getRSSEntries();
 
-					return {
-						content: [
-							{
-								type: 'text',
-								text: `Found ${unreadEntries?.length ?? 0} unread entries`,
-							},
-						],
-						structuredContent: {
-							unreadEntryIds,
-							unreadEntries,
-							taggings,
-							subscriptions,
-							data,
-						},
-					};
+                                        const unreadCount = Object.values(data).reduce((total, subscriptionMap) => {
+                                                return (
+                                                        total +
+                                                        Object.values(subscriptionMap).reduce(
+                                                                (count, entries) => count + entries.length,
+                                                                0,
+                                                        )
+                                                );
+                                        }, 0);
+
+                                        return {
+                                                content: [
+                                                        {
+                                                                type: 'text',
+                                                                text: `Found ${unreadCount} unread entries`,
+                                                        },
+                                                ],
+                                                structuredContent: data,
+                                        };
 			}
 
 			const widget = widgetsById.get(request.params.name);
@@ -621,13 +624,7 @@ async function fetchMovie({ torrentId, movieTitle }: { torrentId: string; movieT
 
 const FEEDBIN_BASE_URL = 'https://tools.drew.shoes/v2';
 
-interface RssEntriesResponse {
-	unreadEntryIds: number[];
-	taggings: FeedbinTagging[];
-	subscriptions: FeedbinSubscription[];
-	unreadEntries: FeedbinEntry[];
-	data: FeedbinTagData;
-}
+type RssEntriesResponse = FeedbinTagData;
 
 async function getRSSEntries(): Promise<RssEntriesResponse> {
 	const authToken = process.env.FEEDBIN_AUTH;
@@ -651,11 +648,10 @@ async function getRSSEntries(): Promise<RssEntriesResponse> {
 		return (await res.json()) as T;
 	};
 
-	// TODO: make this useful, and don't waterfall them.
-	const unreadEntryIds = await fetchFeedbinResource<number[]>('unread_entries.json');
-	const taggings = await fetchFeedbinResource<FeedbinTagging[]>('taggings.json');
-	const subscriptions = await fetchFeedbinResource<FeedbinSubscription[]>('subscriptions.json');
-	const unreadEntries = await fetchFeedbinResource<FeedbinEntry[]>('entries.json?read=false');
+        // TODO: make this useful, and don't waterfall them.
+        const taggings = await fetchFeedbinResource<FeedbinTagging[]>('taggings.json');
+        const subscriptions = await fetchFeedbinResource<FeedbinSubscription[]>('subscriptions.json');
+        const unreadEntries = await fetchFeedbinResource<FeedbinEntry[]>('entries.json?read=false');
 
 	const subscriptionsByFeedId = new Map<number, FeedbinSubscription>();
 	for (const subscription of subscriptions) {
@@ -693,5 +689,5 @@ async function getRSSEntries(): Promise<RssEntriesResponse> {
 		data[tagging.name][subscription.title] = unreadForSubscription;
 	}
 
-	return { unreadEntryIds, taggings, subscriptions, unreadEntries, data };
+        return data;
 }
