@@ -645,10 +645,11 @@ async function getRSSEntries(): Promise<RssEntriesResponse> {
 		return (await res.json()) as T;
 	};
 
-	// TODO: make this useful, and don't waterfall them.
-	const taggings = await fetchFeedbinResource<FeedbinTagging[]>('taggings.json');
-	const subscriptions = await fetchFeedbinResource<FeedbinSubscription[]>('subscriptions.json');
-	const unreadEntries = await fetchFeedbinResource<FeedbinEntry[]>('entries.json?read=false');
+	const [taggings, subscriptions, unreadEntries] = await Promise.all([
+		fetchFeedbinResource<FeedbinTagging[]>('taggings.json'),
+		fetchFeedbinResource<FeedbinSubscription[]>('subscriptions.json'),
+		fetchFeedbinResource<FeedbinEntry[]>('entries.json?read=false'),
+	]);
 
 	const subscriptionsByFeedId = new Map<number, FeedbinSubscription>();
 	for (const subscription of subscriptions) {
