@@ -615,7 +615,7 @@ async function getRSSEntries() {
 	const subscriptions = await fetch(`${FEEDBIN_BASE_URL}/subscriptions.json`, {
 		headers,
 	}).then((res) => res.json());
-	const unreadEntries = await fetch(`${FEEDBIN_BASE_URL}/entries.json?read=false&mode=extended`, {
+	const unreadEntries = await fetch(`${FEEDBIN_BASE_URL}/entries.json?read=false`, {
 		headers,
 	}).then((res) => res.json());
 
