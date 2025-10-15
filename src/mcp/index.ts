@@ -631,6 +631,9 @@ let rssEntriesCache:
 
 type RssEntriesResponse = FeedbinTagData;
 
+// TODO: Need to have a separate tool to just fetch feed names/tags and unread counts.
+// then modify this tool to be able to fetch an individual feed or tag.
+// the goal here is to not use as much context
 async function getRSSEntries(): Promise<RssEntriesResponse> {
 	const now = Date.now();
 
