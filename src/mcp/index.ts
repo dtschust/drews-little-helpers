@@ -206,7 +206,7 @@ async function buildContext(): Promise<MCPContext> {
 		type: 'object' as const,
 		properties: {
 			torrentId: {
-				type: 'string' as const,
+				type: 'number' as const,
 				description: 'The id of the movie',
 			},
 			movieTitle: {
@@ -219,7 +219,7 @@ async function buildContext(): Promise<MCPContext> {
 	} as const;
 
 	const fetchMovieToolInputParser = z.object({
-		torrentId: z.string().optional(),
+		torrentId: z.number().optional(),
 		movieTitle: z.string().optional(),
 	});
 
