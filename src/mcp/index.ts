@@ -646,7 +646,7 @@ async function getVersions({ id, title }: { id: string; title: string }) {
 	return res.json();
 }
 
-async function fetchMovie({ torrentId, movieTitle }: { torrentId: string; movieTitle: string }) {
+async function fetchMovie({ torrentId, movieTitle }: { torrentId: number; movieTitle: string }) {
 	const token = process.env.CUSTOM_PTP_API_TOKEN;
 	if (!token) {
 		throw new Error('TOKEN is not set');
