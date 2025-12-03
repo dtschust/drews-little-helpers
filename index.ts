@@ -10,6 +10,7 @@ import addSuperlightRoute from './src/superlight-route';
 import addPodcastFeedRoute from './src/podcast-feed-route';
 import addMoviesRoute from './src/movies-route';
 import addMcpRoute from './src/mcp';
+import addOpenaiChallengeRoute from './src/openai-challenge-route';
 
 const fastify = fastifyFactory({
 	logger: false,
@@ -34,6 +35,7 @@ async function buildServer() {
 	addSuperlightRoute(fastify);
 	addPodcastFeedRoute(fastify);
 	addMoviesRoute(fastify);
+	addOpenaiChallengeRoute(fastify);
 	await addMcpRoute(fastify);
 }
 
