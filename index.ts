@@ -11,10 +11,13 @@ import addPodcastFeedRoute from './src/podcast-feed-route';
 import addMoviesRoute from './src/movies-route';
 import addMcpRoute from './src/mcp';
 import addOpenaiChallengeRoute from './src/openai-challenge-route';
+import addHdBitsRoute from './src/hdbits-route';
 
 const fastify = fastifyFactory({
 	logger: false,
-	ignoreTrailingSlash: true,
+	routerOptions: {
+		ignoreTrailingSlash: true,
+	},
 });
 
 const port = Number(process.env.PORT) || 8000;
@@ -35,6 +38,7 @@ async function buildServer() {
 	addSuperlightRoute(fastify);
 	addPodcastFeedRoute(fastify);
 	addMoviesRoute(fastify);
+	addHdBitsRoute(fastify);
 	addOpenaiChallengeRoute(fastify);
 	await addMcpRoute(fastify);
 }
@@ -45,6 +49,7 @@ async function start() {
 		await fastify.listen({ port, host: '0.0.0.0' });
 		console.log('Node app is running on port', port);
 	} catch (err) {
+		console.log(err);
 		fastify.log.error(err);
 		process.exit(1);
 	}

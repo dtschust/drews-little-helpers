@@ -72,6 +72,56 @@ interface SaveUrlOptions {
 	passKey?: string;
 }
 
+export function saveToDropboxByUrl({ title, url }: { title?: string; url: string }) {
+	const now = Date.now();
+	return dbx
+		.filesSaveUrl({
+			url,
+			path: `/torrents/${now}.torrent`,
+		})
+		.then((result: any) => {
+			const { async_job_id: asyncJobId, '.tag': tag } = result;
+			if (tag === 'complete') {
+				sendMessageToFollowShows(`Started download of *${title ?? url}*`);
+				return;
+			}
+			let thirtySecondCheck: NodeJS.Timeout | undefined;
+			let numTries = 0;
+			const checkJobStatus = () => {
+				dbx.filesSaveUrlCheckJobStatus({
+					async_job_id: asyncJobId,
+				})
+					.then(async (response: any) => {
+						if (response['.tag'] === 'complete') {
+							sendMessageToFollowShows(`Started download of *${title ?? url}*`);
+							clearTimeout(thirtySecondCheck);
+						} else if (response['.tag'] === 'failed') {
+							// This file was likely deleted on the other end after uploading successfully, check to see if that's the case then move along.
+							const filesMetadata = await dbx.filesGetMetadata({
+								path: `/torrents/${now}.torrent`,
+								include_deleted: true,
+							});
+							if (filesMetadata['.tag'] === 'deleted') {
+								sendMessageToFollowShows(`Started download of *${title ?? url}*`);
+							} else {
+							}
+							clearTimeout(thirtySecondCheck);
+						} else {
+							numTries += 1;
+							if (numTries > 5) {
+								clearTimeout(thirtySecondCheck);
+								throw new Error('unable to save to dropbox, it appears');
+							}
+							thirtySecondCheck = setTimeout(checkJobStatus, 30000);
+						}
+					})
+					.catch(() => {});
+			};
+			setTimeout(checkJobStatus, 5000);
+		})
+		.catch((error) => {});
+}
+
 export function saveUrlToDropbox({
 	torrentId,
 	movieTitle,
