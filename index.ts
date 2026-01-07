@@ -12,6 +12,7 @@ import addMoviesRoute from './src/movies-route';
 import addMcpRoute from './src/mcp';
 import addOpenaiChallengeRoute from './src/openai-challenge-route';
 import addHdBitsRoute from './src/hdbits-route';
+import addBtnRoute from './src/btn-route';
 
 const fastify = fastifyFactory({
 	logger: false,
@@ -39,6 +40,7 @@ async function buildServer() {
 	addPodcastFeedRoute(fastify);
 	addMoviesRoute(fastify);
 	addHdBitsRoute(fastify);
+	addBtnRoute(fastify);
 	addOpenaiChallengeRoute(fastify);
 	await addMcpRoute(fastify);
 }
