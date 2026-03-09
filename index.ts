@@ -13,6 +13,7 @@ import addMcpRoute from './src/mcp';
 import addOpenaiChallengeRoute from './src/openai-challenge-route';
 import addHdBitsRoute from './src/hdbits-route';
 import addBtnRoute from './src/btn-route';
+import addNotifsRoute from './src/notifs-route';
 
 const fastify = fastifyFactory({
 	logger: false,
@@ -41,6 +42,7 @@ async function buildServer() {
 	addMoviesRoute(fastify);
 	addHdBitsRoute(fastify);
 	addBtnRoute(fastify);
+	addNotifsRoute(fastify);
 	addOpenaiChallengeRoute(fastify);
 	await addMcpRoute(fastify);
 }
