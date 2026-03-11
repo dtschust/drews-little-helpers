@@ -6,7 +6,7 @@ type CreateNotifQuery = {
 	message?: string;
 };
 
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 export default function addNotifsRoute(fastify: FastifyInstance) {
 	fastify.post(
@@ -37,7 +37,7 @@ export default function addNotifsRoute(fastify: FastifyInstance) {
 			const notifications = await Notification.find({}).sort({ timestamp: -1 }).lean().exec();
 			reply.code(200).send(notifications);
 
-			const cutoff = Date.now() - ONE_DAY_MS;
+			const cutoff = Date.now() - SEVEN_DAYS_MS;
 			void Notification.deleteMany({ timestamp: { $lt: cutoff } }).catch((error) => {
 				console.error('Failed to cleanup old notifications', error);
 			});
