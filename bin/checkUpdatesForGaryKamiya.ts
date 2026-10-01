@@ -1,7 +1,7 @@
 #!/usr/bin/env -S npx tsx
 
 import dotenv from 'dotenv';
-import { Diff } from 'diff';
+import { diffWordsWithSpace } from 'diff';
 import puppeteer from 'puppeteer';
 import mongoose from 'mongoose';
 import { getMongoose } from '../src/utils/mongoose-connect';
@@ -62,7 +62,7 @@ async function checkForUpdates(oldPageContent: string) {
 
 		console.log('New updates!');
 
-		const diff = Diff.diffWordsWithSpace(oldPageContent, contentText);
+		const diff = diffWordsWithSpace(oldPageContent, contentText);
 		const output = diff
 			.map((part) => {
 				if (part.added) return `🟩${part.value}🟩`;
